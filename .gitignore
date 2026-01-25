@@ -1,0 +1,39 @@
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ----- Virtual environments -----
+.venv/
+venv/
+ENV/
+env/
+
+# ----- IDEs -----
+.vscode/
+.vs/
+.idea/
+
+# ----- OS -----
+.DS_Store
+Thumbs.db
+
+# ----- Outputs / artifacts -----
+output_data/
+tb_fab/
+*.png
+*.pdf
+
+# RL artifacts
+*.pkl
+*.zip
+ppo_fab_policy*
+vecnorm_stats*

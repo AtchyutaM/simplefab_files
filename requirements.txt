@@ -1,0 +1,12 @@
+# Core numeric + plotting
+numpy
+pandas
+matplotlib
+
+# RL / Gym
+gymnasium
+stable-baselines3
+
+# Torch + TensorBoard (SB3 uses torch; TB is for logging)
+torch
+tensorboard
