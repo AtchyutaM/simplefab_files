@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
+from sb3_contrib.common.maskable.utils import get_action_masks
 
 from .sim import ProductionLine
 
@@ -136,9 +137,17 @@ class FabEnv(gym.Env):
         a0, a1, a2, a3 = [int(x) for x in action]
         mask = self.line.compute_action_mask(current_time=self._t)  # (4,3)
 
+        # compute invalid selections FIRST
         invalid_selected = int(
             (mask[0, a0] == 0) + (mask[1, a1] == 0) + (mask[2, a2] == 0) + (mask[3, a3] == 0)
         )
+
+        # optional debug check (now safe)
+        if invalid_selected > 0:
+            # With correct MaskablePPO + action_masks(), this should be extremely rare.
+            # Uncomment to hard-fail if you want:
+            # raise RuntimeError(f"Mask mismatch: invalid_selected={invalid_selected}, action={action}, mask={mask}")
+            pass
 
         # project invalid picks to None
         a0 = a0 if mask[0, a0] else 0
@@ -153,20 +162,14 @@ class FabEnv(gym.Env):
             "machine3": ACTION_MAP[a3],
         }
 
-        # -----------------------------
-        # NEW: shaping bookkeeping
-        # -----------------------------
+        # --- rest of your code unchanged ---
         phi_before = self._phi() if self.shaping.enabled else 0.0
-
-        # Base reward from sim (your sim returns delta-profit because invalid_penalty=0.0)
         base_reward = self.line.run_step(current_time=self._t, actions_override=actions, invalid_penalty=0.0)
 
-        # invalid-selection penalty (unchanged behavior)
         invalid_pen = 0.0
         if self.invalid_action_penalty != 0.0 and invalid_selected > 0:
             invalid_pen = self.invalid_action_penalty * invalid_selected
 
-        # shaping term
         shaping_term = 0.0
         phi_after = 0.0
         if self.shaping.enabled:
@@ -175,7 +178,6 @@ class FabEnv(gym.Env):
 
         reward = float(base_reward + invalid_pen + shaping_term)
 
-        # advance time
         self._t += 1
         obs = np.array(self.line.get_observation(current_time=self._t, norm=self.normalize_obs), dtype=np.float32)
 
@@ -187,8 +189,6 @@ class FabEnv(gym.Env):
             "profit": self.line.cost_log[-1]["profit"] if self.line.cost_log else 0.0,
             "invalid_selected": invalid_selected,
             "invalid_sim": self.line.cost_log[-1]["invalid_actions"] if self.line.cost_log else 0,
-
-            # NEW debug signals for shaping:
             "base_reward": float(base_reward),
             "invalid_penalty": float(invalid_pen),
             "shaping": float(shaping_term),
@@ -217,6 +217,19 @@ class FabEnv(gym.Env):
 
         return obs, reward, terminated, truncated, info
 
+
+    def action_masks(self) -> np.ndarray:
+        """
+        Action mask for sb3-contrib MaskablePPO.
+
+        For MultiDiscrete([3,3,3,3]), return a flattened boolean array of length 12:
+        [m0_a0, m0_a1, m0_a2, m1_a0, ..., m3_a2]
+        True = valid, False = invalid.
+        """
+        mask_4x3 = self.line.compute_action_mask(current_time=self._t)  # shape (4,3), 0/1
+        return mask_4x3.astype(bool).reshape(-1)
+
+    
     def render(self):
         pass
 

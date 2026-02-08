@@ -4,6 +4,7 @@ import numpy as np
 from typing import List, Dict, Any
 
 from stable_baselines3 import PPO
+from sb3_contrib import MaskablePPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
 from stable_baselines3.common.callbacks import BaseCallback
@@ -71,7 +72,7 @@ def main():
     env = VecMonitor(env)
     env = VecNormalize(env, norm_obs=False, norm_reward=True, clip_reward=10.0)
 
-    model = PPO(
+    model = MaskablePPO(
         "MlpPolicy",
         env,
         device="cpu",
@@ -88,6 +89,7 @@ def main():
         verbose=1,
     )
 
+
     tb_name = "PPO_CPU_Run_shaping_beta0p5"
     callback = FabTBCallback()
 
@@ -96,6 +98,7 @@ def main():
         tb_log_name=tb_name,
         log_interval=1,
         callback=callback,
+        use_masking=True,
     )
 
     model.save("ppo_fab_policy")

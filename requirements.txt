@@ -6,6 +6,7 @@ matplotlib
 # RL / Gym
 gymnasium
 stable-baselines3
+sb3-contrib
 
 # Torch + TensorBoard (SB3 uses torch; TB is for logging)
 torch
