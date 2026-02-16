@@ -49,6 +49,10 @@ class FabTBCallback(BaseCallback):
 
 def main():
     common_train = make_common_config(mode="UNIFORM", H=500, alpha=0.5, utilization=0.92)
+    
+    # Add initial finished inventory to cover cold-start ramp-up period
+    # This reduces backorder costs during the first ~80 timesteps before production can ship
+    common_train["initial_finished_inventory"] = {0: 8, 1: 9}  # P0: 8, P1: 9
 
     PPO_GAMMA = 0.99
     shaping = ShapingConfig(
@@ -76,11 +80,11 @@ def main():
         "MlpPolicy",
         env,
         device="cpu",
-        n_steps=1024,
-        batch_size=2048,
-        learning_rate=1e-3,
-        clip_range=0.3,
-        ent_coef=0.01,
+        n_steps=2048,           # Longer rollouts for better value estimates
+        batch_size=512,         # Smaller batches for more gradient updates
+        learning_rate=3e-4,     # Lower LR for stability
+        clip_range=0.2,         # Standard PPO clip range
+        ent_coef=0.05,          # Higher entropy to prevent collapse
         gae_lambda=0.95,
         gamma=PPO_GAMMA,
         vf_coef=0.5,
@@ -90,7 +94,7 @@ def main():
     )
 
 
-    tb_name = "PPO_CPU_Run_shaping_beta0p5"
+    tb_name = "PPO_warmstart_8P0_9P1"
     callback = FabTBCallback()
 
     model.learn(

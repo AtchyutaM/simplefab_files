@@ -55,7 +55,10 @@ class Machine:
         self.last_finished_product: Optional[int] = None
 
     def process(self, product: int, current_time: int) -> int:
-        prev = self.current_product
+        # Use last_finished_product (not current_product) so setup time
+        # correctly reflects the changeover from the previously completed job,
+        # matching how setup COST is calculated in run_step().
+        prev = self.last_finished_product
         if prev is None:
             setup_time = int(self.setup_times[None][product])
         else:
@@ -191,6 +194,13 @@ class ProductionLine:
             "queue_fin": [[], []],   # finished inventory
             "demand": [[], []],      # unmet demand
         }
+
+        # Initialize with starting finished goods inventory (to avoid cold-start backorders)
+        init_fin = common_cfg.get("initial_finished_inventory", {0: 0, 1: 0})
+        for _ in range(int(init_fin.get(0, 0))):
+            self.queues["queue_fin"][0].append(-1)  # -1 indicates pre-existing inventory
+        for _ in range(int(init_fin.get(1, 0))):
+            self.queues["queue_fin"][1].append(-1)
 
         # logs
         self.logs: Dict[str, List[Tuple[List[int], int]]] = {k: [] for k in self.queues}
