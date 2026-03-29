@@ -10,7 +10,7 @@ from simplefab.gantt import extract_gantt_data, plot_gantt_chart
 
 
 def main():
-    common = make_common_config(mode="UNIFORM", H=500, alpha=0.5, utilization=0.92)
+    common = make_common_config()
 
     pt = common["processing_times"]
     setups = {None: {0: 1, 1: 1}, 0: {0: 0, 1: 1}, 1: {0: 1, 1: 0}}

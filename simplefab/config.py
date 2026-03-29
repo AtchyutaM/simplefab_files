@@ -5,9 +5,12 @@ from typing import Dict, Any, List
 
 def make_common_config(
     mode: str = "UNIFORM",
-    H: int = 1000,
-    alpha: float = 0.5,          # fraction of Product 0 in the mix (0..1)
-    utilization: float = 0.92     # target share of the bottleneck capacity (0..1)
+    H: int = 2688,                # 4 weeks (672 ticks/week)
+    alpha: float = 0.5,           # fraction of Product 0 in the mix (0..1)
+    utilization: float = 0.92,    # target share of the bottleneck capacity for DEMAND (0..1)
+    demand_delay: int = 96,       # ticks to delay demand after arrivals (96 = 1 day)
+    demand_interval: int = 672,   # ticks between demand batches (672 = 1 week)
+    arrival_interval: int = 672,  # ticks between raw material deliveries (672 = 1 week)
 ) -> Dict[str, Any]:
     """
     Build a single "source of truth" config for both MILP and Simulation.
@@ -19,6 +22,9 @@ def make_common_config(
 
     We then round x0 and x1 down to the nearest multiple of the batch size (4),
     so batch machines can always start complete batches.
+
+    Arrivals are computed at 100% capacity (fully fed factory).
+    Demand is computed at `utilization` capacity (e.g., 92%).
     """
     if H < 0:
         raise ValueError("H must be >= 0")
@@ -50,8 +56,8 @@ def make_common_config(
             3: {0: 4,  1: 4},
         },
         "setup_cost": {0: 0, 1: 20, 2: 0, 3: 20},
-        "inventory_cost_per_unit": {0: 0.5, 1: 0.6},
-        "backorder_cost_per_unit": {0: 1.0, 1: 1.0},
+        "inventory_cost_per_unit": {0: 0.02, 1: 0.025},
+        "backorder_cost_per_unit": {0: 0.10, 1: 0.15},
 
         "initial_inventory": {
             0: {0: 0, 1: 0},
@@ -60,6 +66,7 @@ def make_common_config(
             3: {0: 0, 1: 0},
             "finished": {0: 0, 1: 0},
         },
+        "initial_finished_inventory": {0: 8, 1: 8},
 
         "arrivals_schedule": {},
         "demand_schedule": {},
@@ -75,19 +82,34 @@ def make_common_config(
     if denom <= 0.0:
         denom = 4.5
 
-    T_cont = (u * H) / denom
-    x0_cont = alpha * T_cont
-    x1_cont = (1.0 - alpha) * T_cont
-
     BATCH = int(common["batch_sizes"][0])  # batch machine size (4)
-    total_0 = (int(x0_cont) // BATCH) * BATCH
-    total_1 = (int(x1_cont) // BATCH) * BATCH
 
-    def spread(total: int, horizon: int) -> List[int]:
-        if horizon <= 0:
-            return []
-        base, r = divmod(total, horizon)
-        return [base + (1 if t < r else 0) for t in range(horizon)]
+    # Arrivals at 100% capacity (fully fed factory)
+    T_arr = H / denom
+    arr_total_0 = (int(alpha * T_arr) // BATCH) * BATCH
+    arr_total_1 = (int((1.0 - alpha) * T_arr) // BATCH) * BATCH
+
+    # Demand at utilization% capacity
+    T_dem = (u * H) / denom
+    total_0 = (int(alpha * T_dem) // BATCH) * BATCH
+    total_1 = (int((1.0 - alpha) * T_dem) // BATCH) * BATCH
+
+    # --- schedule generation ---
+    def distribute_to_intervals(total: int, horizon: int, interval: int, delay: int = 0) -> List[int]:
+        """Split total units into events spaced by `interval` ticks, with optional delay."""
+        schedule = [0] * horizon
+        n_events = horizon // interval
+        if n_events == 0:
+            if delay < horizon:
+                schedule[delay] = total
+            return schedule
+        per_event = total // n_events
+        remainder = total % n_events
+        for i in range(n_events):
+            t = i * interval + delay
+            if t < horizon:
+                schedule[t] = per_event + (1 if i < remainder else 0)
+        return schedule
 
     mode_u = mode.upper().strip()
     if mode_u == "ALL_AT_T0":
@@ -96,21 +118,22 @@ def make_common_config(
         dem0 = [0] * H
         dem1 = [0] * H
         if H > 0:
-            arr0[0] = total_0
-            arr1[0] = total_1
+            arr0[0] = arr_total_0
+            arr1[0] = arr_total_1
             dem0[0] = total_0
             dem1[0] = total_1
     elif mode_u == "UNIFORM":
-        arr0 = spread(total_0, H)
-        arr1 = spread(total_1, H)
-        dem0 = arr0[:]
-        dem1 = arr1[:]
+        arr0 = distribute_to_intervals(arr_total_0, H, arrival_interval, delay=0)
+        arr1 = distribute_to_intervals(arr_total_1, H, arrival_interval, delay=0)
+        dem0 = distribute_to_intervals(total_0, H, demand_interval, delay=demand_delay)
+        dem1 = distribute_to_intervals(total_1, H, demand_interval, delay=demand_delay)
     else:
         raise ValueError("mode must be ALL_AT_T0 or UNIFORM")
 
     common["arrivals_schedule"] = {0: arr0, 1: arr1}
     common["demand_schedule"] = {0: dem0, 1: dem1}
     common["demand"] = {0: total_0, 1: total_1}
+    common["arrivals"] = {0: arr_total_0, 1: arr_total_1}
     common["mix_alpha"] = alpha
     common["utilization"] = u
 
