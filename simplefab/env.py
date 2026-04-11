@@ -45,7 +45,7 @@ class FabEnv(gym.Env):
     """
     Gymnasium wrapper around ProductionLine.
 
-    Observation: 20-dim vector in [0,1] (by default normalized).
+    Observation: 28-dim vector in [0,1] (by default normalized).
     Action: MultiDiscrete([3,3,3,3]) for 4 machines × {None, Prod0, Prod1}.
 
     Invalid actions handling:
@@ -72,7 +72,7 @@ class FabEnv(gym.Env):
         self.normalize_obs = bool(normalize_obs)
         self.shaping = shaping if shaping is not None else ShapingConfig()
 
-        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(20,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(28,), dtype=np.float32)
         self.action_space = spaces.MultiDiscrete([3, 3, 3, 3])
 
         self._max_steps = int(self.common["time_horizon"])

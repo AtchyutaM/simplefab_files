@@ -127,8 +127,23 @@ def make_common_config(
         arr1 = distribute_to_intervals(arr_total_1, H, arrival_interval, delay=0)
         dem0 = distribute_to_intervals(total_0, H, demand_interval, delay=demand_delay)
         dem1 = distribute_to_intervals(total_1, H, demand_interval, delay=demand_delay)
+    elif mode_u == "ALTERNATING":
+        # Raw materials arrive uniformly at 100% capacity
+        arr0 = distribute_to_intervals(arr_total_0, H, arrival_interval, delay=0)
+        arr1 = distribute_to_intervals(arr_total_1, H, arrival_interval, delay=0)
+        
+        # Demand alternates: [50, 86, 50, 86] per product (total 272 = same as 68x4)
+        dem0 = [0] * H
+        dem1 = [0] * H
+        
+        pattern = [50, 86, 50, 86]
+        for i, amt in enumerate(pattern):
+            t = i * demand_interval + demand_delay
+            if t < H:
+                dem0[t] = amt
+                dem1[t] = amt
     else:
-        raise ValueError("mode must be ALL_AT_T0 or UNIFORM")
+        raise ValueError("mode must be ALL_AT_T0, UNIFORM, or ALTERNATING")
 
     common["arrivals_schedule"] = {0: arr0, 1: arr1}
     common["demand_schedule"] = {0: dem0, 1: dem1}
@@ -136,5 +151,7 @@ def make_common_config(
     common["arrivals"] = {0: arr_total_0, 1: arr_total_1}
     common["mix_alpha"] = alpha
     common["utilization"] = u
+    common["demand_interval"] = int(demand_interval)
+    common["demand_delay"] = int(demand_delay)
 
     return common

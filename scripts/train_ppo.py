@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from sb3_contrib import MaskablePPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 
 from simplefab import make_common_config
 from simplefab.env import FabEnv, ShapingConfig
@@ -170,10 +170,20 @@ def main():
         verbose=1,
     )
 
+    save_dir = os.path.join(os.getcwd(), "output_data", "models")
+    os.makedirs(save_dir, exist_ok=True)
+
+    checkpoint_callback = CheckpointCallback(
+        save_freq=max(1, 250_000 // 8),  # Save every ~250k steps
+        save_path=save_dir,
+        name_prefix="ppo_fab_checkpoint"
+    )
+
     tb_name = "PPO_weekly_2688"
     callbacks = [
         FabTBCallback(),
         EvalCallback(eval_cfg=common_train, shaping=shaping, eval_freq=5),
+        checkpoint_callback
     ]
 
     model.learn(

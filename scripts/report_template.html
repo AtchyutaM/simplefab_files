@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SimpleFab End-to-End Evaluation Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0;
+            background-color: #0d1117; color: #c9d1d9;
+            line-height: 1.6;
+        }
+        .container { width: 85%; max-width: 1400px; margin: 0 auto; padding: 40px 0; }
+        h1, h2, h3 { color: #58a6ff; }
+        h1 { border-bottom: 2px solid #30363d; padding-bottom: 10px; }
+        .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
+        .card-highlight { background-color: #1c2128; border-left: 4px solid #d2a8ff; padding: 15px; margin: 15px 0; }
+        img { max-width: 100%; height: auto; border: 1px solid #30363d; border-radius: 4px; display: block; margin: 0 auto; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .metrics-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .metrics-table th, .metrics-table td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+        .metrics-table th { background-color: #21262d; }
+        .positive { color: #3fb950; font-weight: bold; }
+        .negative { color: #f85149; font-weight: bold; }
+        .metric-large { font-size: 1.25em; font-weight: bold; color: #d2a8ff; }
+        .caption { text-align: center; font-size: 0.9em; color: #8b949e; margin-top: 8px; font-style: italic; }
+        code { background-color: #21262d; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SimpleFab End-to-End Evaluation Report</h1>
+        <p style="color: #8b949e">Generated from RL Agent Policy: <code>{{MODEL_SRC}}</code></p>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 1: PRODUCTION LINE ARCHITECTURE                     -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>1. Production Line Architecture</h2>
+            <p>SimpleFab models a <b>4-machine serial production line</b> manufacturing two products (P0 and P1). Each unit must pass through all four machines in sequence:</p>
+
+            <div class="card-highlight" style="border-left-color: #58a6ff; font-family: monospace; font-size: 0.95em; overflow-x: auto;">
+                Raw Material &rarr; <b>Queue 0</b> &rarr; <span style="color:#58a6ff">M0 (Batch&times;4)</span> &rarr; <b>Queue 1</b> &rarr; <span style="color:#f78166">M1 (Single)</span> &rarr; <b>Queue 2</b> &rarr; <span style="color:#58a6ff">M2 (Batch&times;4)</span> &rarr; <b>Queue 3</b> &rarr; <span style="color:#f78166">M3 (Single)</span> &rarr; Finished Inventory / Ship
+            </div>
+
+            <table class="metrics-table">
+                <thead><tr><th>Machine</th><th>Type</th><th>Batch Size</th><th>Processing Time (P0 / P1)</th><th>Setup Time</th><th>Setup Cost</th></tr></thead>
+                <tbody>
+                    <tr><td><b>M0</b></td><td>Batch</td><td>4 units</td><td>16 / 20 ticks</td><td>0 ticks</td><td>$0</td></tr>
+                    <tr><td><b>M1</b></td><td>Single</td><td>1 unit</td><td>2 / 2 ticks</td><td>1 tick (on product switch)</td><td>$20</td></tr>
+                    <tr><td><b>M2</b></td><td>Batch</td><td>4 units</td><td>16 / 20 ticks</td><td>0 ticks</td><td>$0</td></tr>
+                    <tr><td><b>M3</b></td><td>Single</td><td>1 unit</td><td>2 / 2 ticks</td><td>1 tick (on product switch)</td><td>$20</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top:20px;">Product Economics</h3>
+            <table class="metrics-table">
+                <thead><tr><th>Product</th><th>Revenue / unit</th><th>Production cost / unit</th><th>Holding cost / tick</th><th>Backorder cost / tick</th></tr></thead>
+                <tbody>
+                    <tr><td><b>Product 0</b></td><td>$80</td><td>$26</td><td>$0.02</td><td>$0.10</td></tr>
+                    <tr><td><b>Product 1</b></td><td>$100</td><td>$26</td><td>$0.025</td><td>$0.15</td></tr>
+                </tbody>
+            </table>
+            <p style="margin-top:10px; color:#8b949e;">Backorder costs are 5&ndash;6&times; higher than holding costs, strongly penalizing late fulfillment over early production.</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 2: DEMAND MODEL                                     -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>2. Demand Model</h2>
+            <p>Demand is <b>deterministic</b> and pre-computed at configuration time. Total demand derives from the target <b>utilization</b> of the bottleneck machines (M0/M2).</p>
+
+            <div class="card-highlight">
+                <h3>Demand Schedule Parameters</h3>
+                <table class="metrics-table">
+                    <thead><tr><th>Parameter</th><th>Value</th><th>Meaning</th></tr></thead>
+                    <tbody>
+                        <tr><td>Horizon (H)</td><td>2,688 ticks</td><td>4 weeks &times; 672 ticks/week (1 tick = 15 min)</td></tr>
+                        <tr><td>Product Mix (&alpha;)</td><td>0.50</td><td>50% P0, 50% P1</td></tr>
+                        <tr><td>Utilization (u)</td><td>0.92</td><td>Demand at 92% of bottleneck capacity</td></tr>
+                        <tr><td>Demand Interval</td><td>672 ticks (weekly)</td><td>Demand arrives in weekly batches</td></tr>
+                        <tr><td>Demand Delay</td><td>96 ticks (1 day)</td><td>Demand starts 1 day after raw material arrivals</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p><b>Result:</b> 272 units of P0 + 272 units of P1 = <b>544 total demand</b>, distributed as <b>68 units per product per week</b> arriving at ticks 96, 768, 1440, and 2112.</p>
+            <p>Raw material arrivals arrive at <b>100% capacity</b> (296 units per product), ensuring the factory always has more supply than demand. The challenge is purely about <b>scheduling and sequencing</b>, not supply constraints.</p>
+
+            <div class="card-highlight" style="border-left-color:#f78166;">
+                <h3>Demand Fulfillment Logic</h3>
+                <p>When Machine 3 finishes a unit:</p>
+                <ul>
+                    <li>If <b>demand exists</b> for that product &rarr; ship immediately, earn revenue</li>
+                    <li>If <b>no demand</b> &rarr; store as finished inventory (holding cost accumulates each tick)</li>
+                </ul>
+                <p>Unfulfilled demand accumulates as <b>backorders</b>, incurring per-tick penalties ($0.10/P0, $0.15/P1) until fulfilled.</p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 3: RL TRAINING METHOD                               -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>3. RL Training Method</h2>
+
+            <div class="grid-2">
+                <div>
+                    <h3>Algorithm: MaskablePPO</h3>
+                    <p>We use <b>Proximal Policy Optimization (PPO)</b> with <b>invalid action masking</b> from the <code>sb3-contrib</code> library. Action masking ensures the agent only selects <b>feasible actions</b> at each timestep &mdash; it cannot start a busy machine, nor batch a product with fewer than 4 units in queue.</p>
+                    <table class="metrics-table">
+                        <thead><tr><th>Hyperparameter</th><th>Value</th></tr></thead>
+                        <tbody>
+                            <tr><td>Total Timesteps</td><td>5,000,000</td></tr>
+                            <tr><td>Parallel Environments</td><td>8</td></tr>
+                            <tr><td>Rollout Length (n_steps)</td><td>2,688 (= 1 full episode)</td></tr>
+                            <tr><td>Minibatch Size</td><td>672</td></tr>
+                            <tr><td>Learning Rate</td><td>3 &times; 10<sup>-4</sup></td></tr>
+                            <tr><td>Discount (&gamma;)</td><td>0.99</td></tr>
+                            <tr><td>GAE &lambda;</td><td>0.95</td></tr>
+                            <tr><td>Clip Range</td><td>0.2</td></tr>
+                            <tr><td>Entropy Coefficient</td><td>0.05</td></tr>
+                            <tr><td>Invalid Action Penalty</td><td>&minus;2.0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <h3>Action Space</h3>
+                    <p><code>MultiDiscrete([3, 3, 3, 3])</code> &mdash; one decision per machine per tick:</p>
+                    <table class="metrics-table">
+                        <thead><tr><th>Action Index</th><th>Meaning</th></tr></thead>
+                        <tbody>
+                            <tr><td>0 &mdash; None</td><td>Idle / wait (always valid)</td></tr>
+                            <tr><td>1 &mdash; Prod0</td><td>Start processing Product 0</td></tr>
+                            <tr><td>2 &mdash; Prod1</td><td>Start processing Product 1</td></tr>
+                        </tbody>
+                    </table>
+                    <p>Total combinatorial space: <b>3<sup>4</sup> = 81</b> possible joint actions per tick, constrained by feasibility masks.</p>
+
+                    <h3 style="margin-top:20px;">Reward Signal</h3>
+                    <p>The per-step reward has three components:</p>
+                    <ol>
+                        <li><b>&Delta;Profit</b> &mdash; change in cumulative profit (Revenue &minus; all costs)</li>
+                        <li><b>Invalid Action Penalty</b> &mdash; &minus;$2.0 for any masked action the agent selects</li>
+                        <li><b>Potential-Based Shaping</b> &mdash; &beta;(&gamma;&Phi;(s') &minus; &Phi;(s))</li>
+                    </ol>
+                    <p>Where &Phi;(s) = &minus;(2.0 &times; backlog + 0.2 &times; WIP + 0.05 &times; finished_inv). This provides a denser learning signal, guiding the agent to reduce backlogs proactively rather than waiting for the delayed revenue.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 4: OBSERVATION SPACE                                -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>4. Observation Space (28 Dimensions)</h2>
+            <p>The agent receives a <b>28-dimensional</b> continuous vector at each tick, normalized to [0, 1]. This expanded observation space (upgraded from the original 20 dims) gives the agent demand foresight, temporal context, and setup-cost awareness.</p>
+
+            <table class="metrics-table">
+                <thead><tr><th>Dim</th><th>Name</th><th>Description</th><th>Normalization</th></tr></thead>
+                <tbody>
+                    <tr style="background-color:#1c2128;"><td colspan="4"><b>Queue Levels (12 dims)</b></td></tr>
+                    <tr><td>0&ndash;1</td><td>Queue 0 (P0, P1)</td><td>Raw material waiting for M0</td><td>&divide; 64</td></tr>
+                    <tr><td>2&ndash;3</td><td>Queue 1 (P0, P1)</td><td>WIP between M0 &rarr; M1</td><td>&divide; 64</td></tr>
+                    <tr><td>4&ndash;5</td><td>Queue 2 (P0, P1)</td><td>WIP between M1 &rarr; M2</td><td>&divide; 64</td></tr>
+                    <tr><td>6&ndash;7</td><td>Queue 3 (P0, P1)</td><td>WIP between M2 &rarr; M3</td><td>&divide; 64</td></tr>
+                    <tr><td>8&ndash;9</td><td>Finished Inventory (P0, P1)</td><td>Produced but not yet shipped</td><td>&divide; 64</td></tr>
+                    <tr><td>10&ndash;11</td><td>Demand Queue (P0, P1)</td><td>Current unfulfilled backlog</td><td>&divide; 64</td></tr>
+
+                    <tr style="background-color:#1c2128;"><td colspan="4"><b>Machine States (8 dims)</b></td></tr>
+                    <tr><td>12&ndash;15</td><td>Current Product (M0&ndash;M3)</td><td>None=0, P0=1, P1=2</td><td>&divide; 2</td></tr>
+                    <tr><td>16&ndash;19</td><td>Time Remaining (M0&ndash;M3)</td><td>Ticks until machine is free</td><td>&divide; per-machine cap</td></tr>
+
+                    <tr style="background-color:#0d2137;"><td colspan="4"><b>&#x2728; Demand Lookahead (4 dims) &mdash; NEW</b></td></tr>
+                    <tr style="color:#3fb950;"><td>20&ndash;21</td><td>Demand This Period (P0, P1)</td><td>Total demand arriving in current weekly window</td><td>&divide; max period demand</td></tr>
+                    <tr style="color:#3fb950;"><td>22&ndash;23</td><td>Demand Next Period (P0, P1)</td><td>Total demand arriving in the next weekly window</td><td>&divide; max period demand</td></tr>
+
+                    <tr style="background-color:#0d2137;"><td colspan="4"><b>&#x2728; Time Awareness (2 dims) &mdash; NEW</b></td></tr>
+                    <tr style="color:#3fb950;"><td>24</td><td>Global Progress</td><td>t / H &mdash; how far through the episode</td><td>[0, 1]</td></tr>
+                    <tr style="color:#3fb950;"><td>25</td><td>Period Progress</td><td>Position within the current weekly demand cycle</td><td>[0, 1)</td></tr>
+
+                    <tr style="background-color:#0d2137;"><td colspan="4"><b>&#x2728; Setup Context (2 dims) &mdash; NEW</b></td></tr>
+                    <tr style="color:#3fb950;"><td>26</td><td>M1 Last Finished Product</td><td>What M1 last completed (setup decision context)</td><td>&divide; 2</td></tr>
+                    <tr style="color:#3fb950;"><td>27</td><td>M3 Last Finished Product</td><td>What M3 last completed (setup decision context)</td><td>&divide; 2</td></tr>
+                </tbody>
+            </table>
+
+            <div class="card-highlight" style="border-left-color:#3fb950; margin-top:15px;">
+                <h3>Why These 8 New Dimensions Matter</h3>
+                <ul>
+                    <li><b>Demand Lookahead (20&ndash;23):</b> The agent can see "68 units of P0 are coming this week" <em>before</em> they enter the backlog. This enables proactive, just-in-time production that reduces backorder spikes.</li>
+                    <li><b>Time Awareness (24&ndash;25):</b> Period progress tells the agent "demand is about to arrive" within the weekly cycle. Global progress signals "this is the last week &mdash; don't overproduce."</li>
+                    <li><b>Setup Context (26&ndash;27):</b> When M1 or M3 are idle, the agent knows what they last processed. This enables informed decisions about whether a product switch (and the $20 cost) is worthwhile.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 5: PROBLEM CONSTRAINTS SUMMARY                      -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>5. Problem Constraints Summary</h2>
+            <p>The scheduling problem is deeply constrained. The factory operates under extreme load:</p>
+            <ul>
+                <li><b>Time Horizon:</b> 4 Weeks (2688 ticks = 1 tick per 15 minutes)</li>
+                <li><b>Arrivals:</b> Raw materials arrive weekly covering exactly <b>100%</b> of the bottleneck's capacity.</li>
+                <li><b>Demand:</b> Customers place orders weekly at <b>92%</b> of capacity.</li>
+                <li><b>Slack:</b> Only 240 ticks of slack (2.5 days out of 28 days) are left across M1 and M3. A single unnecessary changeover burns 1 tick.</li>
+            </ul>
+            <img src="../../output_data/weekly_92pct_overview.png" alt="Capacity Layout">
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 6: PERFORMANCE RESULTS                              -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>6. RL Agent Performance vs Baseline Heuristic</h2>
+            
+            <div class="card-highlight">
+                <h3>What is the Baseline Heuristic (Commander)?</h3>
+                <p>The "Commander" is a hand-coded, greedy pull-system algorithm. It always prioritizes whichever product currently has the highest percentage share of the unmet customer demand backorder queue. It does <b>not</b> look ahead, and it does <b>not</b> natively understand that switching products incurs a setup time penalty.</p>
+            </div>
+
+            {{PERFORMANCE_VERDICT}}
+            
+            <table class="metrics-table">
+                <thead>
+                    <tr>
+                        <th>Performance Metric</th>
+                        <th>RL Agent Policy</th>
+                        <th>Baseline Heuristic (Commander)</th>
+                        <th>Difference vs Baseline</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{METRICS_ROWS}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 7: VISUAL ECONOMIC BREAKDOWN                        -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>7. Visual Economic Breakdown &amp; Action Strategy</h2>
+            <div class="grid-2">
+                <div>
+                    <img src="1_cost_breakdown.png" alt="Cost Breakdown">
+                    <div class="caption">The agent prioritizes drastically reducing Setup/Changeover costs, absorbing slightly higher Backorder penalties, ultimately leading to higher Profit.</div>
+                </div>
+                <div>
+                    <img src="2_action_distributions.png" alt="Action Distributions">
+                    <div class="caption">Notice how the agent changes actions roughly the same amount as the heuristic on M0/M2 (batch), but radically diverges on M1/M3 (singles) to batch and prevent changeovers.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 8: FACTORY STABILITY                                -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>8. Factory Stability &amp; Queue Mechanics</h2>
+            <p>By preventing unnecessary changeovers, the bottleneck effectively opens up, allowing the RL agent to physically process and ship more total units than the heuristic baseline under the same demand parameters.</p>
+            <div class="grid-2">
+                <div>
+                    <img src="3_queue_dynamics.png" alt="Queue Dynamics">
+                    <div class="caption">Agent (solid) vs Heuristic (dashed). The agent manages to keep WIP spikes much more stable, particularly in Q3 and the actual Customer Demand Backorder queue.</div>
+                </div>
+                <div>
+                    <img src="4_demand_fulfillment.png" alt="Demand Fulfillment">
+                    <div class="caption">Tracking the aggregate cumulative shipments over the 4-week window. The Agent actively fulfills shipments more steadily than the Commander toward the end of the simulation.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  SECTION 9: GANTT TIMELINE                                   -->
+        <!-- ============================================================ -->
+        <div class="card">
+            <h2>9. Detailed Timeline: How the RL Agent Wins</h2>
+            <div class="card-highlight">
+                <p>This Gantt chart reveals exactly <b>when</b> and <b>where</b> raw materials are processed. Notice the red blocks representing <b>Setup/Changeover times</b> on the single-unit machines (M1 and M3).</p>
+                <p>The RL agent actively avoids switching products on these machines unless absolutely necessary, grouping similar units together into larger contiguous batches. The Baseline Heuristic oscillates back and forth, burning valuable time on changeovers rather than producing.</p>
+            </div>
+            <h3>Zoomed-in Timeline (Week 2: High Contention)</h3>
+            <img src="6_gantt_zoomed.png" alt="Week 2 Gantt">
+            
+            <h3 style="margin-top: 40px;">Full 4-Week Horizon Timeline</h3>
+            <img src="5_gantt_full.png" alt="Full Gantt">
+        </div>
+
+    </div>
+</body>
+</html>

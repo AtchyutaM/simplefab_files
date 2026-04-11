@@ -184,6 +184,8 @@ class ProductionLine:
         self.arrivals_schedule = common_cfg["arrivals_schedule"]
         self.demand_schedule = common_cfg["demand_schedule"]
         self.H = int(common_cfg["time_horizon"])
+        self.demand_interval = int(common_cfg.get("demand_interval", 672))
+        self.demand_delay = int(common_cfg.get("demand_delay", 96))
 
         # queues store timestamps (arrival times) for each unit
         self.queues: Dict[str, List[List[int]]] = {
@@ -288,10 +290,16 @@ class ProductionLine:
 
     def get_observation(self, current_time: int, norm: bool = True) -> List[float]:
         """
-        20-dim observation:
-          0-11: queue counts [q0P0,q0P1,q1P0,q1P1,q2P0,q2P1,q3P0,q3P1,qfinP0,qfinP1,demP0,demP1]
+        28-dim observation:
+          0-11:  queue counts [q0P0,q0P1,q1P0,q1P1,q2P0,q2P1,q3P0,q3P1,qfinP0,qfinP1,demP0,demP1]
           12-15: machine current product codes (None->0, P0->1, P1->2), scaled to [0,1]
           16-19: machine time_remaining, scaled to [0,1]
+          20-21: demand arriving this period (P0, P1)
+          22-23: demand arriving next period (P0, P1)
+          24:    global progress (t / H)
+          25:    period progress (t % demand_interval / demand_interval)
+          26:    M1 last_finished_product (None->0, P0->1, P1->2)
+          27:    M3 last_finished_product (None->0, P0->1, P1->2)
         """
         def enc_curr(p: Optional[int]) -> int:
             return 0 if p is None else (int(p) + 1)
@@ -319,6 +327,38 @@ class ProductionLine:
             tl = 0 if m.current_product is None else max(m.finish_time - current_time, 0)
             cap = per_machine_time_cap[i]
             v.append((tl / cap) if norm else float(tl))
+
+        # --- NEW dims 20-27 ---
+
+        # dims 20-23: demand lookahead (this period + next period)
+        period_idx = current_time // self.demand_interval
+        this_tick = period_idx * self.demand_interval + self.demand_delay
+        next_tick = (period_idx + 1) * self.demand_interval + self.demand_delay
+        # normalizer: max single-period demand across all products and periods
+        max_period_demand = max(
+            max((self.demand_schedule[j][t] for t in range(self.H) if self.demand_schedule[j][t] > 0), default=1)
+            for j in (0, 1)
+        )
+        max_period_demand = max(max_period_demand, 1.0)
+        for j in (0, 1):
+            d = self.demand_schedule[j][this_tick] if 0 <= this_tick < self.H else 0
+            v.append((d / max_period_demand) if norm else float(d))
+        for j in (0, 1):
+            d = self.demand_schedule[j][next_tick] if 0 <= next_tick < self.H else 0
+            v.append((d / max_period_demand) if norm else float(d))
+
+        # dim 24: global progress
+        gp = (current_time / self.H) if self.H > 0 else 0.0
+        v.append(min(gp, 1.0) if norm else float(current_time))
+
+        # dim 25: period progress (position within the current demand cycle)
+        pp = (current_time % self.demand_interval) / self.demand_interval
+        v.append(pp if norm else float(current_time % self.demand_interval))
+
+        # dims 26-27: last_finished_product for M1 and M3
+        for m in (self.machine1, self.machine3):
+            code = enc_curr(m.last_finished_product)
+            v.append((code / 2.0) if norm else float(code))
 
         return v
 
