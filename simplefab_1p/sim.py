@@ -223,12 +223,14 @@ class ProductionLine:
 
     def get_observation(self, current_time: int, norm: bool = True) -> List[float]:
         """
-        16-dim observation:
+        18-dim observation:
           0-5:   queue counts [q0, q1, q2, q3, qfin, demand]
           6-9:   machine busy flags (0 or 1)
           10-13: machine time_remaining, scaled to [0, 1]
           14:    global progress (t / H)
           15:    period progress (t % demand_interval / demand_interval)
+          16:    ticks_until_next_demand (scaled to [0, 1])
+          17:    upcoming_demand_qty (scaled to expected max 200)
         """
         max_units = 64.0
         per_machine_time_cap = {0: 20.0, 1: 3.0, 2: 20.0, 3: 3.0}
@@ -258,6 +260,17 @@ class ProductionLine:
         # dim 15: period progress
         pp = (current_time % self.demand_interval) / self.demand_interval
         v.append(pp if norm else float(current_time % self.demand_interval))
+
+        # dim 16 & 17: look-ahead to next demand event
+        next_dem_t = current_time
+        while next_dem_t < self.H and self.demand_schedule[next_dem_t] == 0:
+            next_dem_t += 1
+            
+        ticks_until = next_dem_t - current_time
+        v.append((ticks_until / self.demand_interval) if norm else float(ticks_until))
+
+        qty = self.demand_schedule[next_dem_t] if next_dem_t < self.H else 0.0
+        v.append((qty / 200.0) if norm else float(qty))
 
         return v
 
@@ -315,6 +328,17 @@ class ProductionLine:
                 self.add_item_to_queue("queue0", current_time)
             for _ in range(int(self.demand_schedule[current_time])):
                 self.add_item_to_queue("demand", current_time)
+
+            # Match any existing finished inventory with unmet demand instantly
+            while self.queues["queue_fin"] and self.queues["demand"]:
+                self.queues["queue_fin"].pop(0)
+                self.logs["queue_fin"].append((len(self.queues["queue_fin"]), current_time))
+                
+                self.queues["demand"].pop(0)
+                self.logs["demand"].append((len(self.queues["demand"]), current_time))
+                
+                self.demand_met_log.append(current_time)
+                self.costs["revenue"] += float(self.econ["revenue_per_unit"])
 
         if actions_override is None:
             actions = commander_decide(

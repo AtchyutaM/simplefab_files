@@ -26,16 +26,16 @@ class ShapingConfig:
     enabled: bool = True
     beta: float = 1.0
     gamma: float = 0.99
-    w_backlog: float = 2.0
-    w_wip: float = 0.2
-    w_finished: float = 0.05
+    w_backlog: float = 1.0
+    w_wip: float = 0.1
+    w_finished: float = 0.5
 
 
 class FabEnv(gym.Env):
     """
     Gymnasium wrapper around single-product ProductionLine.
 
-    Observation: 16-dim vector in [0,1] (by default normalized).
+    Observation: 18-dim vector in [0,1] (by default normalized).
     Action: MultiDiscrete([2,2,2,2]) for 4 machines × {Idle, Run}.
 
     Invalid actions handling:
@@ -62,7 +62,7 @@ class FabEnv(gym.Env):
         self.normalize_obs = bool(normalize_obs)
         self.shaping = shaping if shaping is not None else ShapingConfig()
 
-        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(16,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(18,), dtype=np.float32)
         self.action_space = spaces.MultiDiscrete([2, 2, 2, 2])
 
         self._max_steps = int(self.common["time_horizon"])

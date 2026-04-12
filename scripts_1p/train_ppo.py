@@ -124,14 +124,14 @@ class EvalCallback(BaseCallback):
 def main():
     common_train = make_common_config()
 
-    PPO_GAMMA = 0.99
+    PPO_GAMMA = 0.999
     shaping = ShapingConfig(
         enabled=True,
         beta=0.5,
         gamma=PPO_GAMMA,
-        w_backlog=2.0,
-        w_wip=0.2,
-        w_finished=0.05,
+        w_backlog=1.0,
+        w_wip=0.1,
+        w_finished=0.5,
     )
 
     def make_env():
@@ -154,7 +154,7 @@ def main():
         batch_size=672,         # divides 2688 evenly (4 minibatches)
         learning_rate=3e-4,
         clip_range=0.2,
-        ent_coef=0.05,
+        ent_coef=0.1,  # Increased from 0.05 to encourage more exploration
         gae_lambda=0.95,
         gamma=PPO_GAMMA,
         vf_coef=0.5,

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleFab 1P: RL Agent vs Commander Heuristic</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; }
+        h1 { text-align: center; color: #58a6ff; font-size: 2.5em; margin-bottom: 10px; }
+        .config-box { 
+            background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; 
+            padding: 20px; margin: 0 auto 30px auto; width: 80%; max-width: 1000px;
+            display: flex; justify-content: space-around; font-size: 0.9em;
+        }
+        .config-box div { flex: 1; text-align: center; }
+        .config-box h3 { color: #8b949e; margin-top: 0; margin-bottom: 10px; font-size: 1.1em; text-transform: uppercase;}
+        .config-box ul { list-style: none; padding: 0; margin: 0; }
+        .config-box li { margin-bottom: 5px; }
+        .highlight { color: #79c0ff; font-weight: bold; }
+        
+        .container { display: flex; width: 100%; gap: 20px; justify-content: center; }
+        .column { flex: 1; min-width: 45%; max-width: 48%; display: flex; flex-direction: column; align-items: center; border: 1px solid #30363d; border-radius: 10px; background-color: #161b22; overflow: hidden;}
+        .col-header { padding: 15px; width: 100%; text-align: center; border-bottom: 1px solid #30363d; font-size: 1.5em; font-weight: bold; }
+        .agent-header { color: #3fb950; background-color: rgba(63, 185, 80, 0.1); }
+        .heuristic-header { color: #f85149; background-color: rgba(248, 81, 73, 0.1); }
+        .view-panel { width: 100%; overflow-y: auto; overflow-x: auto; max-height: 80vh; text-align: center; padding-top: 10px;}
+        .dashboard-img { max-width: 100%; height: auto; border: 1px solid #30363d; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+    <h1>SimpleFab Policy Evaluation</h1>
+    
+    <div class="config-box">
+        <div>
+            <h3>Environment Constraints</h3>
+            <ul>
+                <li>Total Horizon: <span class="highlight">2688 Ticks (4 Weeks)</span></li>
+                <li>Demand Flow: <span class="highlight">154 units / week</span></li>
+                <li>M0 & M2 Setup: <span class="highlight">Batch Size = 4</span></li>
+            </ul>
+        </div>
+        <div>
+            <h3>RL State & Reward Geometry</h3>
+            <ul>
+                <li>Observation Vector: <span class="highlight">18-Dimensional (Countdown included)</span></li>
+                <li>W_Finished (Holding Penalty): <span class="highlight">0.5</span></li>
+                <li>W_Backlog (Late Penalty): <span class="highlight">1.0</span></li>
+            </ul>
+        </div>
+        <div>
+            <h3>PPO Hyperparameters</h3>
+            <ul>
+                <li>Entropy Coefficient (Exploration): <span class="highlight">0.10</span></li>
+                <li>Gamma: <span class="highlight">0.99</span></li>
+                <li>Total Training Target: <span class="highlight">5,000,000 steps</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 20px; color: #a5d6ff;">
+        Scroll down within the panes to compare Just-In-Time scheduling (RL) vs Greedy Execution (Commander).
+    </div>
+
+    <div class="container">
+        <!-- Baseline Column -->
+        <div class="column">
+            <div class="col-header heuristic-header">BASELINE: Commander Heuristic</div>
+            <div class="view-panel" id="scroll-left">
+                <img src="commander_dashboard.png" alt="Commander Dashboard" class="dashboard-img">
+            </div>
+        </div>
+
+        <!-- RL Column -->
+        <div class="column">
+            <div class="col-header agent-header">OPTIMIZED: PPO RL Agent</div>
+            <div class="view-panel" id="scroll-right">
+                <img src="agent_dashboard.png" alt="Agent Dashboard" class="dashboard-img">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

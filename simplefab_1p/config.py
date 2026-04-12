@@ -7,7 +7,7 @@ def make_common_config(
     mode: str = "UNIFORM",
     H: int = 2688,                # 4 weeks (672 ticks/week)
     utilization: float = 0.92,    # target share of the bottleneck capacity for DEMAND (0..1)
-    demand_delay: int = 96,       # ticks to delay demand after arrivals (96 = 1 day)
+    demand_delay: int = 671,      # ticks to delay demand (671 = last tick of each week)
     demand_interval: int = 672,   # ticks between demand batches (672 = 1 week)
     arrival_interval: int = 672,  # ticks between raw material deliveries (672 = 1 week)
 ) -> Dict[str, Any]:
