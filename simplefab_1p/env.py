@@ -147,7 +147,34 @@ class FabEnv(gym.Env):
             phi_after = self._phi()
             shaping_term = self.shaping.beta * (self.shaping.gamma * phi_after - phi_before)
 
-        reward = float(base_reward + invalid_pen + shaping_term)
+        # --- Dynamic Pipeline Nudge ---
+        nudge_pen = 0.0
+        H = self.common["time_horizon"]
+        demand_sched = self.common["demand_schedule"][0]
+        
+        next_dem_t = self._t
+        while next_dem_t < H and demand_sched[next_dem_t] == 0:
+            next_dem_t += 1
+            
+        if next_dem_t < H:
+            upcoming_qty = demand_sched[next_dem_t]
+            ticks_until = next_dem_t - self._t
+            
+            q = self.line.queues
+            downstream = len(q["queue_fin"]) + len(q["queue3"]) + len(q["queue2"]) + len(q["queue1"])
+            needed_from_m0 = max(0, upcoming_qty - downstream)
+            
+            if needed_from_m0 > 0:
+                import math
+                batches = math.ceil(needed_from_m0 / self.common["batch_sizes"][0])
+                required_ticks = (batches - 1) * 16 + 36
+                
+                # If inside Critical Lead Time, M0 has raw material (mask[0,1]==1), but agent idles (a0==0)
+                if ticks_until <= required_ticks:
+                    if mask[0, 1] == 1 and a0 == 0:
+                        nudge_pen = -5.0  # Dense guidance nudge
+
+        reward = float(base_reward + invalid_pen + shaping_term + nudge_pen)
 
         self._t += 1
         obs = np.array(self.line.get_observation(current_time=self._t, norm=self.normalize_obs), dtype=np.float32)

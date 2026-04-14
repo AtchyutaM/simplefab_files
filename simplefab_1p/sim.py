@@ -412,7 +412,8 @@ class ProductionLine:
         # end-of-step holding / backorder
         inv_units = len(self.queues["queue_fin"])
         self.costs["inventory"] += float(self.econ["inventory_cost_per_unit"]) * inv_units
-        self.costs["backorder"] += float(self.econ["backorder_cost_per_unit"]) * len(self.queues["demand"])
+        late_demand_count = sum(1 for arrival_t in self.queues["demand"] if current_time >= arrival_t + self.demand_interval)
+        self.costs["backorder"] += float(self.econ["backorder_cost_per_unit"]) * late_demand_count
 
         profit_now = self.profit_total()
         step_reward = (profit_now - prev_profit) + (float(invalid_penalty) * float(invalids))

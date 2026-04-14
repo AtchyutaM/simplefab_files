@@ -283,6 +283,17 @@ def main():
     png_path = os.path.join(OUT_DIR, "ultimate_dashboard_v3.png")
     svg_path = os.path.join(OUT_DIR, "ultimate_dashboard_v3.svg")
     
+    # --- RL HYPERPARAMETER SUMMARY FOOTER ---
+    footer_text = (
+        "RL Configuration Settings | "
+        "ent_coef: 0.05 (Precise Exploitation) | "
+        "gamma: 0.999 (Long Horizon 693-tick half-life) | "
+        "Shaping: w_backlog=1.0, w_wip=0.1, w_finished=0.5 | "
+        "Lead-Time Idle Nudge: -5.0 / tick"
+    )
+    plt.figtext(0.5, 0.015, footer_text, ha='center', va='bottom', fontsize=12, color='#A5D6FF', fontweight='bold', 
+                bbox=dict(facecolor='#161B22', edgecolor='#30363D', boxstyle='round,pad=0.5', alpha=0.9))
+
     fig.savefig(png_path, dpi=250, facecolor=C['bg'], bbox_inches='tight')
     fig.savefig(svg_path, format='svg', facecolor=C['bg'], bbox_inches='tight')
     plt.close()

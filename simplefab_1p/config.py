@@ -110,7 +110,7 @@ def make_common_config(
             dem[0] = dem_total
     elif mode_u == "UNIFORM":
         arr = distribute_to_intervals(arr_total, H, arrival_interval, delay=0)
-        dem = distribute_to_intervals(dem_total, H, demand_interval, delay=demand_delay)
+        dem = distribute_to_intervals(dem_total, H, demand_interval, delay=0)
     elif mode_u == "ALTERNATING":
         arr = distribute_to_intervals(arr_total, H, arrival_interval, delay=0)
         # Alternating demand pattern

@@ -229,7 +229,20 @@ def generate_dashboard_for_sim(env: FabEnv, H: int, output_path: str):
     ax_fin.set_ylim(-35000, 50000)
     draw_time_grid(ax_fin, H, 40000, C['text_dim'])
 
-    fig.savefig(output_path, dpi=200, facecolor=C['bg'], bbox_inches='tight')
+    # --- RL HYPERPARAMETER SUMMARY FOOTER ---
+    footer_text = (
+        "RL Configuration Settings | "
+        "ent_coef: 0.05 (Precise Exploitation) | "
+        "gamma: 0.999 (Long Horizon 693-tick half-life) | "
+        "Shaping: w_backlog=1.0, w_wip=0.1, w_finished=0.5 | "
+        "Lead-Time Idle Nudge: -5.0 / tick"
+    )
+    plt.figtext(0.5, 0.015, footer_text, ha='center', va='bottom', fontsize=12, color='#A5D6FF', fontweight='bold', 
+                bbox=dict(facecolor='#161B22', edgecolor='#30363D', boxstyle='round,pad=0.5', alpha=0.9))
+
+    base_path = os.path.splitext(output_path)[0]
+    fig.savefig(f"{base_path}.png", dpi=250, facecolor=C['bg'], bbox_inches='tight')
+    fig.savefig(f"{base_path}.svg", format='svg', facecolor=C['bg'], bbox_inches='tight')
     plt.close()
 
 # -----------------------------------------------------------------------------

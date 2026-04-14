@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 
 from sb3_contrib import MaskablePPO
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
+from stable_baselines3.common.vec_env import VecMonitor, VecNormalize, SubprocVecEnv
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 
 from simplefab_1p import make_common_config
@@ -121,7 +121,13 @@ class EvalCallback(BaseCallback):
         return True
 
 
+import argparse
+
 def main():
+    parser = argparse.ArgumentParser(description="Train PPO for SimpleFab")
+    parser.add_argument("--pretrained", type=str, default="", help="Path to pre-trained Behavioral Cloning model (.zip)")
+    args = parser.parse_args()
+
     common_train = make_common_config()
 
     PPO_GAMMA = 0.999
@@ -146,22 +152,33 @@ def main():
     env = VecMonitor(env)
     env = VecNormalize(env, norm_obs=False, norm_reward=True, clip_reward=10.0)
 
-    model = MaskablePPO(
-        "MlpPolicy",
-        env,
-        device="cpu",
-        n_steps=2688,           # = episode length
-        batch_size=672,         # divides 2688 evenly (4 minibatches)
-        learning_rate=3e-4,
-        clip_range=0.2,
-        ent_coef=0.1,  # Increased from 0.05 to encourage more exploration
-        gae_lambda=0.95,
-        gamma=PPO_GAMMA,
-        vf_coef=0.5,
-        max_grad_norm=0.5,
-        tensorboard_log="./tb_fab_1p/",
-        verbose=1,
-    )
+    if args.pretrained and os.path.exists(args.pretrained):
+        print(f"==================================================")
+        print(f"INITIALIZING WITH BEHAVIORAL CLONING BRAIN")
+        print(f"Loading '{args.pretrained}'...")
+        print(f"==================================================")
+        model = MaskablePPO.load(args.pretrained, env=env, device="cpu", custom_objects={"tensorboard_log": "./tb_fab_1p/"})
+        model.verbose = 1
+
+    else:
+        print("Initializing standard random PPO brain...")
+        model = MaskablePPO(
+            "MlpPolicy",
+            env,
+            device="cpu",
+            n_steps=2688,           # = episode length
+            batch_size=672,         # divides 2688 evenly (4 minibatches)
+            learning_rate=3e-4,
+            clip_range=0.2,
+            ent_coef=0.05,  # Increased from 0.01 back to the 0.05 sweet spot for guided exploration
+            gae_lambda=0.95,
+            gamma=PPO_GAMMA,
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            policy_kwargs=dict(net_arch=dict(pi=[128, 128], vf=[128, 128])),
+            tensorboard_log="./tb_fab_1p/",
+            verbose=1,
+        )
 
     save_dir = os.path.join(os.getcwd(), "output_data_1p", "models")
     os.makedirs(save_dir, exist_ok=True)
