@@ -122,13 +122,30 @@ class EvalCallback(BaseCallback):
 
 
 import argparse
+import subprocess
+import atexit
+import sys
+
+def start_tensorboard():
+    try:
+        tb_process = subprocess.Popen(
+            [sys.executable, "-m", "tensorboard.main", "--logdir", "./tb_fab_1p", "--port", "6006", "--reload_interval", "2"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        atexit.register(tb_process.terminate)
+        print("=> TensorBoard automatically started at http://localhost:6006")
+    except Exception as e:
+        print(f"Could not start TensorBoard automatically: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Train PPO for SimpleFab")
     parser.add_argument("--pretrained", type=str, default="", help="Path to pre-trained Behavioral Cloning model (.zip)")
     args = parser.parse_args()
 
-    common_train = make_common_config()
+    start_tensorboard()
+
+    common_train = make_common_config(mode="ALTERNATING")
 
     PPO_GAMMA = 0.999
     shaping = ShapingConfig(
@@ -148,7 +165,7 @@ def main():
             shaping=shaping,
         )
 
-    env = make_vec_env(make_env, n_envs=8)
+    env = make_vec_env(make_env, n_envs=10, vec_env_cls=SubprocVecEnv)
     env = VecMonitor(env)
     env = VecNormalize(env, norm_obs=False, norm_reward=True, clip_reward=10.0)
 

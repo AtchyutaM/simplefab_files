@@ -74,12 +74,12 @@ def generate_dashboard_for_sim(env: FabEnv, H: int, output_path: str):
         state = line.event_log[t] if t < len(line.event_log) else line.event_log[-1]
         data.append({
             'tick': t,
-            'q0': state.get('queue0', 0),
-            'q1': state.get('queue1', 0),
-            'q2': state.get('queue2', 0),
-            'q3': state.get('queue3', 0),
-            'q_fin': state.get('queue_fin', 0),
-            'backlog': state.get('demand', 0),
+            'q0': state.get('Queue 0', 0),
+            'q1': state.get('Queue 1', 0),
+            'q2': state.get('Queue 2', 0),
+            'q3': state.get('Queue 3', 0),
+            'q_fin': state.get('Queue Fin', 0),
+            'backlog': state.get('Demand Queue', 0),
             'cum_rev': log['revenue'],
             'cum_prod': log['production'],
             'cum_inv': log['inventory'],
@@ -249,7 +249,7 @@ def generate_dashboard_for_sim(env: FabEnv, H: int, output_path: str):
 # Main Execution Strategy
 # -----------------------------------------------------------------------------
 def run_and_plot(model=None, output_filename="dashboard.png"):
-    cfg = make_common_config()
+    cfg = make_common_config(mode="ALTERNATING")
     H = cfg["time_horizon"]
     env = FabEnv(common_cfg=cfg, normalize_obs=True, invalid_action_penalty=0.0)
 

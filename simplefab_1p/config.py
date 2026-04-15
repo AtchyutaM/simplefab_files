@@ -55,8 +55,8 @@ def make_common_config(
             3: {0: 4},
         },
         "setup_cost": {0: 0, 1: 0, 2: 0, 3: 0},
-        "inventory_cost_per_unit": {0: 0.02},
-        "backorder_cost_per_unit": {0: 0.10},
+        "inventory_cost_per_unit": {0: 0.04},
+        "backorder_cost_per_unit": {0: 0.15},
 
         "initial_inventory": {
             0: {0: 0},
@@ -115,9 +115,9 @@ def make_common_config(
         arr = distribute_to_intervals(arr_total, H, arrival_interval, delay=0)
         # Alternating demand pattern
         dem = [0] * H
-        pattern = [50, 86, 50, 86]
+        pattern = [80, 80, 220, 220]
         for i, amt in enumerate(pattern):
-            t = i * demand_interval + demand_delay
+            t = i * demand_interval  # demand at start of each week
             if t < H:
                 dem[t] = amt
     else:

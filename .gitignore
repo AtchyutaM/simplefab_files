@@ -28,12 +28,17 @@ Thumbs.db
 
 # ----- Outputs / artifacts -----
 output_data/
+output_data_1p/
 tb_fab/
+tb_fab_1p/
 *.png
 *.pdf
+*.svg
+*.npz
 
 # RL artifacts
 *.pkl
 *.zip
 ppo_fab_policy*
 vecnorm_stats*
+events.out.tfevents.*
