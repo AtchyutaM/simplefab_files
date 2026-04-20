@@ -172,7 +172,7 @@ class FabEnv(gym.Env):
                 # If inside Critical Lead Time, M0 has raw material (mask[0,1]==1), but agent idles (a0==0)
                 if ticks_until <= required_ticks:
                     if mask[0, 1] == 1 and a0 == 0:
-                        nudge_pen = -5.0  # Dense guidance nudge
+                        nudge_pen = -5.0  # Dense guidance nudge (tuned: -5.0 → -2.5 → -3.5 → -5.0 for high util)
 
         reward = float(base_reward + invalid_pen + shaping_term + nudge_pen)
 
@@ -202,6 +202,7 @@ class FabEnv(gym.Env):
                 "revenue": float(c.get("revenue", 0.0)),
                 "cost_production": float(c.get("production", 0.0)),
                 "cost_inventory": float(c.get("inventory", 0.0)),
+                "cost_wip": float(c.get("wip", 0.0)),
                 "cost_backorder": float(c.get("backorder", 0.0)),
                 "throughput": int(len(ln.demand_met_log)),
                 "starts_m0": int(len(ln.machine0.event_log)),

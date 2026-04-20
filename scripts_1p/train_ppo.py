@@ -141,11 +141,13 @@ def start_tensorboard():
 def main():
     parser = argparse.ArgumentParser(description="Train PPO for SimpleFab")
     parser.add_argument("--pretrained", type=str, default="", help="Path to pre-trained Behavioral Cloning model (.zip)")
+    parser.add_argument("--mode", type=str, default="UNIFORM",
+                        help="Demand mode: UNIFORM, ALTERNATING, ALTERNATING_50")
     args = parser.parse_args()
 
     start_tensorboard()
 
-    common_train = make_common_config(mode="ALTERNATING")
+    common_train = make_common_config(mode=args.mode)
 
     PPO_GAMMA = 0.999
     shaping = ShapingConfig(
@@ -153,7 +155,7 @@ def main():
         beta=0.5,
         gamma=PPO_GAMMA,
         w_backlog=1.0,
-        w_wip=0.1,
+        w_wip=0.0,
         w_finished=0.5,
     )
 
@@ -165,7 +167,7 @@ def main():
             shaping=shaping,
         )
 
-    env = make_vec_env(make_env, n_envs=10, vec_env_cls=SubprocVecEnv)
+    env = make_vec_env(make_env, n_envs=8, vec_env_cls=SubprocVecEnv)
     env = VecMonitor(env)
     env = VecNormalize(env, norm_obs=False, norm_reward=True, clip_reward=10.0)
 
@@ -206,7 +208,7 @@ def main():
         name_prefix="ppo_fab_1p_checkpoint"
     )
 
-    tb_name = "PPO_1p_weekly_2688"
+    tb_name = f"PPO_{args.mode.lower()}"
     callbacks = [
         FabTBCallback(),
         EvalCallback(eval_cfg=common_train, shaping=shaping, eval_freq=5),
@@ -214,7 +216,7 @@ def main():
     ]
 
     model.learn(
-        total_timesteps=5_000_000,
+        total_timesteps=8_000_000,
         tb_log_name=tb_name,
         log_interval=1,
         callback=callbacks,

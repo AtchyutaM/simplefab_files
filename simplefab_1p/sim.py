@@ -159,9 +159,15 @@ class ProductionLine:
                 3: common_cfg["production_cost"][3][0],
             },
             "inventory_cost_per_unit": common_cfg["inventory_cost_per_unit"][0],
+            "wip_cost_per_unit": {
+                0: common_cfg.get("wip_cost_per_unit", {}).get(0, 0.0),
+                1: common_cfg.get("wip_cost_per_unit", {}).get(1, 0.0),
+                2: common_cfg.get("wip_cost_per_unit", {}).get(2, 0.0),
+                3: common_cfg.get("wip_cost_per_unit", {}).get(3, 0.0),
+            },
             "backorder_cost_per_unit": common_cfg["backorder_cost_per_unit"][0],
         }
-        self.costs = {"revenue": 0.0, "production": 0.0, "inventory": 0.0, "backorder": 0.0}
+        self.costs = {"revenue": 0.0, "production": 0.0, "inventory": 0.0, "wip": 0.0, "backorder": 0.0}
         self.cost_log: List[Dict[str, Any]] = []
 
         self.logging_enabled = False
@@ -197,7 +203,7 @@ class ProductionLine:
     # ---------------------------
     def profit_total(self) -> float:
         c = self.costs
-        return c["revenue"] - (c["production"] + c["inventory"] + c["backorder"])
+        return c["revenue"] - (c["production"] + c["inventory"] + c["wip"] + c["backorder"])
 
     # ---------------------------
     # state / obs / mask
@@ -412,6 +418,9 @@ class ProductionLine:
         # end-of-step holding / backorder
         inv_units = len(self.queues["queue_fin"])
         self.costs["inventory"] += float(self.econ["inventory_cost_per_unit"]) * inv_units
+        for q_idx in range(4):
+            q_name = f"queue{q_idx}"
+            self.costs["wip"] += float(self.econ["wip_cost_per_unit"][q_idx]) * len(self.queues[q_name])
         late_demand_count = sum(1 for arrival_t in self.queues["demand"] if current_time >= arrival_t + self.demand_interval)
         self.costs["backorder"] += float(self.econ["backorder_cost_per_unit"]) * late_demand_count
 
@@ -431,6 +440,7 @@ class ProductionLine:
             "revenue": self.costs["revenue"],
             "production": self.costs["production"],
             "inventory": self.costs["inventory"],
+            "wip": self.costs["wip"],
             "backorder": self.costs["backorder"],
             "profit": profit_now,
             "step_reward": step_reward,

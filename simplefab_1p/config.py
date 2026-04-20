@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 def make_common_config(
     mode: str = "UNIFORM",
     H: int = 2688,                # 4 weeks (672 ticks/week)
-    utilization: float = 0.92,    # target share of the bottleneck capacity for DEMAND (0..1)
+    utilization: float = 0.50,    # 50% utilization
     demand_delay: int = 671,      # ticks to delay demand (671 = last tick of each week)
     demand_interval: int = 672,   # ticks between demand batches (672 = 1 week)
     arrival_interval: int = 672,  # ticks between raw material deliveries (672 = 1 week)
@@ -56,6 +56,7 @@ def make_common_config(
         },
         "setup_cost": {0: 0, 1: 0, 2: 0, 3: 0},
         "inventory_cost_per_unit": {0: 0.04},
+        "wip_cost_per_unit": {0: 0.00, 1: 0.005, 2: 0.01, 3: 0.015},
         "backorder_cost_per_unit": {0: 0.15},
 
         "initial_inventory": {
@@ -120,8 +121,16 @@ def make_common_config(
             t = i * demand_interval  # demand at start of each week
             if t < H:
                 dem[t] = amt
+    elif mode_u == "ALTERNATING_50":
+        arr = distribute_to_intervals(arr_total, H, arrival_interval, delay=0)
+        dem = [0] * H
+        pattern = [56, 56, 112, 112]  # sums to 336 = dem_total at 50% util
+        for i, amt in enumerate(pattern):
+            t = i * demand_interval
+            if t < H:
+                dem[t] = amt
     else:
-        raise ValueError("mode must be ALL_AT_T0, UNIFORM, or ALTERNATING")
+        raise ValueError("mode must be ALL_AT_T0, UNIFORM, ALTERNATING, or ALTERNATING_50")
 
     common["arrivals_schedule"] = {0: arr}
     common["demand_schedule"] = {0: dem}
