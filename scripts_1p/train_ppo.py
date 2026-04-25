@@ -142,7 +142,7 @@ def main():
     parser = argparse.ArgumentParser(description="Train PPO for SimpleFab")
     parser.add_argument("--pretrained", type=str, default="", help="Path to pre-trained Behavioral Cloning model (.zip)")
     parser.add_argument("--mode", type=str, default="UNIFORM",
-                        help="Demand mode: UNIFORM, ALTERNATING, ALTERNATING_50")
+                        help="Demand mode: UNIFORM, ALTERNATING, ALTERNATING_50, ALTERNATING_92")
     args = parser.parse_args()
 
     start_tensorboard()
@@ -167,7 +167,7 @@ def main():
             shaping=shaping,
         )
 
-    env = make_vec_env(make_env, n_envs=8, vec_env_cls=SubprocVecEnv)
+    env = make_vec_env(make_env, n_envs=16, vec_env_cls=SubprocVecEnv)
     env = VecMonitor(env)
     env = VecNormalize(env, norm_obs=False, norm_reward=True, clip_reward=10.0)
 
@@ -186,7 +186,7 @@ def main():
             env,
             device="cpu",
             n_steps=2688,           # = episode length
-            batch_size=672,         # divides 2688 evenly (4 minibatches)
+            batch_size=1344,        # 16 envs * 2688 / 1344 = 32 minibatches/epoch (matches prior n_envs=8, batch=672)
             learning_rate=3e-4,
             clip_range=0.2,
             ent_coef=0.05,  # Increased from 0.01 back to the 0.05 sweet spot for guided exploration

@@ -129,8 +129,18 @@ def make_common_config(
             t = i * demand_interval
             if t < H:
                 dem[t] = amt
+    elif mode_u == "ALTERNATING_92":
+        arr = distribute_to_intervals(arr_total, H, arrival_interval, delay=0)
+        dem = [0] * H
+        pattern = [84, 84, 224, 224]  # sums to 616 = dem_total at 92% util
+        for i, amt in enumerate(pattern):
+            t = i * demand_interval
+            if t < H:
+                dem[t] = amt
+        dem_total = sum(pattern)
+        u = dem_total / arr_total if arr_total > 0 else 0.0
     else:
-        raise ValueError("mode must be ALL_AT_T0, UNIFORM, ALTERNATING, or ALTERNATING_50")
+        raise ValueError("mode must be ALL_AT_T0, UNIFORM, ALTERNATING, ALTERNATING_50, or ALTERNATING_92")
 
     common["arrivals_schedule"] = {0: arr}
     common["demand_schedule"] = {0: dem}
