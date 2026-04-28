@@ -173,11 +173,38 @@ def main():
 
     if args.pretrained and os.path.exists(args.pretrained):
         print(f"==================================================")
-        print(f"INITIALIZING WITH BEHAVIORAL CLONING BRAIN")
-        print(f"Loading '{args.pretrained}'...")
+        print(f"INITIALIZING WITH BEHAVIORAL CLONING WEIGHTS")
+        print(f"Source: {args.pretrained}")
         print(f"==================================================")
-        model = MaskablePPO.load(args.pretrained, env=env, device="cpu", custom_objects={"tensorboard_log": "./tb_fab_1p/"})
-        model.verbose = 1
+        # Build a fresh PPO with our intended hyperparameters, then copy the
+        # BC policy weights in. This avoids inheriting pretrain_bc.py's
+        # SB3 defaults (n_steps=2048, batch_size=64) which would change SGD
+        # dynamics and 3-4x slow down training.
+        model = MaskablePPO(
+            "MlpPolicy",
+            env,
+            device="cpu",
+            n_steps=2688,
+            batch_size=1344,
+            learning_rate=3e-4,
+            clip_range=0.2,
+            ent_coef=0.05,
+            gae_lambda=0.95,
+            gamma=PPO_GAMMA,
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            policy_kwargs=dict(net_arch=dict(pi=[128, 128], vf=[128, 128])),
+            tensorboard_log="./tb_fab_1p/",
+            verbose=1,
+        )
+        bc_temp = MaskablePPO.load(args.pretrained, device="cpu")
+        model.policy.load_state_dict(bc_temp.policy.state_dict())
+        del bc_temp
+        # Fail-fast verification that the fix took effect.
+        assert model.n_steps == 2688, f"BUG: n_steps={model.n_steps}, expected 2688"
+        assert model.batch_size == 1344, f"BUG: batch_size={model.batch_size}, expected 1344"
+        assert model.n_epochs == 10, f"BUG: n_epochs={model.n_epochs}, expected 10"
+        print(f"PPO hyperparams verified: n_steps={model.n_steps}, batch_size={model.batch_size}, n_epochs={model.n_epochs}, lr={model.learning_rate}")
 
     else:
         print("Initializing standard random PPO brain...")
