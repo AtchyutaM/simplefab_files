@@ -143,6 +143,8 @@ def main():
     parser.add_argument("--pretrained", type=str, default="", help="Path to pre-trained Behavioral Cloning model (.zip)")
     parser.add_argument("--mode", type=str, default="UNIFORM",
                         help="Demand mode: UNIFORM, ALTERNATING, ALTERNATING_50, ALTERNATING_92")
+    parser.add_argument("--total-timesteps", type=int, default=8_000_000,
+                        help="Total environment steps for training (default 8M)")
     args = parser.parse_args()
 
     start_tensorboard()
@@ -243,7 +245,7 @@ def main():
     ]
 
     model.learn(
-        total_timesteps=8_000_000,
+        total_timesteps=args.total_timesteps,
         tb_log_name=tb_name,
         log_interval=1,
         callback=callbacks,

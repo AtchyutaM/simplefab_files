@@ -56,7 +56,7 @@ def make_common_config(
         },
         "setup_cost": {0: 0, 1: 0, 2: 0, 3: 0},
         "inventory_cost_per_unit": {0: 0.04},
-        "wip_cost_per_unit": {0: 0.00, 1: 0.005, 2: 0.01, 3: 0.015},
+        "wip_cost_per_unit": {0: 0.00, 1: 0.0025, 2: 0.005, 3: 0.0075},
         "backorder_cost_per_unit": {0: 0.15},
 
         "initial_inventory": {

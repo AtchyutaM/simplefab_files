@@ -147,34 +147,12 @@ class FabEnv(gym.Env):
             phi_after = self._phi()
             shaping_term = self.shaping.beta * (self.shaping.gamma * phi_after - phi_before)
 
-        # --- Dynamic Pipeline Nudge ---
-        nudge_pen = 0.0
-        H = self.common["time_horizon"]
-        demand_sched = self.common["demand_schedule"][0]
-        
-        next_dem_t = self._t
-        while next_dem_t < H and demand_sched[next_dem_t] == 0:
-            next_dem_t += 1
-            
-        if next_dem_t < H:
-            upcoming_qty = demand_sched[next_dem_t]
-            ticks_until = next_dem_t - self._t
-            
-            q = self.line.queues
-            downstream = len(q["queue_fin"]) + len(q["queue3"]) + len(q["queue2"]) + len(q["queue1"])
-            needed_from_m0 = max(0, upcoming_qty - downstream)
-            
-            if needed_from_m0 > 0:
-                import math
-                batches = math.ceil(needed_from_m0 / self.common["batch_sizes"][0])
-                required_ticks = (batches - 1) * 16 + 36
-                
-                # If inside Critical Lead Time, M0 has raw material (mask[0,1]==1), but agent idles (a0==0)
-                if ticks_until <= required_ticks:
-                    if mask[0, 1] == 1 and a0 == 0:
-                        nudge_pen = -5.0  # Dense guidance nudge (tuned: -5.0 → -2.5 → -3.5 → -5.0 for high util)
+        # Pipeline nudge removed (Apr 2026): the -5.0/tick penalty for idling M0
+        # during the critical lead time was creating a misaligned reward signal
+        # that pulled PPO away from the MIP-optimal trajectory. Without the
+        # nudge the env reward = base_profit_delta + invalid_penalty + shaping.
 
-        reward = float(base_reward + invalid_pen + shaping_term + nudge_pen)
+        reward = float(base_reward + invalid_pen + shaping_term)
 
         self._t += 1
         obs = np.array(self.line.get_observation(current_time=self._t, norm=self.normalize_obs), dtype=np.float32)
