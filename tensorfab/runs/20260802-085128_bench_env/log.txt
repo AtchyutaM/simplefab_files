@@ -1,0 +1,30 @@
+=== run 20260802-085128_bench_env ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"mode": "ALTERNATING_92", "batches": [1, 64, 1024, 4096], "reps": 3, "episodes": 3, "seed": 0}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+mode=ALTERNATING_92 H=2688
+
+  reference FabEnv.step + action_masks :         56,980 steps/s
+
+     batch        steps/sec   vs FabEnv  compile s
+  -------------------------------------------------
+         1          500,555        8.8x       0.08
+        64        8,927,239      156.7x       0.09
+      1024       12,266,406      215.3x       0.31
+      4096       17,552,338      308.0x       0.68
+>>> tensor env peak 17,552,338 steps/s at B=4096 (308x FabEnv's 56,980)
+=== done in 4.6s ===

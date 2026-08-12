@@ -1,0 +1,16 @@
+{
+  "patterns": [
+    "UNIFORM",
+    "ALTERNATING_50",
+    "ALTERNATING",
+    "ALTERNATING_92"
+  ],
+  "batch": 64,
+  "steps": 600,
+  "lr": 0.1,
+  "eval_every": 10,
+  "init_scale": 1.0,
+  "seed": 0,
+  "milp_seconds": 600.0,
+  "no_milp": false
+}

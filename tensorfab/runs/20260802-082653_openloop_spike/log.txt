@@ -1,0 +1,87 @@
+=== run 20260802-082653_openloop_spike ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"horizons": [336, 672, 1344, 2688], "batch": 64, "steps": 400, "lr": 0.1, "eval_every": 10, "init_scale": 1.0, "tau_q": 1.0, "tau_a": 1.0, "utilization": 0.9, "seed": 0, "milp": true, "milp_seconds": 90.0}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+--- H=336  (demand=72 units in 4 events, util=0.9) ---
+    budget: 76,800 rollout-equivalents (400 grad steps x B=64  ==  1,200 zeroth-order iters)
+    grad-st: 400 Adam steps, grad norm 7.4e+04 -> 284, non-finite grads: 0
+    grad-soft: 400 Adam steps, grad norm 94.4 -> 130, non-finite grads: 0
+    credit assignment: 37.2% of gradient mass in first quarter, 10.5% in last; 90% mass within 304/336 ticks of the end (90%)
+    method           exact profit   vs commander
+    random               4,100.91        +177.69
+    init_random          4,058.98        +135.76
+    commander            3,923.22          +0.00
+    hillclimb            4,155.17        +231.95
+    grad-soft            3,358.64        -564.57
+    grad-st              4,153.00        +229.78
+    milp                 4,221.12        +297.90
+
+--- H=672  (demand=148 units in 4 events, util=0.9) ---
+    budget: 76,800 rollout-equivalents (400 grad steps x B=64  ==  1,200 zeroth-order iters)
+    grad-st: 400 Adam steps, grad norm 8.27e+05 -> 306, non-finite grads: 0
+    grad-soft: 400 Adam steps, grad norm 122 -> 34.5, non-finite grads: 0
+    credit assignment: 41.9% of gradient mass in first quarter, 10.6% in last; 90% mass within 623/672 ticks of the end (93%)
+    method           exact profit   vs commander
+    random               8,310.62        +199.31
+    init_random          8,302.46        +191.15
+    commander            8,111.31          +0.00
+    hillclimb            8,404.72        +293.40
+    grad-soft            7,356.20        -755.11
+    grad-st              8,417.29        +305.98
+    milp                 8,472.71        +361.40
+
+--- H=1344  (demand=300 units in 4 events, util=0.9) ---
+    budget: 76,800 rollout-equivalents (400 grad steps x B=64  ==  1,200 zeroth-order iters)
+    grad-st: 400 Adam steps, grad norm 1.11e+06 -> 999, non-finite grads: 0
+    grad-soft: 400 Adam steps, grad norm 154 -> 118, non-finite grads: 0
+    credit assignment: 57.9% of gradient mass in first quarter, 6.5% in last; 90% mass within 1294/1344 ticks of the end (96%)
+    method           exact profit   vs commander
+    random              16,824.66        +409.91
+    init_random         16,615.09        +200.34
+    commander           16,414.75          +0.00
+    hillclimb           16,935.63        +520.88
+    grad-soft           15,288.02      -1,126.73
+    grad-st             16,900.97        +486.22
+    milp                16,975.78        +561.03
+
+--- H=2688  (demand=604 units in 4 events, util=0.9) ---
+    budget: 76,800 rollout-equivalents (400 grad steps x B=64  ==  1,200 zeroth-order iters)
+    grad-st: 400 Adam steps, grad norm 1.23e+07 -> 2.02e+04, non-finite grads: 0
+    grad-soft: 400 Adam steps, grad norm 226 -> 263, non-finite grads: 0
+    credit assignment: 60.4% of gradient mass in first quarter, 1.8% in last; 90% mass within 2626/2688 ticks of the end (98%)
+    method           exact profit   vs commander
+    random              33,790.37        +744.67
+    init_random         33,355.67        +309.97
+    commander           33,045.71          +0.00
+    hillclimb           33,853.66        +807.96
+    grad-soft           30,770.33      -2,275.37
+    grad-st             33,868.28        +822.57
+    milp                33,710.71        +665.01
+
+==============================================================================
+SUMMARY — exact-sim profit, best of batch
+==============================================================================
+       H     commander       random    hillclimb    grad-soft      grad-st         milp   grad reach
+     336         3,923        4,101        4,155        3,359        4,153        4,221         90%
+     672         8,111        8,311        8,405        7,356        8,417        8,473         93%
+    1344        16,415       16,825       16,936       15,288       16,901       16,976         96%
+    2688        33,046       33,790       33,854       30,770       33,868       33,711         98%
+
+  gradient beats zeroth-order at equal budget: 2/4 horizons
+  gradient beats the commander heuristic:      4/4 horizons
+>>> gradient LOSES vs zeroth-order (2/4 horizons); beats commander 4/4; credit reach 94% of horizon
+=== done in 440.3s ===

@@ -1,0 +1,42 @@
+=== run 20260802-083703_openloop_spike ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"horizons": [2688], "batch": 64, "steps": 600, "lr": 0.1, "eval_every": 10, "init_scale": 1.0, "tau_q": 1.0, "tau_a": 1.0, "utilization": 0.9, "problem": "ALTERNATING_92", "seed": 0, "milp": true, "milp_seconds": 180.0}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+--- ALTERNATING_92  H=2688  demand=616 units  util=0.92 ---
+    budget: 115,200 rollout-equivalents (600 grad steps x B=64  ==  1,800 zeroth-order iters)
+    grad-st: 600 Adam steps, grad norm 3.3e+07 -> 2.14e+03, non-finite grads: 0
+    grad-soft: 600 Adam steps, grad norm 427 -> 399, non-finite grads: 0
+    credit assignment: 51.3% of gradient mass in first quarter, 4.6% in last; 90% mass within 2582/2688 ticks of the end (96%)
+    method           exact profit   vs commander
+    random              32,219.86        +918.96
+    init_random         31,863.04        +562.13
+    commander           31,300.91          +0.00
+    hillclimb           32,754.23      +1,453.32
+    grad-soft           30,500.61        -800.30
+    grad-st             32,846.01      +1,545.10
+    milp                33,289.81      +1,988.90
+
+==============================================================================
+SUMMARY — exact-sim profit, best of batch
+==============================================================================
+       H     commander       random    hillclimb    grad-soft      grad-st         milp   grad reach
+    2688        31,301       32,220       32,754       30,501       32,846       33,290         96%
+
+  gradient beats zeroth-order at equal budget: 1/1 horizons
+  gradient beats the commander heuristic:      1/1 horizons
+>>> gradient WINS vs zeroth-order (1/1 horizons); beats commander 1/1; credit reach 96% of horizon
+=== done in 241.3s ===

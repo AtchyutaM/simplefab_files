@@ -53,6 +53,27 @@ python -m tensorboard.main --logdir ./tb_fab_1p --reload_interval 2
 2. **Behavioral Cloning from MIP**: Use optimal trajectories as BC pretraining, then fine-tune with PPO (--pretrained pipeline exists)
 3. This is expected to close the remaining 7-13% gap to theoretical maximum
 
+## tensorfab — JAX tensor simulator (Phase 1 complete)
+`tensorfab/` holds a batched, differentiable JAX reimplementation of the line — the same
+dynamics as `sim.py`, rewritten as array arithmetic so thousands of trajectories run in
+lockstep and autodiff can trace decisions → profit. It is self-contained and imports no
+torch/sb3; the existing PPO/BC/MILP pipeline is untouched.
+
+**Read [`tensorfab/README.md`](tensorfab/README.md) first** — it is the full pickup document
+(design decisions, the tick contract, results, macOS caveat, Windows/WSL2+CUDA port guide,
+and the Phase 2a/2b plan). Rationale and literature review are in
+[`docs/tensorized_line_report.md`](docs/tensorized_line_report.md).
+
+Phase 1 status: verified exact against `sim.py` (28 trajectories × 2688 ticks, all integer
+state identical, profit to ~1e-9), and 193× the Python sim on XLA CPU alone (59.9M
+steps/sec at B=10,000 vs 309K baseline). GPU numbers still pending the NVIDIA box.
+
+```bash
+python -m tensorfab.device          # confirm backend before trusting any number
+python -m tensorfab.verify --all-modes
+python -m tensorfab.bench --batches 1 64 1024 10000
+```
+
 ## Saved Models
 - `output_data_1p/models/ppo_fab_1p_policy.zip` — Latest trained model (Alternating 89%)
 - `output_data_1p/models/ppo_fab_1p_policy_no_wip_cost.zip` — Uniform 50% model without WIP costs

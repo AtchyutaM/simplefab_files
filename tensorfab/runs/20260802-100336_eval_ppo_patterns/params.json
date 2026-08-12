@@ -1,0 +1,9 @@
+{
+  "patterns": [
+    "UNIFORM",
+    "ALTERNATING_50",
+    "ALTERNATING"
+  ],
+  "n_eval": 20,
+  "temperature": 0.7
+}

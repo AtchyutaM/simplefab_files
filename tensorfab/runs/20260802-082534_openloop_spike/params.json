@@ -1,0 +1,16 @@
+{
+  "horizons": [
+    336
+  ],
+  "batch": 32,
+  "steps": 60,
+  "lr": 0.1,
+  "eval_every": 10,
+  "init_scale": 1.0,
+  "tau_q": 1.0,
+  "tau_a": 1.0,
+  "utilization": 0.9,
+  "seed": 0,
+  "milp": false,
+  "milp_seconds": 60.0
+}

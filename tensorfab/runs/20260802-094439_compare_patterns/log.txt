@@ -1,0 +1,107 @@
+=== run 20260802-094439_compare_patterns ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"patterns": ["UNIFORM", "ALTERNATING_50", "ALTERNATING", "ALTERNATING_92"], "batch": 64, "steps": 600, "lr": 0.1, "eval_every": 10, "init_scale": 1.0, "seed": 0, "milp_seconds": 600.0, "no_milp": false}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+======================================================================
+UNIFORM   demand=336  util=50.0%  H=2688
+======================================================================
+  budget 115,200 rollout-equivalents (600 grad steps x B=64 == 1,800 zeroth-order iters)
+    grad-st: 600 Adam steps, grad norm 7.67e+07 -> 1.06e+03, non-finite grads: 0
+    grad-soft: 600 Adam steps, grad norm 666 -> 325, non-finite grads: 0
+
+  method                profit   vs commander   % of bound
+  random             17,288.53     +17,396.06       91.0%
+  commander            -107.53          +0.00       -0.6%
+  hillclimb           4,288.35      +4,395.88       22.6%
+  grad-soft          16,832.69     +16,940.23       88.6%
+  grad-st            18,325.29     +18,432.83       96.4%
+  milp               18,915.43     +19,022.97       99.5%
+  milp bound         19,004.20                              <- CP-SAT dual bound (NOT converged in 600s)
+
+  historical (CLAUDE.md, OLD doubled WIP costs — context only):
+    agent     17,607   commander       -159   claimed 'max'      18786
+    -> that 'max' was a naive hand-computed bound; the rigorous CP-SAT dual bound is $19,004 (+218)
+
+======================================================================
+ALTERNATING_50   demand=336  util=50.0%  H=2688
+======================================================================
+  budget 115,200 rollout-equivalents (600 grad steps x B=64 == 1,800 zeroth-order iters)
+    grad-st: 600 Adam steps, grad norm 5.95e+07 -> 1.2e+03, non-finite grads: 0
+    grad-soft: 600 Adam steps, grad norm 699 -> 237, non-finite grads: 0
+
+  method                profit   vs commander   % of bound
+  random             16,870.87     +19,631.84       88.8%
+  commander          -2,760.97          +0.00      -14.5%
+  hillclimb           1,835.37      +4,596.34        9.7%
+  grad-soft          15,961.02     +18,722.00       84.0%
+  grad-st            17,562.36     +20,323.34       92.4%
+  milp               18,937.67     +21,698.65       99.6%
+  milp bound         19,004.69                              <- CP-SAT dual bound (NOT converged in 600s)
+
+  historical (CLAUDE.md, OLD doubled WIP costs — context only):
+    agent     16,337   commander     -2,813   claimed 'max'      18786
+    -> that 'max' was a naive hand-computed bound; the rigorous CP-SAT dual bound is $19,005 (+219)
+
+======================================================================
+ALTERNATING   demand=600  util=89.3%  H=2688
+======================================================================
+  budget 115,200 rollout-equivalents (600 grad steps x B=64 == 1,800 zeroth-order iters)
+    grad-st: 600 Adam steps, grad norm 2.38e+08 -> 1.61e+03, non-finite grads: 0
+    grad-soft: 600 Adam steps, grad norm 475 -> 351, non-finite grads: 0
+
+  method                profit   vs commander   % of bound
+  random             31,283.57      +1,752.26       93.6%
+  commander          29,531.31          +0.00       88.3%
+  hillclimb          31,711.68      +2,180.38       94.8%
+  grad-soft          26,818.00      -2,713.30       80.2%
+  grad-st            31,924.73      +2,393.43       95.5%
+  milp               32,936.96      +3,405.65       98.5%
+  milp bound         33,433.78                              <- CP-SAT dual bound (NOT converged in 600s)
+
+  historical (CLAUDE.md, OLD doubled WIP costs — context only):
+    agent     29,965   commander     29,480   claimed 'max'      33546
+    -> that 'max' was a naive hand-computed bound; the rigorous CP-SAT dual bound is $33,434 (-112)
+
+======================================================================
+ALTERNATING_92   demand=616  util=91.7%  H=2688
+======================================================================
+  budget 115,200 rollout-equivalents (600 grad steps x B=64 == 1,800 zeroth-order iters)
+    grad-st: 600 Adam steps, grad norm 1.08e+07 -> 9.77e+03, non-finite grads: 0
+    grad-soft: 600 Adam steps, grad norm 435 -> 445, non-finite grads: 0
+
+  method                profit   vs commander   % of bound
+  random             32,241.18        +940.28       94.1%
+  commander          31,300.91          +0.00       91.4%
+  hillclimb          32,750.11      +1,449.20       95.6%
+  grad-soft          30,647.51        -653.39       89.5%
+  grad-st            33,147.76      +1,846.85       96.8%
+  milp               33,761.88      +2,460.97       98.5%
+  milp bound         34,259.38                              <- CP-SAT dual bound (NOT converged in 600s)
+
+  historical (CLAUDE.md, OLD doubled WIP costs — context only):
+    agent     31,493   commander     31,301   claimed 'max'        n/a
+
+================================================================================================
+SUMMARY — exact-sim profit, best of batch, current (halved) WIP costs
+================================================================================================
+  pattern            util   commander      random   hillclimb   grad-soft     grad-st        milp  milp_bound  grad %bnd     grad-hc
+  UNIFORM            50%         -108      17,289       4,288      16,833      18,325      18,915      19,004     96.4%     +14,037
+  ALTERNATING_50     50%       -2,761      16,871       1,835      15,961      17,562      18,938      19,005     92.4%     +15,727
+  ALTERNATING        89%       29,531      31,284      31,712      26,818      31,925      32,937      33,434     95.5%        +213
+  ALTERNATING_92     92%       31,301      32,241      32,750      30,648      33,148      33,762      34,259     96.8%        +398
+>>> grad-st beats hillclimb on 4/4 patterns (margin $213 to $15,727); mean 95.3% of CP-SAT dual bound; CP-SAT failed to converge on 0/4
+=== done in 2686.3s ===

@@ -1,0 +1,21 @@
+{
+  "results": {
+    "336": {
+      "commander": 3923.2174999999997,
+      "init_random": 4020.1875,
+      "grad-st": 4139.2975,
+      "grad-soft": 3358.645,
+      "hillclimb": 4098.9575,
+      "random": 4065.4375,
+      "grad_mass_first_quarter": 0.4053955078125,
+      "grad_mass_last_quarter": 0.13138867914676666,
+      "grad_reach_ticks": 298,
+      "grad_reach_frac": 0.8869047619047619,
+      "n_nonfinite_st": 0,
+      "n_nonfinite_soft": 0
+    }
+  },
+  "gradient_wins_vs_zeroth": 1,
+  "gradient_wins_vs_commander": 1,
+  "n_horizons": 1
+}

@@ -1,0 +1,24 @@
+{
+  "run_id": "20260802-083703_openloop_spike",
+  "name": "openloop_spike",
+  "note": "Phase 2b de-risk: do surrogate gradients beat zeroth-order search at equal budget, and how deep does credit reach?",
+  "timestamp": "2026-08-02T08:41:04",
+  "wall_seconds": 241.333,
+  "failed": false,
+  "git": {
+    "commit": "1413848",
+    "dirty": true
+  },
+  "env": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "machine": "arm64",
+    "processor": "arm",
+    "jax": "0.11.0",
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ],
+    "x64": false
+  }
+}

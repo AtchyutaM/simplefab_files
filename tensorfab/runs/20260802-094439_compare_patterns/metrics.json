@@ -1,0 +1,80 @@
+{
+  "results": {
+    "UNIFORM": {
+      "demand": 336,
+      "utilization": 0.5,
+      "H": 2688,
+      "commander": -107.53499999999985,
+      "grad-st": 18325.295,
+      "grad-soft": 16832.695,
+      "hillclimb": 4288.345000000001,
+      "random": 17288.52734375,
+      "milp": 18915.432,
+      "milp_bound": 19004.201,
+      "milp_optimal": false,
+      "grad_reach_frac": 0.9490327380952381,
+      "grad_mass_first_quarter": 0.5321873426437378,
+      "grad_norm_initial": 76722544.0,
+      "n_nonfinite": 0
+    },
+    "ALTERNATING_50": {
+      "demand": 336,
+      "utilization": 0.5,
+      "H": 2688,
+      "commander": -2760.9749999999985,
+      "grad-st": 17562.3625,
+      "grad-soft": 15961.022500000001,
+      "hillclimb": 1835.369999999999,
+      "random": 16870.8671875,
+      "milp": 18937.672,
+      "milp_bound": 19004.688,
+      "milp_optimal": false,
+      "grad_reach_frac": 0.9419642857142857,
+      "grad_mass_first_quarter": 0.4956703186035156,
+      "grad_norm_initial": 59485868.0,
+      "n_nonfinite": 0
+    },
+    "ALTERNATING": {
+      "demand": 600,
+      "utilization": 0.8928571428571429,
+      "H": 2688,
+      "commander": 29531.305,
+      "grad-st": 31924.7325,
+      "grad-soft": 26818.0025,
+      "hillclimb": 31711.68,
+      "random": 31283.568359375,
+      "milp": 32936.956,
+      "milp_bound": 33433.776,
+      "milp_optimal": false,
+      "grad_reach_frac": 0.9486607142857143,
+      "grad_mass_first_quarter": 0.43566080927848816,
+      "grad_norm_initial": 237724736.0,
+      "n_nonfinite": 0
+    },
+    "ALTERNATING_92": {
+      "demand": 616,
+      "utilization": 0.9166666666666666,
+      "H": 2688,
+      "commander": 31300.905000000002,
+      "grad-st": 33147.7575,
+      "grad-soft": 30647.512499999997,
+      "hillclimb": 32750.1075,
+      "random": 32241.181640625,
+      "milp": 33761.88,
+      "milp_bound": 34259.376,
+      "milp_optimal": false,
+      "grad_reach_frac": 0.9869791666666666,
+      "grad_mass_first_quarter": 0.730654776096344,
+      "grad_norm_initial": 10753036.0,
+      "n_nonfinite": 0
+    }
+  },
+  "gradient_wins_vs_hillclimb": 4,
+  "milp_not_converged": 0,
+  "margins_vs_hillclimb": [
+    14036.949999999997,
+    15726.9925,
+    213.05249999999796,
+    397.65000000000146
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "results": {
+    "2688": {
+      "commander": 31300.905000000002,
+      "init_random": 31863.037500000002,
+      "grad-st": 32846.005000000005,
+      "grad-soft": 30500.6075,
+      "hillclimb": 32754.23,
+      "random": 32219.861328125,
+      "milp": 33289.807,
+      "milp_bound": 34259.376,
+      "milp_optimal": false,
+      "grad_mass_first_quarter": 0.5128228664398193,
+      "grad_mass_last_quarter": 0.04627285897731781,
+      "grad_reach_ticks": 2582,
+      "grad_reach_frac": 0.9605654761904762,
+      "n_nonfinite_st": 0,
+      "n_nonfinite_soft": 0
+    }
+  },
+  "gradient_wins_vs_zeroth": 1,
+  "gradient_wins_vs_commander": 1,
+  "n_horizons": 1
+}

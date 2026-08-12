@@ -1,0 +1,6 @@
+{
+  "reference_steps_per_sec": 56979.516666588395,
+  "peak_steps_per_sec": 17552338.417855576,
+  "peak_batch": 4096,
+  "peak_speedup": 308.04646028434814
+}

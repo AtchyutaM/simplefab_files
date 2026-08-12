@@ -1,0 +1,8 @@
+=== run 20260802-100336_eval_ppo_patterns ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"patterns": ["UNIFORM", "ALTERNATING_50", "ALTERNATING"], "n_eval": 20, "temperature": 0.7}
+  UNIFORM          det=$    13,730   T=0.7 best=$    16,398   mean=$    16,095 +/- 149   shipped 328/336
+  ALTERNATING_50   det=$    16,280   T=0.7 best=$    16,485   mean=$    16,334 +/- 99   shipped 336/336
+  ALTERNATING      det=$    31,300   T=0.7 best=$    31,606   mean=$    31,459 +/- 93   shipped 580/600
+>>> PPO retrained on 3 patterns; temperature sampling adds $1,060 on average over argmax
+=== done in 61.8s ===

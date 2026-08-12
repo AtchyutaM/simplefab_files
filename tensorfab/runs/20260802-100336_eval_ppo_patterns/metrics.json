@@ -1,0 +1,43 @@
+{
+  "results": {
+    "UNIFORM": {
+      "deterministic": 13730.375000000007,
+      "temp_best": 16398.262500000004,
+      "temp_mean": 16095.497875000006,
+      "temp_std": 148.57799750735995,
+      "shipped": 328,
+      "total_demand": 336,
+      "revenue": 26240.0,
+      "prod_cost": 8864.0,
+      "inv_cost": 14.519999999999866,
+      "wip_cost": 963.2174999999967,
+      "bo_cost": 0.0
+    },
+    "ALTERNATING_50": {
+      "deterministic": 16280.494999999975,
+      "temp_best": 16484.829999999994,
+      "temp_mean": 16334.093625,
+      "temp_std": 99.2238625170273,
+      "shipped": 336,
+      "total_demand": 336,
+      "revenue": 26880.0,
+      "prod_cost": 9280.0,
+      "inv_cost": 0.0,
+      "wip_cost": 1114.8700000000051,
+      "bo_cost": 0.3
+    },
+    "ALTERNATING": {
+      "deterministic": 31299.667500000003,
+      "temp_best": 31606.345000000023,
+      "temp_mean": 31459.02050000002,
+      "temp_std": 93.13113286384001,
+      "shipped": 580,
+      "total_demand": 600,
+      "revenue": 46400.0,
+      "prod_cost": 13808.0,
+      "inv_cost": 3.5600000000000023,
+      "wip_cost": 981.0449999999768,
+      "bo_cost": 1.05
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# tensorfab dependencies — additive to the project's top-level requirements.txt.
+#
+# CPU (macOS dev machine, or any Linux/Windows box without CUDA):
+#     pip install -r tensorfab/requirements.txt
+#
+# NVIDIA GPU (Linux, or Windows via WSL2 — see README § "Running on the
+# Windows/NVIDIA machine"). Install this INSTEAD of the plain jax line below:
+#     pip install -U "jax[cuda12]"
+#
+# There is no official native-Windows CUDA wheel for JAX. Do not go looking for
+# one; use WSL2.
+
+jax[cpu]>=0.5,<0.12
+numpy>=1.26
+
+# Already required by the parent project, listed here so tensorfab can be run
+# from a clean venv on the GPU box without pulling in torch/sb3:
+#   (simplefab_1p.sim and simplefab_1p.config are imported by verify.py and
+#    bench.py as the reference implementation and parameter source of truth)
