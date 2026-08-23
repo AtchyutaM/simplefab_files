@@ -736,5 +736,487 @@
       "demand": 600
     }
   },
-  "milp_seconds": 600
+  "milp_seconds": 600,
+  "family3": {
+    "note": "UNIFORM 50% demand, 400 Adam steps, identical budget and starts per method. All depths share the same capacity (672 units) and the same $24/unit total production cost, so only lead time varies.",
+    "rows": [
+      {
+        "n_pairs": 2,
+        "M": 4,
+        "lead": 36,
+        "commander": -107.53,
+        "random": 17288.53,
+        "hillclimb": 3755.7,
+        "grad_soft": 16832.69,
+        "grad_st": 17894.83,
+        "bound": 19008.0
+      },
+      {
+        "n_pairs": 4,
+        "M": 8,
+        "lead": 72,
+        "commander": 1233.26,
+        "random": 17451.21,
+        "hillclimb": 5388.61,
+        "grad_soft": 17289.29,
+        "grad_st": 18265.99,
+        "bound": 19008.0
+      },
+      {
+        "n_pairs": 6,
+        "M": 12,
+        "lead": 108,
+        "commander": 2488.18,
+        "random": 16956.27,
+        "hillclimb": 6300.92,
+        "grad_soft": 14770.75,
+        "grad_st": 18319.5,
+        "bound": 19008.0
+      }
+    ],
+    "milp_status": "long 1800s solves running; 45s probes returned 777 / 1,471 / 2,502 (barely above commander) and M=12 peaked at 6.6 GB"
+  },
+  "verification_matrix": [
+    {
+      "gate": "verify.py",
+      "checks": "tensor sim vs sim.py, tick-by-tick, 7 action regimes",
+      "m4": "PASS",
+      "m8": "PASS",
+      "m12": "PASS",
+      "kind": "independent implementation"
+    },
+    {
+      "gate": "verify_env.py",
+      "checks": "tensor env vs FabEnv: obs, mask, reward, shaping, invalid",
+      "m4": "PASS",
+      "m8": "PASS",
+      "m12": "PASS",
+      "kind": "independent implementation"
+    },
+    {
+      "gate": "verify_diffsim.py",
+      "checks": "ST forward bit-identical to exact; hard gradient == 0",
+      "m4": "PASS",
+      "m8": "n/a",
+      "m12": "n/a",
+      "kind": "internal property"
+    },
+    {
+      "gate": "verify_general.py",
+      "checks": "CP-SAT schedule replayed in tensor sim matches its objective",
+      "m4": "PASS $0.0000",
+      "m8": "PASS $0.0027",
+      "m12": "pending",
+      "kind": "independent implementation"
+    },
+    {
+      "gate": "verify_general.py",
+      "checks": "invariants: unit conservation, non-negative queues, one job/tool, lead time",
+      "m4": "PASS",
+      "m8": "PASS",
+      "m12": "PASS",
+      "kind": "physical property"
+    }
+  ],
+  "generalization": {
+    "files": [
+      {
+        "f": "config.py",
+        "change": "n_pairs parameter; alternating DIFF/LITHO chain; per-stage cost 32/M and 16/M so total stays $24/unit; WIP linear 0 -> $0.0075",
+        "risk": "economics held constant by design"
+      },
+      {
+        "f": "spec.py",
+        "change": "n_machines from config; route array (dest queue per machine, -1 = ship)",
+        "risk": "low"
+      },
+      {
+        "f": "tensor_sim.py",
+        "change": "four hardcoded routing lines replaced by emit @ route_mat + emit @ to_fg",
+        "risk": "low; this is also what reentrancy needs"
+      },
+      {
+        "f": "sim.py",
+        "change": "machine list replaces machine0..3; queues generated; loops over M; obs 3M+6; mask (M,2). machine0..3 kept as aliases for 14 dependent modules",
+        "risk": "largest refactor; gated by verify.py"
+      },
+      {
+        "f": "env.py",
+        "change": "obs 3M+6, MultiDiscrete([2]*M), phi and starts loop over M",
+        "risk": "invalid-action bug preserved deliberately"
+      },
+      {
+        "f": "env_tensor.py",
+        "change": "obs_dim(M) helper; time caps derived from batch size",
+        "risk": "low"
+      },
+      {
+        "f": "optim.py",
+        "change": "feeders/shippers from route; generalized recurrences and objective; COST_SCALE 1e3 -> 1e5; depth-agnostic warm start",
+        "risk": "cross-validated against tensor sim"
+      }
+    ],
+    "bugs": [
+      {
+        "b": "Generalized commander completed jobs at t+pt-1 instead of t+pt",
+        "impact": "warm-start hint infeasible; CP-SAT silently discarded it and searched from nothing at M=8",
+        "found": "CP-SAT returned UNKNOWN where a feasible hint existed"
+      },
+      {
+        "b": "Generalized commander ignored that commander_decide runs before completions",
+        "impact": "produced 1667 starts vs the reference 1568; hint diverged from the quoted commander baseline",
+        "found": "start-by-start comparison against the tensor-sim commander"
+      },
+      {
+        "b": "Action tape shape hardcoded as (B, H, 4) in gradient and search code",
+        "impact": "family 3 silently produced no results at M=8 and M=12",
+        "found": "empty method rows in the sweep output"
+      },
+      {
+        "b": "COST_SCALE=1000 rounds a 12-stage line's WIP coefficients to 47% error",
+        "impact": "CP-SAT would optimise a materially different objective at depth",
+        "found": "reviewing coefficient magnitudes before running"
+      }
+    ]
+  },
+  "family3_92": {
+    "note": "UNIFORM demand of 616 units at every depth, 400 Adam steps, same protocol as the 50% sweep. 616 is 92% of the nominal 672-unit capacity; as a fraction of what each line can actually deliver over a finite horizon it is 92.8% / 94.5% / 96.2%. Demand is held constant in absolute units, so effective load rises slightly with depth.",
+    "rows": [
+      {
+        "n_pairs": 2,
+        "M": 4,
+        "lead": 36,
+        "commander": 34079.71,
+        "random": 34457.76,
+        "hillclimb": 34572.43,
+        "grad_soft": 32378.94,
+        "grad_st": 34554.85
+      },
+      {
+        "n_pairs": 4,
+        "M": 8,
+        "lead": 72,
+        "commander": 34173.78,
+        "random": 34152.8,
+        "hillclimb": 34258.91,
+        "grad_soft": -11794.48,
+        "grad_st": 33508.34
+      },
+      {
+        "n_pairs": 6,
+        "M": 12,
+        "lead": 108,
+        "commander": 32864.1,
+        "random": 33789.22,
+        "hillclimb": 32456.21,
+        "grad_soft": -21996.18,
+        "grad_st": 31378.5
+      }
+    ],
+    "clip_test": "Global-norm clipping at 100 and 1000 changed nothing: $31,350 / $31,380 vs $31,379 unclipped at 6+6. The Adam second-moment hypothesis was tested and rejected; this is not an optimiser-configuration artifact.",
+    "grad_norms": {
+      "2+2": null,
+      "4+4": 52900000.0,
+      "6+6": 8650000000.0
+    }
+  },
+  "slack_trend": [
+    {
+      "problem": "Uniform 50%",
+      "util": 0.5,
+      "shape": "flat",
+      "margin": 14037
+    },
+    {
+      "problem": "Alternating 50%",
+      "util": 0.5,
+      "shape": "bursty",
+      "margin": 15727
+    },
+    {
+      "problem": "Alternating 89%",
+      "util": 0.89,
+      "shape": "bursty",
+      "margin": 213
+    },
+    {
+      "problem": "Alternating 92%",
+      "util": 0.92,
+      "shape": "bursty",
+      "margin": 398
+    },
+    {
+      "problem": "Uniform 92% (2+2)",
+      "util": 0.92,
+      "shape": "flat",
+      "margin": -18
+    },
+    {
+      "problem": "Uniform 92% (4+4)",
+      "util": 0.92,
+      "shape": "flat",
+      "margin": -751
+    },
+    {
+      "problem": "Uniform 92% (6+6)",
+      "util": 0.92,
+      "shape": "flat",
+      "margin": -2411
+    }
+  ],
+  "milp_depth": [
+    {
+      "M": 4,
+      "incumbent": 18993.18,
+      "bound": 19003.2,
+      "gap": 0.0005,
+      "grad_st": 17894.83
+    },
+    {
+      "M": 8,
+      "incumbent": 18839.92,
+      "bound": 19002.86,
+      "gap": 0.0086,
+      "grad_st": 18265.99
+    },
+    {
+      "M": 12,
+      "incumbent": 18933.51,
+      "bound": 19008.0,
+      "gap": 0.0039,
+      "grad_st": 18319.5
+    }
+  ],
+  "capacity": {
+    "H": 2688,
+    "nominal": 672,
+    "explain": "Demand is set from a fixed nominal capacity of 672 units = 0.25 units/tick x 2688 ticks, where 0.25 is one diffusion stage (4 units / 16 ticks). That figure is depth-independent by construction: adding stages adds tools, and steady-state throughput is set by the slowest single stage, not by how many follow it.",
+    "rows": [
+      {
+        "line": "2+2",
+        "M": 4,
+        "lead": 36,
+        "achievable": 664,
+        "d336": 0.5060240963855421,
+        "d616": 0.927710843373494
+      },
+      {
+        "line": "4+4",
+        "M": 8,
+        "lead": 72,
+        "achievable": 652,
+        "d336": 0.5153374233128835,
+        "d616": 0.9447852760736196
+      },
+      {
+        "line": "6+6",
+        "M": 12,
+        "lead": 108,
+        "achievable": 640,
+        "d336": 0.525,
+        "d616": 0.9625
+      }
+    ]
+  },
+  "twoprod": {
+    "products": [
+      {
+        "p": "P0",
+        "revenue": 80,
+        "prod_cost": 24,
+        "margin": 56,
+        "batch_pt": 16,
+        "t_per_unit": 4.0,
+        "margin_per_tick": 14.0,
+        "fg": 0.04,
+        "backorder": 0.15,
+        "setup_cost": 20
+      },
+      {
+        "p": "P1",
+        "revenue": 100,
+        "prod_cost": 28,
+        "margin": 72,
+        "batch_pt": 20,
+        "t_per_unit": 5.0,
+        "margin_per_tick": 14.4,
+        "fg": 0.05,
+        "backorder": 0.225,
+        "setup_cost": 20
+      }
+    ],
+    "flattened": {
+      "P0": 14.0,
+      "P1": 11.2
+    },
+    "alignment": [
+      {
+        "item": "FG holding",
+        "before": "P0 0.02 / P1 0.025",
+        "after": "P0 0.04 / P1 0.05",
+        "why": "level matched to the 1-product line; P1's original 1.25x premium preserved exactly"
+      },
+      {
+        "item": "Backorder rate",
+        "before": "P0 0.10 / P1 0.15",
+        "after": "P0 0.15 / P1 0.225",
+        "why": "level matched; P1's original 1.5x premium preserved exactly"
+      },
+      {
+        "item": "Backorder timing",
+        "before": "charged from arrival",
+        "after": "one-week grace period",
+        "why": "the 1-product line charges only demand outstanding longer than demand_interval; this was the single largest difference between the two problems"
+      },
+      {
+        "item": "WIP holding",
+        "before": "absent",
+        "after": "progressive 0 -> 0.0075, P1 at 1.25x",
+        "why": "without it, parking inventory in mid-line queues is free \u2014 the exploit the 1-product line added WIP cost to close"
+      },
+      {
+        "item": "demand_delay",
+        "before": "96 ticks",
+        "after": "0",
+        "why": "demand lands on the period boundary, as in the 1-product line"
+      },
+      {
+        "item": "setup_times[None]",
+        "before": "missing \u2014 KeyError",
+        "after": "added, cold start = changeover",
+        "why": "a real defect: Machine.process looks this up on the first job, so the config could not drive its own simulator"
+      },
+      {
+        "item": "Finished-goods matching",
+        "before": "queue_fin was append-only",
+        "after": "matched against demand each tick, per product",
+        "why": "a real defect, not an alignment: nothing ever removed items from finished inventory, so units produced ahead of demand were stranded permanently. Observed directly \u2014 4 units of P1 demand unmet while 12 finished P1 units sat in inventory."
+      }
+    ],
+    "kept": [
+      "Per-product processing times (16t vs 20t on the batch tools) \u2014 the capacity trade-off",
+      "Sequence-dependent setup times (1 tick on the single-wafer tools)",
+      "$20 changeover cost on M1 and M3",
+      "Per-product revenue ($80 / $100) and production cost ($24 / $28)",
+      "Three-way action space per tool: idle, run P0, run P1",
+      "28-dim observation including each tool's last-finished product",
+      "The demand-share commander heuristic"
+    ],
+    "before_after": {
+      "stages": [
+        {
+          "stage": "As found",
+          "profit": 7327.56,
+          "inventory": 2063.2,
+          "backorder": 22313.2,
+          "shipped": 524
+        },
+        {
+          "stage": "After economics alignment",
+          "profit": 30491.48,
+          "inventory": 2355.7,
+          "backorder": 68.1,
+          "shipped": 540
+        },
+        {
+          "stage": "After finished-goods fix",
+          "profit": 33076.06,
+          "inventory": 207.0,
+          "backorder": 0.0,
+          "shipped": 544
+        }
+      ],
+      "demand": 544
+    },
+    "mixes": [
+      {
+        "mix": "50 / 50",
+        "d0": 236,
+        "d1": 236,
+        "commander": 25028,
+        "ceiling": 30208,
+        "pct": 0.829,
+        "setups": 32,
+        "inv": 2075
+      },
+      {
+        "mix": "90 / 10",
+        "d0": 472,
+        "d1": 52,
+        "commander": 25827,
+        "ceiling": 30176,
+        "pct": 0.856,
+        "setups": 14,
+        "inv": 1773
+      },
+      {
+        "mix": "10 / 90",
+        "d0": 40,
+        "d1": 392,
+        "commander": 25433,
+        "ceiling": 30464,
+        "pct": 0.835,
+        "setups": 18,
+        "inv": 2231
+      }
+    ],
+    "modes": [
+      {
+        "mode": "UNIFORM @ 80%",
+        "profit": 25028,
+        "inv": 2075,
+        "wip": 61,
+        "setup": 640,
+        "backorder": 0
+      },
+      {
+        "mode": "UNIFORM @ 92%",
+        "profit": 33076,
+        "inv": 207,
+        "wip": 61,
+        "setup": 940,
+        "backorder": 0
+      },
+      {
+        "mode": "ALTERNATING @ 92%",
+        "profit": 32723,
+        "inv": 729,
+        "wip": 61,
+        "setup": 840,
+        "backorder": 0
+      }
+    ],
+    "plan": [
+      {
+        "n": 1,
+        "step": "Tensor simulator with a product axis",
+        "detail": "q[B, M, P], a delay register carrying a product tag since a tool runs one recipe at a time, and per-tool changeover state. Verified tick-by-tick against simplefab/sim.py.",
+        "new": "the product dimension and changeover state"
+      },
+      {
+        "n": 2,
+        "step": "Tensor environment",
+        "detail": "The 28-dim observation including each tool's last-finished product, the 12-wide action mask, reward and shaping. Verified against simplefab/env.py.",
+        "new": "three-way masking instead of binary"
+      },
+      {
+        "n": 3,
+        "step": "Differentiable line \u2014 a new relaxation",
+        "detail": "The 1-product action was binary, so a sigmoid straight-through sufficed. Here the choice is three-way, so it becomes a SOFTMAX straight-through. This is a genuine redesign, not a port.",
+        "new": "categorical relaxation"
+      },
+      {
+        "n": 4,
+        "step": "The 2-product CP-SAT model \u2014 the real risk",
+        "detail": "Decision variables become x[m][t][p] plus changeover-tracking variables. Setup structure is exactly what makes scheduling MILPs explode, so this is the first honest test of the scaling premise after pipeline depth failed to break the solver.",
+        "new": "setup variables \u2014 the combinatorial step"
+      },
+      {
+        "n": 5,
+        "step": "Method comparison across the three mixes",
+        "detail": "Commander, random search, hill-climb, grad-soft, grad-ST, CP-SAT and retrained PPO at 80% utilisation, plus the bursty ALTERNATING mode.",
+        "new": "mix becomes an experimental axis"
+      }
+    ]
+  }
 }

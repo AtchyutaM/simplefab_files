@@ -61,19 +61,21 @@ HISTORICAL = {
 
 
 def run_pattern(pattern: str, args, run: Run, key) -> Dict[str, Any]:
-    common = make_common_config(mode=pattern)
+    common = make_common_config(mode=pattern, n_pairs=args.n_pairs,
+                                utilization=args.utilization)
     spec = spec_from_common_config(common, mode=pattern)
     line = make_line(spec)
     ev = make_exact_evaluator(line)
-    B, H = args.batch, spec.H
+    B, H, M = args.batch, spec.H, spec.n_machines
 
     util = spec.total_demand / max(1, int(spec.arrivals.sum()))
     run.log(f"\n{'=' * 70}")
-    run.log(f"{pattern}   demand={spec.total_demand}  util={util:.1%}  H={H}")
+    run.log(f"{pattern}   n_pairs={args.n_pairs}  M={spec.n_machines}  "
+            f"lead={int(spec.pt.sum())}t  demand={spec.total_demand}  util={util:.1%}")
     run.log(f"{'=' * 70}")
 
     k_init, k_hc, k_rs = jax.random.split(key, 3)
-    theta0 = jax.random.normal(k_init, (B, H, 4)) * args.init_scale
+    theta0 = jax.random.normal(k_init, (B, H, M)) * args.init_scale
     acts0 = hard_actions(theta0)
     budget = 3 * args.steps * B
     zeroth_iters = budget // B
@@ -89,15 +91,15 @@ def run_pattern(pattern: str, args, run: Run, key) -> Dict[str, Any]:
     for mode in ("st", "soft"):
         dl = DiffLine(spec, Relax(mode=mode))
         out = adam_ascend(dl, theta0, args.steps, args.lr, ev,
-                          args.eval_every, run, f"grad-{mode}")
+                          args.eval_every, run, f"grad-{mode}", clip=args.clip)
         res[f"grad-{mode}"] = float(np.max(exact_profit_f64(line, out["best_acts"])))
         grad_extra[mode] = out
 
     ladder = np.array([1, 4, 16, 64], dtype=np.float64)
-    p_flip = jnp.asarray(np.repeat(ladder, max(1, B // 4))[:B] / (H * 4), dtype=jnp.float32)
+    p_flip = jnp.asarray(np.repeat(ladder, max(1, B // 4))[:B] / (H * M), dtype=jnp.float32)
     hc = hill_climb(ev, acts0, zeroth_iters, p_flip, k_hc)
     res["hillclimb"] = float(np.max(exact_profit_f64(line, hc["best_acts"])))
-    res["random"] = random_search(ev, (B, H, 4), zeroth_iters, k_rs)["best_profit"]
+    res["random"] = random_search(ev, (B, H, M), zeroth_iters, k_rs)["best_profit"]
 
     if not args.no_milp:
         from simplefab_1p.optim import solve_optimal_schedule
@@ -172,6 +174,13 @@ def main() -> int:
     ap.add_argument("--init-scale", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--milp-seconds", type=float, default=180.0)
+    ap.add_argument("--clip", type=float, default=0.0,
+                    help="global-norm gradient clip; 0 disables")
+    ap.add_argument("--utilization", type=float, default=0.50,
+                    help="target demand as a fraction of line capacity; ignored by the "
+                         "ALTERNATING_* modes, which hardcode their own demand pattern")
+    ap.add_argument("--n-pairs", type=int, default=2,
+                    help="diffusion+litho pairs; 2 = the original 4-machine line")
     ap.add_argument("--no-milp", action="store_true")
     args = ap.parse_args()
 

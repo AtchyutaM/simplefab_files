@@ -40,3 +40,19 @@ far is `1413848+dirty`, since `tensorfab/` is not yet committed.
 | `20260802-092504_compare_patterns` | compare_patterns | FAILED: TypeError | 990 | cpu | 1413848+dirty |
 | `20260802-100336_eval_ppo_patterns` | eval_ppo_patterns | PPO retrained on 3 patterns; temperature sampling adds $1,060 on average over argmax | 62 | cpu | 1413848+dirty |
 | `20260802-094439_compare_patterns` | compare_patterns | grad-st beats hillclimb on 4/4 patterns (margin $213 to $15,727); mean 95.3% of CP-SAT dual bound; CP-SAT failed to converge on 0/4 | 2686 | cpu | 1413848+dirty |
+| `20260812-114513_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $14,139 to $14,139); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 41 | cpu | 0da7577+dirty |
+| `20260812-114555_compare_patterns` | compare_patterns | FAILED: TypeError | 0 | cpu | 0da7577+dirty |
+| `20260812-114556_compare_patterns` | compare_patterns | FAILED: TypeError | 0 | cpu | 0da7577+dirty |
+| `20260812-114634_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $14,139 to $14,139); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 41 | cpu | 0da7577+dirty |
+| `20260812-114716_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $12,877 to $12,877); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 83 | cpu | 0da7577+dirty |
+| `20260812-114840_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $12,019 to $12,019); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 128 | cpu | 0da7577+dirty |
+| `20260812-123613_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $70 to $70); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 3 | cpu | 0da7577+dirty |
+| `20260812-123541_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-18 to $-18); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 58 | cpu | 0da7577+dirty |
+| `20260812-123637_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-18 to $-18); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 60 | cpu | 0da7577+dirty |
+| `20260812-123640_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-751 to $-751); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 107 | cpu | 0da7577+dirty |
+| `20260812-123737_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-751 to $-751); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 108 | cpu | 0da7577+dirty |
+| `20260812-123828_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,078 to $-1,078); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 160 | cpu | 0da7577+dirty |
+| `20260812-123926_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,078 to $-1,078); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 159 | cpu | 0da7577+dirty |
+| `20260812-125719_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,106 to $-1,106); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 154 | cpu | 0da7577+dirty |
+| `20260812-125954_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,076 to $-1,076); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 152 | cpu | 0da7577+dirty |
+| `20260812-120047_long_milp_depth` | long_milp_depth | CP-SAT vs depth: M=4 inc $18,993 bound $19,003 gap 0.1% \| M=8 inc $18,840 bound $19,003 gap 0.9% \| M=12 inc $18,934 bound $19,008 gap 0.4% | 5402 | cpu | 0da7577+dirty |

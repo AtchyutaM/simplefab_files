@@ -8,7 +8,8 @@ def make_common_config(
     H: int = 2688,                # 4 weeks (672 ticks/week)
     alpha: float = 0.5,           # fraction of Product 0 in the mix (0..1)
     utilization: float = 0.92,    # target share of the bottleneck capacity for DEMAND (0..1)
-    demand_delay: int = 96,       # ticks to delay demand after arrivals (96 = 1 day)
+    demand_delay: int = 0,        # ticks to delay demand after arrivals
+                                  # (0 = on the period boundary, matching simplefab_1p)
     demand_interval: int = 672,   # ticks between demand batches (672 = 1 week)
     arrival_interval: int = 672,  # ticks between raw material deliveries (672 = 1 week)
 ) -> Dict[str, Any]:
@@ -41,11 +42,15 @@ def make_common_config(
             3: {0: 2,  1: 2},
         },
         "batch_sizes": {0: 4, 1: 1, 2: 4, 3: 1},
+        # setup_times[machine][from_product][to_product]. The `None` key is the
+        # cold-start case (tool has never run) — `Machine.process` looks it up on
+        # the first job, and its absence here made the config unusable with its
+        # own simulator (KeyError: None). Cold start is treated as a changeover.
         "setup_times": {
-            0: {0: {0: 0, 1: 0}, 1: {0: 0, 1: 0}},
-            1: {0: {0: 0, 1: 1}, 1: {0: 1, 1: 0}},
-            2: {0: {0: 0, 1: 0}, 1: {0: 0, 1: 0}},
-            3: {0: {0: 0, 1: 1}, 1: {0: 1, 1: 0}},
+            0: {None: {0: 0, 1: 0}, 0: {0: 0, 1: 0}, 1: {0: 0, 1: 0}},
+            1: {None: {0: 1, 1: 1}, 0: {0: 0, 1: 1}, 1: {0: 1, 1: 0}},
+            2: {None: {0: 0, 1: 0}, 0: {0: 0, 1: 0}, 1: {0: 0, 1: 0}},
+            3: {None: {0: 1, 1: 1}, 0: {0: 0, 1: 1}, 1: {0: 1, 1: 0}},
         },
 
         "revenue_per_unit": {0: 80, 1: 100},
@@ -56,8 +61,22 @@ def make_common_config(
             3: {0: 4,  1: 4},
         },
         "setup_cost": {0: 0, 1: 20, 2: 0, 3: 20},
-        "inventory_cost_per_unit": {0: 0.02, 1: 0.025},
-        "backorder_cost_per_unit": {0: 0.10, 1: 0.15},
+        # Aligned with simplefab_1p (2026-08-22). P0 now matches the 1-product
+        # product exactly ($0.04 FG holding, $0.15 backorder); P1 keeps its
+        # ORIGINAL relative premiums untouched — 1.25x on holding, 1.5x on
+        # backorder — so the two products stay as differentiated as they were.
+        "inventory_cost_per_unit": {0: 0.04, 1: 0.05},
+        "backorder_cost_per_unit": {0: 0.15, 1: 0.225},
+        # Progressive WIP holding, absent from this line before. The 1-product
+        # line uses it to stop the agent parking inventory in mid-line queues for
+        # free; without it that exploit is open here too. Base rates are the
+        # 1-product values; P1 carries the same 1.25x holding premium.
+        "wip_cost_per_unit": {
+            0: {0: 0.0000, 1: 0.000000},
+            1: {0: 0.0025, 1: 0.003125},
+            2: {0: 0.0050, 1: 0.006250},
+            3: {0: 0.0075, 1: 0.009375},
+        },
 
         "initial_inventory": {
             0: {0: 0, 1: 0},

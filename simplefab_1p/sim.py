@@ -44,6 +44,7 @@ class Machine:
     """
     def __init__(self, processing_time: int):
         self.processing_time = int(processing_time)
+        self.batch_size = 1          # so batch and single tools share one interface
         self.busy: bool = False
         self.finish_time: int = 0
         self.event_log: List[Tuple[int, int]] = []
@@ -60,6 +61,14 @@ class Machine:
             self.busy = False
             return True
         return False
+
+
+def commander_decide_general(machines: List[Any], queues: Dict[str, List[int]]) -> Dict[str, bool]:
+    """Greedy: run any tool that is idle and has enough input. Depth-agnostic."""
+    return {
+        f"machine{m}": (not mach.busy) and len(queues[f"queue{m}"]) >= mach.batch_size
+        for m, mach in enumerate(machines)
+    }
 
 
 def commander_decide(
@@ -116,11 +125,21 @@ class ProductionLine:
 
     def __init__(self, common_cfg: Dict[str, Any]):
         pt = common_cfg["processing_times"]
+        M = int(common_cfg.get("n_machines", 4))
+        batch_cfg = common_cfg.get("batch_sizes", {0: 4, 1: 1, 2: 4, 3: 1})
+        self.n_machines = M
 
-        self.machine0 = BatchProcessingMachine(pt[0][0], batch_size=4)
-        self.machine1 = Machine(pt[1][0])
-        self.machine2 = BatchProcessingMachine(pt[2][0], batch_size=4)
-        self.machine3 = Machine(pt[3][0])
+        # A tool is a batch furnace if its batch size is > 1, else a single-wafer tool.
+        self.machines: List[Any] = []
+        for m in range(M):
+            b = int(batch_cfg[m])
+            self.machines.append(
+                BatchProcessingMachine(pt[m][0], batch_size=b) if b > 1
+                else Machine(pt[m][0])
+            )
+        # Legacy attribute names — 14 other modules reach for these directly.
+        for m in range(min(M, 4)):
+            setattr(self, f"machine{m}", self.machines[m])
 
         self.arrivals_schedule = common_cfg["arrivals_schedule"][0]
         self.demand_schedule = common_cfg["demand_schedule"][0]
@@ -129,14 +148,9 @@ class ProductionLine:
         self.demand_delay = int(common_cfg.get("demand_delay", 96))
 
         # queues are simple lists of arrival timestamps
-        self.queues: Dict[str, List[int]] = {
-            "queue0": [],
-            "queue1": [],
-            "queue2": [],
-            "queue3": [],
-            "queue_fin": [],    # finished inventory
-            "demand": [],       # unmet demand
-        }
+        self.queues: Dict[str, List[int]] = {f"queue{m}": [] for m in range(M)}
+        self.queues["queue_fin"] = []    # finished inventory
+        self.queues["demand"] = []       # unmet demand
 
         # Initialize with starting finished goods inventory
         init_fin = common_cfg.get("initial_finished_inventory", {0: 0})
@@ -152,18 +166,10 @@ class ProductionLine:
 
         self.econ = {
             "revenue_per_unit": common_cfg["revenue_per_unit"][0],
-            "production_cost": {
-                0: common_cfg["production_cost"][0][0],
-                1: common_cfg["production_cost"][1][0],
-                2: common_cfg["production_cost"][2][0],
-                3: common_cfg["production_cost"][3][0],
-            },
+            "production_cost": {m: common_cfg["production_cost"][m][0] for m in range(M)},
             "inventory_cost_per_unit": common_cfg["inventory_cost_per_unit"][0],
             "wip_cost_per_unit": {
-                0: common_cfg.get("wip_cost_per_unit", {}).get(0, 0.0),
-                1: common_cfg.get("wip_cost_per_unit", {}).get(1, 0.0),
-                2: common_cfg.get("wip_cost_per_unit", {}).get(2, 0.0),
-                3: common_cfg.get("wip_cost_per_unit", {}).get(3, 0.0),
+                m: common_cfg.get("wip_cost_per_unit", {}).get(m, 0.0) for m in range(M)
             },
             "backorder_cost_per_unit": common_cfg["backorder_cost_per_unit"][0],
         }
@@ -209,23 +215,17 @@ class ProductionLine:
     # state / obs / mask
     # ---------------------------
     def _state_dict(self, current_time: int) -> Dict[str, Any]:
-        return {
-            "Time": current_time,
-            "Queue 0": len(self.queues["queue0"]),
-            "Queue 1": len(self.queues["queue1"]),
-            "Queue 2": len(self.queues["queue2"]),
-            "Queue 3": len(self.queues["queue3"]),
-            "Queue Fin": len(self.queues["queue_fin"]),
-            "Demand Queue": len(self.queues["demand"]),
-            "Machine 0 Busy": int(self.machine0.busy),
-            "Machine 1 Busy": int(self.machine1.busy),
-            "Machine 2 Busy": int(self.machine2.busy),
-            "Machine 3 Busy": int(self.machine3.busy),
-            "Machine 0 TimeRemaining": 0 if not self.machine0.busy else max(self.machine0.finish_time - current_time, 0),
-            "Machine 1 TimeRemaining": 0 if not self.machine1.busy else max(self.machine1.finish_time - current_time, 0),
-            "Machine 2 TimeRemaining": 0 if not self.machine2.busy else max(self.machine2.finish_time - current_time, 0),
-            "Machine 3 TimeRemaining": 0 if not self.machine3.busy else max(self.machine3.finish_time - current_time, 0),
-        }
+        d: Dict[str, Any] = {"Time": current_time}
+        for m in range(len(self.machines)):
+            d[f"Queue {m}"] = len(self.queues[f"queue{m}"])
+        d["Queue Fin"] = len(self.queues["queue_fin"])
+        d["Demand Queue"] = len(self.queues["demand"])
+        for m, mach in enumerate(self.machines):
+            d[f"Machine {m} Busy"] = int(mach.busy)
+            d[f"Machine {m} TimeRemaining"] = (
+                0 if not mach.busy else max(mach.finish_time - current_time, 0)
+            )
+        return d
 
     def get_observation(self, current_time: int, norm: bool = True) -> List[float]:
         """
@@ -239,39 +239,39 @@ class ProductionLine:
           17:    upcoming_demand_qty (scaled to expected max 200)
         """
         max_units = 64.0
-        per_machine_time_cap = {0: 20.0, 1: 3.0, 2: 20.0, 3: 3.0}
+        machines = self.machines
+        M = len(machines)
+        # Batch furnaces run 16 ticks, single-wafer tools 2; caps mirror the
+        # original [20, 3, 20, 3] at M=4.
+        caps = [20.0 if m.batch_size > 1 else 3.0 for m in machines]
 
         v: List[float] = []
 
-        # dims 0-5: queue counts
-        for name in ("queue0", "queue1", "queue2", "queue3", "queue_fin", "demand"):
+        # dims 0 .. M+1: queue counts, then finished goods, then demand backlog
+        for name in [f"queue{m}" for m in range(M)] + ["queue_fin", "demand"]:
             c = len(self.queues[name])
             v.append((c / max_units) if norm else float(c))
 
-        # dims 6-9: machine busy flags
-        machines = [self.machine0, self.machine1, self.machine2, self.machine3]
+        # next M dims: busy flags
         for m in machines:
             v.append(1.0 if m.busy else 0.0)
 
-        # dims 10-13: time remaining
+        # next M dims: time remaining, scaled
         for i, m in enumerate(machines):
             tl = 0 if not m.busy else max(m.finish_time - current_time, 0)
-            cap = per_machine_time_cap[i]
-            v.append((tl / cap) if norm else float(tl))
+            v.append((tl / caps[i]) if norm else float(tl))
 
-        # dim 14: global progress
+        # final 4 dims: global progress, period progress, look-ahead to next demand
         gp = (current_time / self.H) if self.H > 0 else 0.0
         v.append(min(gp, 1.0) if norm else float(current_time))
 
-        # dim 15: period progress
         pp = (current_time % self.demand_interval) / self.demand_interval
         v.append(pp if norm else float(current_time % self.demand_interval))
 
-        # dim 16 & 17: look-ahead to next demand event
         next_dem_t = current_time
         while next_dem_t < self.H and self.demand_schedule[next_dem_t] == 0:
             next_dem_t += 1
-            
+
         ticks_until = next_dem_t - current_time
         v.append((ticks_until / self.demand_interval) if norm else float(ticks_until))
 
@@ -284,28 +284,16 @@ class ProductionLine:
         """
         mask shape (4, 2) for 4 machines × {Idle, Run}
         """
-        mask = np.zeros((4, 2), dtype=np.int8)
+        M = len(self.machines)
+        mask = np.zeros((M, 2), dtype=np.int8)
         mask[:, 0] = 1  # Idle always allowed
 
-        # M0: needs batch_size from queue0
-        if not self.machine0.busy and current_time >= self.machine0.finish_time:
-            if len(self.queues["queue0"]) >= self.machine0.batch_size:
-                mask[0, 1] = 1
-
-        # M1: needs 1 from queue1
-        if not self.machine1.busy and current_time >= self.machine1.finish_time:
-            if len(self.queues["queue1"]) >= 1:
-                mask[1, 1] = 1
-
-        # M2: needs batch_size from queue2
-        if not self.machine2.busy and current_time >= self.machine2.finish_time:
-            if len(self.queues["queue2"]) >= self.machine2.batch_size:
-                mask[2, 1] = 1
-
-        # M3: needs 1 from queue3
-        if not self.machine3.busy and current_time >= self.machine3.finish_time:
-            if len(self.queues["queue3"]) >= 1:
-                mask[3, 1] = 1
+        # `not busy` dominates: a tool completing at this tick is still flagged
+        # busy here (update() has not run yet), so it is not offered as runnable.
+        for m, mach in enumerate(self.machines):
+            if not mach.busy and current_time >= mach.finish_time:
+                if len(self.queues[f"queue{m}"]) >= mach.batch_size:
+                    mask[m, 1] = 1
 
         return mask
 
@@ -347,10 +335,7 @@ class ProductionLine:
                 self.costs["revenue"] += float(self.econ["revenue_per_unit"])
 
         if actions_override is None:
-            actions = commander_decide(
-                self.machine0, self.machine1, self.machine2, self.machine3,
-                self.queues,
-            )
+            actions = commander_decide_general(self.machines, self.queues)
         else:
             actions = actions_override
 
@@ -358,67 +343,36 @@ class ProductionLine:
         invalids = 0
 
         # --- completions (before starts) ---
-        if self.machine0.busy:
-            if self.machine0.update(current_time):
-                for _ in range(self.machine0.batch_size):
-                    self.add_item_to_queue("queue1", current_time)
-
-        if self.machine1.busy:
-            if self.machine1.update(current_time):
-                self.add_item_to_queue("queue2", current_time)
-
-        if self.machine2.busy:
-            if self.machine2.update(current_time):
-                for _ in range(self.machine2.batch_size):
-                    self.add_item_to_queue("queue3", current_time)
-
-        if self.machine3.busy:
-            if self.machine3.update(current_time):
-                self._ship_or_store(current_time)
+        # Separate from starts so a tool finishing at t can restart at t, and so a
+        # unit deposited by tool m at t is available to tool m+1 at t.
+        last = len(self.machines) - 1
+        for m, mach in enumerate(self.machines):
+            if mach.busy and mach.update(current_time):
+                if m == last:
+                    for _ in range(mach.batch_size):
+                        self._ship_or_store(current_time)
+                else:
+                    for _ in range(mach.batch_size):
+                        self.add_item_to_queue(f"queue{m + 1}", current_time)
 
         # --- starts ---
-        # M0 batch
-        if actions.get("machine0", False):
-            if self.machine0.busy or len(self.queues["queue0"]) < self.machine0.batch_size:
+        for m, mach in enumerate(self.machines):
+            if not actions.get(f"machine{m}", False):
+                continue
+            if mach.busy or len(self.queues[f"queue{m}"]) < mach.batch_size:
                 invalids += 1
             else:
-                for _ in range(self.machine0.batch_size):
-                    self.remove_item_from_queue("queue0", current_time)
-                self.costs["production"] += float(self.econ["production_cost"][0]) * self.machine0.batch_size
-                self.machine0.process(current_time)
-
-        # M1 single
-        if actions.get("machine1", False):
-            if self.machine1.busy or len(self.queues["queue1"]) < 1:
-                invalids += 1
-            else:
-                self.remove_item_from_queue("queue1", current_time)
-                self.costs["production"] += float(self.econ["production_cost"][1])
-                self.machine1.process(current_time)
-
-        # M2 batch
-        if actions.get("machine2", False):
-            if self.machine2.busy or len(self.queues["queue2"]) < self.machine2.batch_size:
-                invalids += 1
-            else:
-                for _ in range(self.machine2.batch_size):
-                    self.remove_item_from_queue("queue2", current_time)
-                self.costs["production"] += float(self.econ["production_cost"][2]) * self.machine2.batch_size
-                self.machine2.process(current_time)
-
-        # M3 single
-        if actions.get("machine3", False):
-            if self.machine3.busy or len(self.queues["queue3"]) < 1:
-                invalids += 1
-            else:
-                self.remove_item_from_queue("queue3", current_time)
-                self.costs["production"] += float(self.econ["production_cost"][3])
-                self.machine3.process(current_time)
+                for _ in range(mach.batch_size):
+                    self.remove_item_from_queue(f"queue{m}", current_time)
+                self.costs["production"] += (
+                    float(self.econ["production_cost"][m]) * mach.batch_size
+                )
+                mach.process(current_time)
 
         # end-of-step holding / backorder
         inv_units = len(self.queues["queue_fin"])
         self.costs["inventory"] += float(self.econ["inventory_cost_per_unit"]) * inv_units
-        for q_idx in range(4):
+        for q_idx in range(len(self.machines)):
             q_name = f"queue{q_idx}"
             self.costs["wip"] += float(self.econ["wip_cost_per_unit"][q_idx]) * len(self.queues[q_name])
         late_demand_count = sum(1 for arrival_t in self.queues["demand"] if current_time >= arrival_t + self.demand_interval)
@@ -429,10 +383,8 @@ class ProductionLine:
 
         if self.logging_enabled:
             snapshot = self._state_dict(current_time)
-            snapshot["Action M0"] = actions.get("machine0", False)
-            snapshot["Action M1"] = actions.get("machine1", False)
-            snapshot["Action M2"] = actions.get("machine2", False)
-            snapshot["Action M3"] = actions.get("machine3", False)
+            for m in range(len(self.machines)):
+                snapshot[f"Action M{m}"] = actions.get(f"machine{m}", False)
             self.event_log.append(snapshot)
 
         self.cost_log.append({

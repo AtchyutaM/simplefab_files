@@ -11,11 +11,11 @@ constants.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
-N_MACHINES = 4
+DEFAULT_N_MACHINES = 4
 
 
 @dataclass(frozen=True)
@@ -26,10 +26,15 @@ class LineSpec:
     reg_len: int                # delay-register length = max(pt) + 1
     demand_interval: int        # ticks after which unmet demand becomes "late"
 
-    # ---- per-machine, shape [4] ----
+    # ---- per-machine, shape [M] ----
     pt: np.ndarray              # processing time in ticks
     take: np.ndarray            # units consumed from the input queue per start
     make: np.ndarray            # units emitted into the next queue per completion
+    route: np.ndarray           # destination queue of each machine's output;
+                                # -1 means "finished goods". For the serial line
+                                # route[m] = m+1 and route[M-1] = -1. Reentrancy
+                                # (family 5) is just a route that points backwards.
+    kind: Tuple[str, ...]       # "DIFF" / "LITHO" per machine, for reporting only
 
     # ---- per-tick, shape [H] ----
     arrivals: np.ndarray        # raw material into q0 at tick t
@@ -58,7 +63,9 @@ class LineSpec:
     def summary(self) -> str:
         return (
             f"LineSpec(mode={self.mode}, H={self.H}, util={self.utilization:.3f})\n"
+            f"  M={self.n_machines} kinds={'/'.join(self.kind)}\n"
             f"  pt={self.pt.tolist()}  take={self.take.tolist()}  make={self.make.tolist()}\n"
+            f"  route={self.route.tolist()}  (-1 = ship)\n"
             f"  reg_len={self.reg_len}  demand_interval={self.demand_interval}\n"
             f"  arrivals total={int(self.arrivals.sum())}  demand total={self.total_demand}\n"
             f"  revenue=${self.revenue_per_unit}/unit  "
@@ -72,8 +79,15 @@ class LineSpec:
 def spec_from_common_config(common: Dict[str, Any], mode: str = "?") -> LineSpec:
     """Translate a `make_common_config` dict into a LineSpec."""
     H = int(common["time_horizon"])
-    pt = np.array([int(common["processing_times"][m][0]) for m in range(N_MACHINES)], dtype=np.int32)
-    batch = np.array([int(common["batch_sizes"][m]) for m in range(N_MACHINES)], dtype=np.int32)
+    M = int(common.get("n_machines", DEFAULT_N_MACHINES))
+    pt = np.array([int(common["processing_times"][m][0]) for m in range(M)], dtype=np.int32)
+    batch = np.array([int(common["batch_sizes"][m]) for m in range(M)], dtype=np.int32)
+
+    # Serial chain: machine m feeds queue m+1; the last machine ships.
+    route = np.arange(1, M + 1, dtype=np.int32)
+    route[M - 1] = -1
+    kind = tuple(common.get("machine_kind",
+                            ["DIFF" if m % 2 == 0 else "LITHO" for m in range(M)]))
 
     # For this serial line, units consumed == units emitted at every stage:
     # the batch machines take 4 and emit 4, the single machines take 1 and emit 1.
@@ -100,20 +114,22 @@ def spec_from_common_config(common: Dict[str, Any], mode: str = "?") -> LineSpec
         demand_lag_cum[demand_interval:] = cum_demand[: H - demand_interval]
 
     wip_cfg = common.get("wip_cost_per_unit", {})
-    wip = np.array([float(wip_cfg.get(i, 0.0)) for i in range(N_MACHINES)], dtype=np.float64)
+    wip = np.array([float(wip_cfg.get(i, 0.0)) for i in range(M)], dtype=np.float64)
 
     prod = np.array(
-        [float(common["production_cost"][m][0]) for m in range(N_MACHINES)], dtype=np.float64
+        [float(common["production_cost"][m][0]) for m in range(M)], dtype=np.float64
     )
 
     return LineSpec(
         H=H,
-        n_machines=N_MACHINES,
+        n_machines=M,
         reg_len=int(pt.max()) + 1,
         demand_interval=demand_interval,
         pt=pt,
         take=take,
         make=make,
+        route=route,
+        kind=kind,
         arrivals=arrivals,
         demand=demand,
         demand_lag_cum=demand_lag_cum,

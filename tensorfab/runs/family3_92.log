@@ -1,0 +1,22 @@
+############ n_pairs=2  UNIFORM @ 92% ############
+UNIFORM   n_pairs=2  M=4  lead=36t  demand=616  util=91.7%
+  random             34,457.76        +378.06             
+  commander          34,079.71          +0.00             
+  hillclimb          34,572.43        +492.73             
+  grad-soft          32,378.94      -1,700.76             
+  grad-st            34,554.85        +475.14             
+############ n_pairs=4  UNIFORM @ 92% ############
+UNIFORM   n_pairs=4  M=8  lead=72t  demand=616  util=91.7%
+  random             34,152.80         -20.98             
+  commander          34,173.78          +0.00             
+  hillclimb          34,258.91         +85.13             
+  grad-soft         -11,794.48     -45,968.25             
+  grad-st            33,508.34        -665.44             
+############ n_pairs=6  UNIFORM @ 92% ############
+UNIFORM   n_pairs=6  M=12  lead=108t  demand=616  util=91.7%
+  random             33,789.22        +925.11             
+  commander          32,864.10          +0.00             
+  hillclimb          32,456.21        -407.89             
+  grad-soft         -21,996.18     -54,860.28             
+  grad-st            31,378.50      -1,485.60             
+FAMILY3-92 DONE

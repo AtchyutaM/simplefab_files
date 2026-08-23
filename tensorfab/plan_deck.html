@@ -1,0 +1,647 @@
+<style>
+:root{
+  --ground:#FAF7F0; --panel:#FFFFFF; --sunk:#F1ECE1;
+  --ink:#1A1712; --ink-2:#4A4238; --ink-3:#7D7264; --rule:#E2D9C9;
+  --accent:#A87400; --accent-soft:#F0E4C8;
+  --diff:#A87400; --litho:#2C63C4; --fg:#0A7D5C; --hot:#B92A45; --alt:#7A3FB8;
+  --ok:#0A7D5C; --open:#B92A45; --warn:#A87400;
+  --serif:ui-serif,"New York",Iowan Old Style,Georgia,serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --measure:68ch;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#12131A; --panel:#191B24; --sunk:#0D0E14;
+    --ink:#EFEADF; --ink-2:#B6AE9E; --ink-3:#78715F; --rule:#282B37;
+    --accent:#EBA91C; --accent-soft:#2A2413;
+    --diff:#B8830C; --litho:#4A86E8; --fg:#12A47B; --hot:#E0455F; --alt:#A05FE0;
+    --ok:#12A47B; --open:#E0455F; --warn:#B8830C;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#12131A; --panel:#191B24; --sunk:#0D0E14;
+  --ink:#EFEADF; --ink-2:#B6AE9E; --ink-3:#78715F; --rule:#282B37;
+  --accent:#EBA91C; --accent-soft:#2A2413;
+  --diff:#B8830C; --litho:#4A86E8; --fg:#12A47B; --hot:#E0455F; --alt:#A05FE0;
+  --ok:#12A47B; --open:#E0455F; --warn:#B8830C;
+}
+:root[data-theme="light"]{
+  --ground:#FAF7F0; --panel:#FFFFFF; --sunk:#F1ECE1;
+  --ink:#1A1712; --ink-2:#4A4238; --ink-3:#7D7264; --rule:#E2D9C9;
+  --accent:#A87400; --accent-soft:#F0E4C8;
+  --diff:#A87400; --litho:#2C63C4; --fg:#0A7D5C; --hot:#B92A45; --alt:#7A3FB8;
+  --ok:#0A7D5C; --open:#B92A45; --warn:#A87400;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:680;letter-spacing:-.018em;line-height:1.14}
+h1{font-size:clamp(2.2rem,5vw,3.5rem)}
+h2{font-size:clamp(1.45rem,2.8vw,2rem)}
+h3{font-size:1.08rem;letter-spacing:-.006em}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--accent);font-weight:600}
+.slideno{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--ink-3)}
+.sub{color:var(--ink-2);max-width:var(--measure)}
+.muted{color:var(--ink-3)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+section{padding:54px 0;border-top:1px solid var(--rule)}
+section:first-of-type{border-top:none}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:6px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;gap:16px}
+@media(min-width:780px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+  .g21{grid-template-columns:1.4fr 1fr}}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:18px 20px}
+.card.flag{border-left:3px solid var(--accent)}
+.card.ok{border-left:3px solid var(--ok)}
+.card.open{border-left:3px solid var(--open)}
+.lattice{display:flex;gap:2px;height:8px;margin:4px 0 0}
+.lattice i{flex:1;background:var(--accent);border-radius:1px;display:block}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.77rem;
+  font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:3px;background:var(--panel)}
+th,td{padding:8px 11px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+thead th{font-size:.64rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;background:var(--sunk)}
+tbody tr:last-child td{border-bottom:none}
+td.hero{color:var(--accent);font-weight:700}
+td.fill{color:var(--ink-3);font-style:italic}
+.pill{display:inline-block;font-family:var(--mono);font-size:.62rem;letter-spacing:.07em;
+  text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid currentColor;
+  font-weight:600}
+.pill.ok{color:var(--ok)}.pill.open{color:var(--open)}.pill.warn{color:var(--warn)}
+.pill.new{color:var(--litho)}
+figcaption{font-size:.85rem;color:var(--ink-3);margin-top:9px;max-width:var(--measure)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+ul{margin:0;padding-left:1.1em}li{margin:4px 0}li::marker{color:var(--accent)}
+code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:2px}
+.legend{display:flex;flex-wrap:wrap;gap:15px;font-family:var(--mono);font-size:.7rem;
+  color:var(--ink-2);margin:10px 0}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:2px;flex:none}
+.banner{background:var(--accent-soft);border:1px solid var(--accent);border-radius:3px;
+  padding:13px 17px;font-size:.89rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-family:var(--mono);
+  font-size:.78rem;font-variant-numeric:tabular-nums}
+.kv b{font-weight:600;color:var(--ink-3);font-size:.68rem;letter-spacing:.06em;
+  text-transform:uppercase;align-self:center}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---- print / PDF ------------------------------------------------------
+   The page is a scrolling document on screen and a paginated deck on paper.
+   Force the light palette (dark backgrounds waste toner and render badly),
+   start each section on a fresh page, and never split a card, table or
+   figure across a page boundary. */
+@media print{
+  :root{
+    --ground:#FFFFFF; --panel:#FFFFFF; --sunk:#F4F1E9;
+    --ink:#12100C; --ink-2:#3A342C; --ink-3:#6B6357; --rule:#D8CFBE;
+    --accent:#8A5F00; --accent-soft:#F6EDD8;
+    --c1:#8A5F00; --c2:#07684B; --c3:#24529F; --c4:#9C2038; --c5:#63329A;
+    --ok:#07684B; --open:#9C2038; --warn:#8A5F00;
+  }
+  @page{ size:A4 landscape; margin:13mm 14mm; }
+  body{ font-size:11.5px; line-height:1.5; background:#fff; }
+  .wrap{ max-width:none; padding:0; }
+  section{ break-before:page; page-break-before:always; padding:0 0 8px;
+           border-top:none; }
+  section:first-of-type{ break-before:auto; page-break-before:auto; }
+  .card,.scroll,figure,table,.grid>div{ break-inside:avoid; page-break-inside:avoid; }
+  tr,li{ break-inside:avoid; page-break-inside:avoid; }
+  h1{ font-size:30px; } h2{ font-size:19px; } h3{ font-size:12.5px; }
+  .stat{ font-size:22px; }
+  .sub{ max-width:none; }
+  .scroll{ overflow:visible; }
+  table{ font-size:9.6px; } th,td{ padding:4px 7px; }
+  svg{ max-width:100%; }
+  .banner{ background:#F6EDD8; }
+  a{ text-decoration:none; }
+}
+</style>
+<div class="wrap">
+
+<!-- ============ SLIDE 1 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; experiment programme</p>
+    <span class="slideno">01 / 10</span></div>
+  <h1>Scheduling a semiconductor line</h1>
+  <p class="sub" style="font-size:1.14rem;margin-top:14px">
+    We are trying to learn a release-and-dispatch policy that decides, every tick, which tools to
+    start &mdash; so that production tracks bursty demand without over-building or falling behind.
+    This deck is the plan for making that problem progressively harder, in a controlled order, so
+    we can find where each method breaks.</p>
+  <div class="lattice" aria-hidden="true" id="lat"></div>
+
+  <div class="grid g3" style="margin-top:30px">
+    <div class="card"><h3>The decision</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Each tick, for each tool: start a job
+      or stay idle. A tool can only start if it is free and has enough input. Over a 4-week horizon
+      that is 2,688 sequential decisions per tool.</p></div>
+    <div class="card"><h3>The objective</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Profit. Revenue on shipment, minus
+      production cost, minus holding cost on finished goods and work-in-progress, minus backorder
+      cost on late demand.</p></div>
+    <div class="card"><h3>The tension</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Build early and you pay to hold
+      inventory. Build late and you pay backorder penalties. The batch tools take 16 ticks, so the
+      pipeline must be filled well before demand lands.</p></div>
+  </div>
+
+  <div class="card flag" style="margin-top:18px">
+    <h3>Why this is worth the effort</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">A four-machine line is a toy. The real
+    target has tens to hundreds of tools, multiple products sharing them, and <strong>reentrant
+    flow</strong> &mdash; wafers revisiting the same tool many times. Exact optimisation is expected
+    to become intractable there. The purpose of this programme is to find the crossover point:
+    where the exact solver stops finishing, and whether a learned policy still works.</p></div>
+</section>
+
+<!-- ============ SLIDE 2 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">The line as it exists today</p><span class="slideno">02 / 10</span></div>
+  <h2>Baseline: 2 diffusion, 2 litho, 1 product</h2>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--diff)"></span>Diffusion &mdash; batch furnace</span>
+    <span><span class="sw" style="background:var(--litho)"></span>Litho &mdash; single wafer</span>
+    <span><span class="sw" style="background:var(--fg)"></span>Finished goods</span>
+  </div>
+  <div id="line-base"></div>
+  <figcaption>Each tool processes one job at a time. A diffusion job consumes 4 units and emits 4
+  after 16 ticks; a litho job consumes 1 and emits 1 after 2 ticks. Queues between stages are
+  unbounded. The bottleneck is diffusion: 4 units / 16 ticks = 0.25 units per tick.</figcaption>
+
+  <div class="grid g21" style="margin-top:26px">
+    <div class="card"><h3>Parameters</h3>
+      <div class="kv" style="margin-top:10px">
+        <b>Horizon</b><span>2,688 ticks (4 weeks &times; 672)</span>
+        <b>Revenue</b><span>$80 / unit on shipment</span>
+        <b>Production</b><span>$8 + $4 + $8 + $4 = $24 / unit through the line</span>
+        <b>FG holding</b><span>$0.04 / unit / tick</span>
+        <b>WIP holding</b><span>q0 $0.00 &middot; q1 $0.0025 &middot; q2 $0.005 &middot; q3 $0.0075</span>
+        <b>Backorder</b><span>$0.15 / unit / tick once demand is &gt; 1 week late</span>
+        <b>Raw material</b><span>672 units / horizon, delivered weekly</span>
+        <b>Initial FG</b><span>8 units</span>
+        <b>Setup / changeover</b><span>defined in config but <strong>all zeros &mdash; unused</strong></span>
+      </div></div>
+    <div class="card flag"><h3>Line capacity &mdash; the number everything is measured against</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The batch stages cap throughput at
+      <strong>0.25 units/tick &rarr; 672 units per horizon</strong>. Raw material arrives at exactly
+      that rate, so both bind simultaneously. "100% utilisation" means demand = 672.</p>
+      <div class="kv" style="margin-top:12px">
+        <b>50%</b><span>336 units &middot; 84/week</span>
+        <b>80%</b><span>536 units &middot; 134/week</span>
+        <b>90%</b><span>604 units &middot; 151/week</span>
+        <b>110%</b><span>736 units &middot; 184/week &mdash; <strong>exceeds capacity</strong></span>
+      </div></div>
+  </div>
+
+  <div class="card open" style="margin-top:16px">
+    <h3>Naming caveat &mdash; please confirm</h3>
+    <p class="sub" style="font-size:.92rem;margin-top:7px">The code has no notion of "litho" or
+    "diffusion". It knows only <em>batch</em> tools (4 units, 16 ticks) and <em>single</em> tools
+    (1 unit, 2 ticks). Mapping batch&nbsp;&rarr;&nbsp;diffusion furnace and
+    single&nbsp;&rarr;&nbsp;litho is a physical interpretation we have adopted, not something the
+    simulator encodes. If you would map it differently, everything downstream renames but nothing
+    breaks.</p></div>
+</section>
+
+<!-- ============ SLIDE 3 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">The programme</p><span class="slideno">03 / 10</span></div>
+  <h2>Five experiment families, ordered by what they break</h2>
+  <p class="sub" style="margin-bottom:20px">Ordered so that each step changes exactly one thing.
+  The right-hand column is the honest cost estimate &mdash; what has to be rewritten before the
+  experiment can run at all.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">#</th><th class="l">Family</th><th class="l">Cells</th>
+      <th class="l">What it stresses</th><th class="l">Code work needed</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="l">Capacity, 1 product</td><td class="l">50 / 90 / 110% + alt 80&harr;110</td>
+        <td class="l">Backorder vs holding trade-off; infeasible demand</td>
+        <td class="l"><span class="pill ok">config only</span> new demand modes, ~2 h</td></tr>
+      <tr><td>2</td><td class="l">2 products @ 80%</td><td class="l">50/50 &middot; 90/10 &middot; alternating</td>
+        <td class="l">Changeover, per-product batching, tool sharing</td>
+        <td class="l"><span class="pill open">hard</span> setups + product axis everywhere</td></tr>
+      <tr><td>3</td><td class="l">More layers, 1 product</td><td class="l">2+2 &middot; 4+4 &middot; 6+6</td>
+        <td class="l">Longer pipeline, deeper credit assignment</td>
+        <td class="l"><span class="pill warn">medium</span> generalise machine count</td></tr>
+      <tr><td>4</td><td class="l">6+6 &times; families 1 and 2</td><td class="l">4 capacity + 3 product cells</td>
+        <td class="l">Do the effects compound?</td>
+        <td class="l"><span class="pill ok">none new</span> needs 2 and 3 done</td></tr>
+      <tr><td>5</td><td class="l">Reentrancy, 2+2</td><td class="l">diff-shared &middot; litho-shared &middot; full</td>
+        <td class="l">The defining fab difficulty; couples early and late decisions</td>
+        <td class="l"><span class="pill warn">medium</span> routing map + tool groups</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card flag"><h3>Recommended order</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Run <strong>family 1 first</strong> &mdash;
+      it needs no code changes and delivers four data points on the already-verified stack in an
+      afternoon. Start the <strong>family 3 refactor in parallel</strong>, since generalising the
+      machine count is also what family 5 needs. Family 2 last: it is the only one that introduces
+      genuinely new physics.</p></div>
+    <div class="card"><h3>Methods run in every cell</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Commander heuristic &middot; random search
+      &middot; hill-climb &middot; gradient (straight-through) &middot; Maskable PPO &middot; CP-SAT with
+      dual bound. Every profit figure is the schedule replayed through the exact integer simulator.
+      CP-SAT solve time and remaining gap are recorded as first-class results &mdash; they are the
+      scaling signal.</p></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 4 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">Family 1 &mdash; capacity</p><span class="slideno">04 / 10</span></div>
+  <h2>Same line, harder demand</h2>
+  <p class="sub" style="margin-bottom:18px"><strong>What changes:</strong> only the demand schedule.
+  Line, tools, costs and horizon are untouched, so any difference is attributable to load alone.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Cell</th><th>Demand</th><th>Per week</th><th>Util</th>
+      <th class="l">Why it is interesting</th><th class="l">Status</th></tr></thead>
+    <tbody>
+      <tr><td class="l">1a &nbsp;Uniform 50%</td><td>336</td><td>84</td><td>50%</td>
+        <td class="l">Slack capacity; optimum requires deliberate idling</td>
+        <td class="l"><span class="pill ok">done</span></td></tr>
+      <tr><td class="l">1b &nbsp;Uniform 90%</td><td>604</td><td>151</td><td>90%</td>
+        <td class="l">Little slack; timing dominates</td><td class="l"><span class="pill new">new</span></td></tr>
+      <tr><td class="l">1c &nbsp;Uniform 110%</td><td>736</td><td>184</td><td>110%</td>
+        <td class="l"><strong>Demand exceeds capacity</strong> &mdash; a different problem entirely</td>
+        <td class="l"><span class="pill new">new</span></td></tr>
+      <tr><td class="l">1d &nbsp;Alternating 80 / 110</td><td>~672</td><td>134 / 184</td><td>80&harr;110%</td>
+        <td class="l">Must build ahead during the light week to survive the heavy one</td>
+        <td class="l"><span class="pill new">new</span></td></tr>
+    </tbody></table></div>
+
+  <div class="card open" style="margin-top:18px">
+    <h3>1c changes the objective, not just the difficulty</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">Line capacity is 672 units and raw material
+    is 672 units, so <strong>736 units of demand can never be met</strong> &mdash; at best 680 ship
+    (672 produced + 8 initial stock). Profit will be strongly negative and every policy is really
+    minimising backorder cost. That makes it a clean test of a different skill: <em>triage</em> rather
+    than <em>timing</em>. Worth deciding explicitly whether raw material should also scale to 110%, so
+    that machine capacity rather than material supply is the binding constraint &mdash; the two test
+    different things and we should not conflate them.</p></div>
+  <div class="card" style="margin-top:14px"><h3>Expected reading</h3>
+    <p class="sub" style="font-size:.92rem;margin-top:7px">From what we have already measured, the
+    gradient's margin over zeroth-order search is large at 50% utilisation and small at ~90%. Family 1
+    tests whether that trend continues past 100%, where slack disappears entirely and there may be
+    almost nothing left to optimise.</p></div>
+</section>
+
+<!-- ============ SLIDE 5 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">Family 2 &mdash; product mix</p><span class="slideno">05 / 10</span></div>
+  <h2>Two products sharing the same tools</h2>
+  <p class="sub" style="margin-bottom:18px"><strong>What changes:</strong> every queue gains a product
+  axis, tools gain a changeover state, and a batch becomes single-recipe. Held at 80% total utilisation
+  so the mix &mdash; not the load &mdash; is the variable.</p>
+  <div id="line-2prod"></div>
+  <div class="scroll" style="margin-top:18px"><table>
+    <thead><tr><th class="l">Cell</th><th class="l">Mix</th><th class="l">Why it is interesting</th></tr></thead>
+    <tbody>
+      <tr><td class="l">2a</td><td class="l">50% A / 50% B</td>
+        <td class="l">Maximum changeover pressure; how often to switch is the whole problem</td></tr>
+      <tr><td class="l">2b</td><td class="l">90% A / 10% B</td>
+        <td class="l">A dominates; when do you interrupt a good run for the rare product?</td></tr>
+      <tr><td class="l">2c</td><td class="l">Alternating 90/10 &harr; 10/90 by week</td>
+        <td class="l">Mix itself is non-stationary &mdash; must anticipate the swing, not just react</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card open"><h3>Three genuinely new mechanics</h3>
+      <ul class="sub" style="font-size:.92rem;margin-top:8px">
+        <li><strong>Changeover.</strong> <code>setup_times</code> and <code>setup_cost</code> exist in
+          config but are all zeros and unused. They have to become real, and a tool now carries state:
+          which product it is configured for.</li>
+        <li><strong>Per-product batching.</strong> A furnace batch is one recipe, so a tool can be
+          starved on A while holding 3 units of B. That is new dynamics, not a bigger array.</li>
+        <li><strong>Action space.</strong> Per tool becomes {idle, run A, run B} &mdash;
+          <code>MultiDiscrete([3,3,3,3])</code>, and masking gets more involved.</li>
+      </ul></div>
+    <div class="card open"><h3>This is where CP-SAT should start to hurt</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">Setup variables and sequence-dependent
+      constraints are exactly what makes scheduling MILPs blow up. On the current four-machine,
+      single-product problem CP-SAT already needs 600&nbsp;s and still leaves a 0.4&ndash;1.5% gap.
+      Family 2 is the first real test of the scaling premise &mdash; and the first place we should
+      expect the learned methods to become genuinely competitive rather than merely close.</p></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 6 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">Family 3 &mdash; layers</p><span class="slideno">06 / 10</span></div>
+  <h2>Longer pipeline, one product &mdash; <span style="color:var(--accent)">start here</span></h2>
+  <p class="sub" style="margin-bottom:18px"><strong>What changes:</strong> the number of stages only.
+  Same product, same costs, same demand. Each added diffusion+litho pair lengthens the pipeline by
+  18 ticks of unavoidable lead time.</p>
+  <div id="line-44"></div>
+  <div style="height:12px"></div>
+  <div id="line-66"></div>
+
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card"><h3>3a &nbsp;2 diff / 2 litho</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Today's baseline. 36 ticks minimum
+      flow time. Fully verified &mdash; the control.</p></div>
+    <div class="card flag"><h3>3b &nbsp;4 diff / 4 litho</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px"><strong>The first build.</strong> 8 tools,
+      72 ticks minimum flow time. Doubles the decision dimension and the credit-assignment depth
+      from release to revenue.</p></div>
+    <div class="card"><h3>3c &nbsp;6 diff / 6 litho</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">12 tools, 108 ticks minimum flow time.
+      Becomes the platform for family 4.</p></div>
+  </div>
+
+  <div class="card flag" style="margin-top:18px">
+    <h3>Why this is the cheapest structural change</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">The tensor simulator already carries a
+    machine axis on every array &mdash; <code>q[B,M]</code>, <code>reg[B,M,L]</code>,
+    <code>take</code>, <code>make</code>. The <em>only</em> structural hardcoding is four lines of
+    explicit routing. Replacing those with a route matrix generalises it to any serial depth, and the
+    same route matrix is what family 5 needs for reentrancy. State grows linearly; no new physics.</p></div>
+</section>
+
+<!-- ============ SLIDE 7 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">Family 4 &mdash; compounding</p><span class="slideno">07 / 10</span></div>
+  <h2>6+6 tools, then re-run capacity and mix</h2>
+  <p class="sub" style="margin-bottom:18px"><strong>What changes:</strong> nothing new &mdash; this is
+  families 1 and 2 replayed on the deepest line. It answers whether difficulty compounds or saturates.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Cell</th><th class="l">Configuration</th><th class="l">Question it answers</th></tr></thead>
+    <tbody>
+      <tr><td class="l">4a</td><td class="l">6+6 &times; {50, 90, 110%, alt 80/110}</td>
+        <td class="l">Does a deeper pipeline make the capacity cliff sharper?</td></tr>
+      <tr><td class="l">4b</td><td class="l">6+6 &times; {50/50, 90/10, alternating}</td>
+        <td class="l">Does changeover cost compound with pipeline depth?</td></tr>
+    </tbody></table></div>
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card"><h3>The hypothesis worth pre-registering</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">A deeper pipeline means longer lead time,
+      which means the build-ahead decision must be made even earlier relative to demand. If the
+      gradient's advantage comes from long-range credit assignment, its margin should
+      <em>grow</em> here while PPO's local reward gets relatively worse. If it does not, that
+      weakens the mechanistic story considerably.</p></div>
+    <div class="card open"><h3>Where CP-SAT is most likely to fall over</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">12 tools &times; 2,688 ticks = 32,256
+      binary variables, three times today's model, plus setup variables in 4b. Record solve time and
+      remaining gap at every cell &mdash; the shape of that curve is the single most important output
+      of this whole programme.</p></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 8 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">Family 5 &mdash; reentrancy</p><span class="slideno">08 / 10</span></div>
+  <h2>Wafers revisiting the same tool</h2>
+  <p class="sub" style="margin-bottom:16px"><strong>What changes:</strong> the routing map, and tools
+  become shared across steps. This is the defining feature of real fabs and the primary source of
+  scheduling difficulty &mdash; it couples early and late decisions on the same tool.</p>
+  <div id="line-reentrant"></div>
+  <div class="scroll" style="margin-top:18px"><table>
+    <thead><tr><th class="l">Cell</th><th class="l">Sharing</th><th class="l">What it isolates</th></tr></thead>
+    <tbody>
+      <tr><td class="l">5a</td><td class="l">Both diffusion tools serve both diffusion steps; litho dedicated</td>
+        <td class="l">Contention on the batch bottleneck only</td></tr>
+      <tr><td class="l">5b</td><td class="l">Both litho tools serve both litho steps; diffusion dedicated</td>
+        <td class="l">Contention on the fast single-wafer tools only</td></tr>
+      <tr><td class="l">5c</td><td class="l">Full reentrancy &mdash; any tool of a type serves any step of that type</td>
+        <td class="l">The real thing</td></tr>
+    </tbody></table></div>
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card"><h3>The new decision</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">A shared tool must now choose <em>which
+      step</em> to serve, not just whether to run. Serving a late step ships sooner; serving an early
+      step keeps the pipeline fed. That is a genuine priority conflict with no local answer &mdash;
+      exactly the kind of decision a horizon-aware method should win.</p></div>
+    <div class="card flag"><h3>Cheap in tensors, expensive in MILP</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">In the tensor formulation reentrancy is
+      just a richer routing map deciding which queue a completion deposits into &mdash; possibly the
+      same tool's own input. The dynamics stay elementwise. In MILP the same sharing couples many
+      binary start variables on one tool and is a principal driver of the explosion. This is the
+      asymmetry the whole strategy rests on, and family 5 is where we finally measure it.</p></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 9 ============ -->
+<section>
+  <div class="head"><p class="eyebrow">Results template</p><span class="slideno">09 / 10</span></div>
+  <h2>One row per cell, identical columns everywhere</h2>
+  <p class="sub" style="margin-bottom:18px">Every experiment fills this same table, so cells stay
+  comparable across families. Generated automatically by the run logger &mdash; no hand-entered
+  numbers. Italic cells below are placeholders.</p>
+  <div class="scroll"><table>
+    <thead><tr>
+      <th class="l">Cell</th><th class="l">Config</th><th>Demand</th><th>Util</th>
+      <th>Commander</th><th>Random</th><th>Hill-climb</th><th>PPO</th><th>Grad ST</th>
+      <th>CP-SAT</th><th>Bound</th><th>ST %bnd</th><th>Solve s</th><th>Gap</th></tr></thead>
+    <tbody>
+      <tr><td class="l">1a</td><td class="l">2+2, 1 prod</td><td>336</td><td>50%</td>
+        <td>-108</td><td>17,289</td><td>4,288</td><td>16,398</td><td class="hero">18,325</td>
+        <td>18,915</td><td>19,004</td><td>96.4%</td><td>600</td><td>0.47%</td></tr>
+      <tr><td class="l">1b</td><td class="l">2+2, 1 prod</td><td>604</td><td>90%</td>
+        <td colspan="10" class="fill">&mdash; to run &mdash;</td></tr>
+      <tr><td class="l">1c</td><td class="l">2+2, 1 prod</td><td>736</td><td>110%</td>
+        <td colspan="10" class="fill">&mdash; to run &mdash;</td></tr>
+      <tr><td class="l">3b</td><td class="l">4+4, 1 prod</td><td>604</td><td>90%</td>
+        <td colspan="10" class="fill">&mdash; to run &mdash;</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card"><h3>Always recorded per cell</h3>
+      <ul class="sub" style="font-size:.9rem;margin-top:7px">
+        <li>Profit by method, on the exact integer sim</li>
+        <li>CP-SAT solve seconds and remaining gap</li>
+        <li>Units shipped / demanded</li>
+        <li>Cost split: production, FG, WIP, backorder</li>
+      </ul></div>
+    <div class="card"><h3>Gradient diagnostics</h3>
+      <ul class="sub" style="font-size:.9rem;margin-top:7px">
+        <li>Gradient mass by tick (credit reach)</li>
+        <li>Initial and final gradient norm</li>
+        <li>Non-finite gradient count</li>
+        <li>Margin over the best zeroth-order method</li>
+      </ul></div>
+    <div class="card"><h3>Provenance, automatic</h3>
+      <ul class="sub" style="font-size:.9rem;margin-top:7px">
+        <li>Git commit and dirty flag</li>
+        <li>Backend, device, library versions</li>
+        <li>Full parameter set and seed</li>
+        <li>Complete console transcript</li>
+      </ul></div>
+  </div>
+  <div class="card flag" style="margin-top:16px"><h3>The headline metric</h3>
+    <p class="sub" style="font-size:.92rem;margin-top:7px">Not raw profit &mdash; that is not
+    comparable across cells with different demand. Use <strong>% of the CP-SAT dual bound</strong>,
+    which is a certified ceiling, and <strong>margin over the best zeroth-order method</strong>. Track
+    CP-SAT solve time separately as the scaling signal; it is arguably the most important number in
+    the whole programme.</p></div>
+</section>
+
+<!-- ============ SLIDE 10 ============ -->
+<section style="padding-bottom:70px">
+  <div class="head"><p class="eyebrow">Build plan</p><span class="slideno">10 / 10</span></div>
+  <h2>What has to change, and how we know it still works</h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">File</th><th class="l">Today</th><th class="l">For 8 tools</th>
+      <th class="l">For 2 products</th></tr></thead>
+    <tbody>
+      <tr><td class="l">tensor_sim.py</td><td class="l">vectorised, 4 hardcoded routing lines</td>
+        <td class="l"><span class="pill ok">easy</span> route matrix</td>
+        <td class="l"><span class="pill warn">medium</span> product axis on q, reg</td></tr>
+      <tr><td class="l">spec.py</td><td class="l"><code>N_MACHINES = 4</code></td>
+        <td class="l"><span class="pill ok">easy</span></td>
+        <td class="l"><span class="pill warn">medium</span> per-product costs, setups</td></tr>
+      <tr><td class="l">env_tensor.py</td><td class="l">18-dim obs</td>
+        <td class="l"><span class="pill warn">medium</span> obs scales as 4M+6</td>
+        <td class="l"><span class="pill warn">medium</span></td></tr>
+      <tr><td class="l">sim.py</td><td class="l">68 refs to machine0..3</td>
+        <td class="l"><span class="pill warn">medium</span> real refactor</td>
+        <td class="l"><span class="pill open">hard</span></td></tr>
+      <tr><td class="l">env.py</td><td class="l"><code>MultiDiscrete([2,2,2,2])</code></td>
+        <td class="l"><span class="pill warn">medium</span></td>
+        <td class="l"><span class="pill open">hard</span> {idle, A, B} per tool</td></tr>
+      <tr><td class="l">optim.py</td><td class="l"><code>range(4)</code>, explicit q0..q3</td>
+        <td class="l"><span class="pill warn">medium</span> generalise recurrences</td>
+        <td class="l"><span class="pill open">hard</span> setup variables</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card open"><h3>The verification problem &mdash; decide this before writing code</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The tensor simulator is currently trusted
+      because it is checked tick-by-tick against an <em>independent</em> implementation,
+      <code>sim.py</code>. Generalising only the tensor side loses that gate for any configuration
+      other than 4 machines. Two options, and they are not equivalent:</p>
+      <ul class="sub" style="font-size:.9rem;margin-top:8px">
+        <li><strong>Generalise <code>sim.py</code> too</strong> &mdash; keeps a true independent
+          reference at every configuration. Slower, and doubles the refactor.</li>
+        <li><strong>Regression + invariants</strong> &mdash; require the generalised code, configured
+          as 4 machines, to reproduce today's verified results bit-exactly, then add property tests
+          (unit conservation, no negative queues, tool never runs two jobs). Cheaper, but for
+          8 tools it is self-consistency, not independent confirmation.</li>
+      </ul>
+      <p class="sub" style="font-size:.92rem;margin-top:8px"><strong>Recommendation:</strong> do both,
+      but stage them &mdash; regression plus invariants immediately so family 3 can start, and
+      generalise <code>sim.py</code> before any result is published.</p></div>
+    <div class="card"><h3>Sequence</h3>
+      <ul class="sub" style="font-size:.92rem;margin-top:8px">
+        <li><strong>Now:</strong> family 1 &mdash; config-only, runs on the verified stack today</li>
+        <li><strong>Next:</strong> route matrix &rarr; 4+4 tools, with regression and invariant tests</li>
+        <li><strong>Then:</strong> 6+6, and reuse the same route matrix for reentrancy (family 5)</li>
+        <li><strong>Then:</strong> generalise <code>optim.py</code> &mdash; without a CP-SAT bound at
+          8 and 12 tools there is no ceiling to measure against, and the scaling curve <em>is</em> the
+          deliverable</li>
+        <li><strong>Last:</strong> the product axis and changeover (family 2), the only genuinely new
+          physics</li>
+      </ul></div>
+  </div>
+
+  <div class="banner" style="margin-top:18px">
+    <strong>Open question before we start.</strong> At 110% utilisation, should raw material scale up
+    too? As configured, arrivals are fixed at 672 units, so at 736 units of demand the line is
+    starved of material as well as short of capacity &mdash; and the two failure modes get conflated.
+    Scaling arrivals isolates machine capacity as the binding constraint. This needs a decision, and
+    it also applies to every 110% cell in family 4.
+  </div>
+  <div class="lattice" aria-hidden="true" id="lat2" style="margin-top:26px"></div>
+</section>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const el=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const cv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+for(const id of ['lat','lat2']){
+  const n=document.getElementById(id); if(!n) continue;
+  for(let i=0;i<36;i++){const b=document.createElement('i');
+    b.style.opacity=(0.10+0.90*Math.pow(i/35,2.1)).toFixed(3); n.appendChild(b);}
+}
+
+/* Draw a production line.
+   stages: [{k:'D'|'L'}]  k picks colour, batch size and processing time.
+   opts.reentrant: 'diff' | 'litho' | 'full' — draws return arcs for shared tools.
+   opts.products: number of product lanes to indicate on each queue. */
+function drawLine(hostId, stages, opts={}){
+  const host=document.getElementById(hostId); if(!host) return;
+  host.innerHTML='';
+  const n=stages.length;
+  const W=1040, boxW=Math.min(96, (W-150)/n - 26), gap=(W-70-boxW*n)/(n), H=opts.reentrant?210:150;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':opts.label||'production line'});
+  const yBox=opts.reentrant?96:56, boxH=48;
+  const col=k=>k==='D'?cv('--diff'):cv('--litho');
+  const meta=k=>k==='D'?{n:'Diffusion',b:4,pt:16}:{n:'Litho',b:1,pt:2};
+
+  // raw material entry
+  const t0=el('text',{x:4,y:yBox+18,fill:cv('--ink-3'),'font-size':11.5,'font-family':'ui-monospace,monospace'});
+  t0.textContent='RAW'; svg.appendChild(t0);
+
+  let x=52;
+  stages.forEach((s,i)=>{
+    const m=meta(s.k);
+    // queue marker before the stage
+    for(let p=0;p<(opts.products||1);p++){
+      svg.appendChild(el('rect',{x:x-19,y:yBox+12+p*7-((opts.products||1)-1)*3.5,width:13,height:5,rx:1.5,
+        fill:cv('--ink-3'),opacity:0.55}));
+    }
+    svg.appendChild(el('line',{x1:x-30,x2:x-2,y1:yBox+boxH/2,y2:yBox+boxH/2,
+      stroke:cv('--rule'),'stroke-width':2}));
+    // tool box
+    svg.appendChild(el('rect',{x,y:yBox,width:boxW,height:boxH,rx:3,fill:'none',
+      stroke:col(s.k),'stroke-width':2}));
+    const lab=el('text',{x:x+boxW/2,y:yBox+20,fill:col(s.k),'font-size':13,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600});
+    lab.textContent=s.k+(i+1); svg.appendChild(lab);
+    const sub=el('text',{x:x+boxW/2,y:yBox+37,fill:cv('--ink-3'),'font-size':10.5,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'});
+    sub.textContent=`${m.b}u/${m.pt}t`; svg.appendChild(sub);
+    // stage name above
+    const nm=el('text',{x:x+boxW/2,y:yBox-10,fill:cv('--ink-3'),'font-size':10,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','letter-spacing':'.08em'});
+    nm.textContent=m.n.toUpperCase(); svg.appendChild(nm);
+    x+=boxW+gap;
+  });
+
+  // finished goods
+  const fx=x-gap+14;
+  svg.appendChild(el('line',{x1:fx-30,x2:fx-4,y1:yBox+boxH/2,y2:yBox+boxH/2,
+    stroke:cv('--rule'),'stroke-width':2}));
+  const fg=el('text',{x:fx,y:yBox+boxH/2+4,fill:cv('--fg'),'font-size':11.5,
+    'font-family':'ui-monospace,monospace','font-weight':600});
+  fg.textContent='SHIP'; svg.appendChild(fg);
+
+  // reentrant return arcs
+  if(opts.reentrant){
+    const pairs=[];
+    stages.forEach((s,i)=>{ if(opts.reentrant==='full'||
+      (opts.reentrant==='diff'&&s.k==='D')||(opts.reentrant==='litho'&&s.k==='L')) pairs.push(i); });
+    for(let j=0;j<pairs.length-1;j++){
+      const a=pairs[j], b=pairs[j+1];
+      if(stages[a].k!==stages[b].k) continue;
+      const xa=52+a*(boxW+gap)+boxW/2, xb=52+b*(boxW+gap)+boxW/2;
+      const dip=yBox+boxH+34;
+      svg.appendChild(el('path',{d:`M${xb} ${yBox+boxH} C${xb} ${dip} ${xa} ${dip} ${xa} ${yBox+boxH}`,
+        fill:'none',stroke:col(stages[a].k),'stroke-width':1.6,'stroke-dasharray':'4 3',opacity:.85}));
+      const mid=(xa+xb)/2;
+      const tl=el('text',{x:mid,y:dip+16,fill:col(stages[a].k),'font-size':10.5,'text-anchor':'middle',
+        'font-family':'ui-monospace,monospace'});
+      tl.textContent='same tool serves both steps'; svg.appendChild(tl);
+    }
+  }
+  host.appendChild(svg);
+}
+
+const D={k:'D'}, L={k:'L'};
+function drawAll(){
+  drawLine('line-base',[D,L,D,L],{label:'2 diffusion, 2 litho, serial'});
+  drawLine('line-2prod',[D,L,D,L],{products:2,label:'two products sharing the same tools'});
+  drawLine('line-44',[D,L,D,L,D,L,D,L],{label:'4 diffusion, 4 litho'});
+  drawLine('line-66',[D,L,D,L,D,L,D,L,D,L,D,L],{label:'6 diffusion, 6 litho'});
+  drawLine('line-reentrant',[D,L,D,L],{reentrant:'full',label:'full reentrancy'});
+}
+drawAll();
+new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',drawAll);
+</script>

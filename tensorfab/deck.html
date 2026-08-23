@@ -4,6 +4,7 @@
   --ink:#1A1712; --ink-2:#4A4238; --ink-3:#7D7264; --rule:#E2D9C9;
   --accent:#A87400; --accent-soft:#F0E4C8;
   --c1:#A87400; --c2:#0A7D5C; --c3:#2C63C4; --c4:#B92A45; --c5:#7A3FB8;
+  --diff:#A87400; --litho:#2C63C4; --fg:#0A7D5C; --hot:#B92A45;
   --ok:#0A7D5C; --open:#B92A45; --warn:#A87400;
   --serif:ui-serif,"New York",Iowan Old Style,Georgia,serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
@@ -16,6 +17,7 @@
     --ink:#EFEADF; --ink-2:#B6AE9E; --ink-3:#78715F; --rule:#282B37;
     --accent:#EBA91C; --accent-soft:#2A2413;
     --c1:#B8830C; --c2:#12A47B; --c3:#4A86E8; --c4:#E0455F; --c5:#A05FE0;
+    --diff:#B8830C; --litho:#4A86E8; --fg:#12A47B; --hot:#E0455F;
     --ok:#12A47B; --open:#E0455F; --warn:#B8830C;
   }
 }
@@ -24,6 +26,7 @@
   --ink:#EFEADF; --ink-2:#B6AE9E; --ink-3:#78715F; --rule:#282B37;
   --accent:#EBA91C; --accent-soft:#2A2413;
   --c1:#B8830C; --c2:#12A47B; --c3:#4A86E8; --c4:#E0455F; --c5:#A05FE0;
+    --diff:#B8830C; --litho:#4A86E8; --fg:#12A47B; --hot:#E0455F;
   --ok:#12A47B; --open:#E0455F; --warn:#B8830C;
 }
 :root[data-theme="light"]{
@@ -31,6 +34,7 @@
   --ink:#1A1712; --ink-2:#4A4238; --ink-3:#7D7264; --rule:#E2D9C9;
   --accent:#A87400; --accent-soft:#F0E4C8;
   --c1:#A87400; --c2:#0A7D5C; --c3:#2C63C4; --c4:#B92A45; --c5:#7A3FB8;
+  --diff:#A87400; --litho:#2C63C4; --fg:#0A7D5C; --hot:#B92A45;
   --ok:#0A7D5C; --open:#B92A45; --warn:#A87400;
 }
 *{box-sizing:border-box}
@@ -92,12 +96,45 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 .banner{background:var(--accent-soft);border:1px solid var(--accent);border-radius:3px;
   padding:14px 18px;font-size:.9rem}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- print / PDF ------------------------------------------------------
+   The page is a scrolling document on screen and a paginated deck on paper.
+   Force the light palette (dark backgrounds waste toner and render badly),
+   start each section on a fresh page, and never split a card, table or
+   figure across a page boundary. */
+@media print{
+  :root{
+    --ground:#FFFFFF; --panel:#FFFFFF; --sunk:#F4F1E9;
+    --ink:#12100C; --ink-2:#3A342C; --ink-3:#6B6357; --rule:#D8CFBE;
+    --accent:#8A5F00; --accent-soft:#F6EDD8;
+    --c1:#8A5F00; --c2:#07684B; --c3:#24529F; --c4:#9C2038; --c5:#63329A;
+    --diff:#8A5F00; --litho:#24529F; --fg:#07684B; --hot:#9C2038;
+    --ok:#07684B; --open:#9C2038; --warn:#8A5F00;
+  }
+  @page{ size:A4 landscape; margin:13mm 14mm; }
+  body{ font-size:11.5px; line-height:1.5; background:#fff; }
+  .wrap{ max-width:none; padding:0; }
+  section{ break-before:page; page-break-before:always; padding:0 0 8px;
+           border-top:none; }
+  section:first-of-type{ break-before:auto; page-break-before:auto; }
+  .card,.scroll,figure,table,.grid>div{ break-inside:avoid; page-break-inside:avoid; }
+  tr,li{ break-inside:avoid; page-break-inside:avoid; }
+  h1{ font-size:30px; } h2{ font-size:19px; } h3{ font-size:12.5px; }
+  .stat{ font-size:22px; }
+  .sub{ max-width:none; }
+  .scroll{ overflow:visible; }
+  table{ font-size:9.6px; } th,td{ padding:4px 7px; }
+  svg{ max-width:100%; }
+  .banner{ background:#F6EDD8; }
+  a{ text-decoration:none; }
+}
+
 </style>
 <div class="wrap">
 
 <section>
   <div class="stack">
-    <p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; technical review &nbsp;/&nbsp; 2 Aug 2026</p>
+    <p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; technical review &nbsp;/&nbsp; 12 Aug 2026</p>
     <h1>A differentiable production line</h1>
     <p class="sub" style="font-size:1.16rem">
       We rewrote the fab simulator as a batched tensor program so that automatic
@@ -108,10 +145,12 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
   </div>
 
   <div class="banner" style="margin-top:32px">
-    <strong>All figures final.</strong> The CP-SAT column is a 600-second solve reporting both its
-    best schedule and its <em>dual bound</em> &mdash; a rigorous ceiling no schedule can exceed.
-    An earlier 180-second solve appeared to show the gradient beating the optimiser on one pattern;
-    that was an artifact of an unconverged solve and does not survive.
+    <strong>Status.</strong> Sections 1&ndash;5 are final: the four-pattern comparison, the
+    credit-assignment diagnostic and the retrained PPO baselines are all complete, with CP-SAT
+    reporting both its best schedule and a rigorous <em>dual bound</em>. Since then the line has
+    been generalised to arbitrary pipeline depth and <strong>experiment family 3 has run</strong>
+    &mdash; see &ldquo;Family 3&rdquo; below. The one open item is CP-SAT at depth: long solves are
+    running now, so the family 3 table quotes the dual bound rather than an incumbent.
   </div>
 
   <div class="grid g3" style="margin-top:32px">
@@ -147,6 +186,198 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
       policy has been trained. That is the next experiment and the one that matters.</p></div>
   </div>
 </section>
+
+
+<section>
+  <p class="eyebrow">Anatomy</p>
+  <h2 style="margin:10px 0 8px">The line, and every quantity that defines it</h2>
+  <p class="sub" style="margin-bottom:16px">One product moves left to right through alternating
+  batch and single-wafer tools. Everything the simulator knows is on this page.</p>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--diff)"></span>Diffusion &mdash; batch furnace</span>
+    <span><span class="sw" style="background:var(--litho)"></span>Litho &mdash; single wafer</span>
+    <span><span class="sw" style="background:var(--ink-3)"></span>Queue (unbounded)</span>
+    <span><span class="sw" style="background:var(--fg)"></span>Finished goods / ship</span>
+  </div>
+  <div id="anat"></div>
+  <figcaption>The 2+2 baseline. A diffusion job holds the tool for 16 ticks and converts 4 units;
+  a litho job holds it for 2 ticks and converts 1. Queues between stages are unbounded, so a tool
+  is blocked only by its own occupancy or by lack of input &mdash; never by downstream congestion.</figcaption>
+
+  <div class="grid g2" style="margin-top:26px">
+    <div class="card"><h3>Structural quantities</h3>
+      <div class="scroll" style="margin-top:10px"><table>
+        <thead><tr><th class="l">Quantity</th><th class="l">Value</th><th class="l">Definition</th></tr></thead>
+        <tbody>
+        <tr><td class="l">Tick</td><td class="l">atomic</td>
+          <td class="l">One decision interval. Every tool is offered a run/idle choice each tick.</td></tr>
+        <tr><td class="l">Horizon <em>H</em></td><td class="l">2,688 ticks</td>
+          <td class="l">4 weeks of 672 ticks. The full episode.</td></tr>
+        <tr><td class="l">Tools <em>M</em></td><td class="l">4 / 8 / 12</td>
+          <td class="l">Alternating DIFF, LITHO. <em>M</em> = 2 &times; pairs.</td></tr>
+        <tr><td class="l">Products</td><td class="l">1</td>
+          <td class="l">Single recipe. No changeover; setup times exist in config but are zero.</td></tr>
+        <tr><td class="l">Processing time <em>pt</em></td><td class="l">16 / 2 ticks</td>
+          <td class="l">Ticks a tool is occupied by one job. Diffusion 16, litho 2.</td></tr>
+        <tr><td class="l">Batch size</td><td class="l">4 / 1 units</td>
+          <td class="l">Units consumed and emitted per job. A furnace runs 4 wafers at once.</td></tr>
+        <tr><td class="l">Lead time <em>L</em></td><td class="l">36 / 72 / 108 t</td>
+          <td class="l">&Sigma;<em>pt</em> &mdash; minimum ticks from releasing raw material to a
+            shippable unit, with zero queueing. <strong>The credit-assignment distance.</strong></td></tr>
+        <tr><td class="l">Nominal capacity</td><td class="l">672 units</td>
+          <td class="l">0.25 units/tick &times; H. Set by the slowest single stage (4 units / 16
+            ticks), so independent of depth.</td></tr>
+        <tr><td class="l">Achievable capacity</td><td class="l">664 / 652 / 640</td>
+          <td class="l">What the line actually clears in a finite horizon, after pipeline fill and drain.</td></tr>
+        <tr><td class="l">Raw material</td><td class="l">672 units</td>
+          <td class="l">Delivered weekly into q0. Matches nominal capacity, so material and tools
+            bind together.</td></tr>
+        </tbody></table></div></div>
+    <div class="card"><h3>Economic quantities</h3>
+      <div class="scroll" style="margin-top:10px"><table>
+        <thead><tr><th class="l">Quantity</th><th class="l">Value</th><th class="l">Definition</th></tr></thead>
+        <tbody>
+        <tr><td class="l">Revenue</td><td class="l">$80 / unit</td>
+          <td class="l">Booked on shipment against outstanding demand, not on production.</td></tr>
+        <tr><td class="l">Production cost</td><td class="l">$24 / unit total</td>
+          <td class="l">Charged at job start. Split 2:1 diffusion:litho, and held constant at
+            every depth by design so pipeline length does not change the economics.</td></tr>
+        <tr><td class="l">FG holding</td><td class="l">$0.04 /unit/tick</td>
+          <td class="l">On finished goods waiting for demand. Punishes building too early.</td></tr>
+        <tr><td class="l">WIP holding</td><td class="l">$0 &rarr; $0.0075</td>
+          <td class="l">Per queue, linear from q0 to the last queue: value accrues as a unit
+            advances, so late-stage inventory costs more to hold.</td></tr>
+        <tr><td class="l">Backorder</td><td class="l">$0.15 /unit/tick</td>
+          <td class="l">On demand still unmet <em>one week</em> after it arrived. Punishes
+            building too late. Nearly 4&times; the FG holding rate.</td></tr>
+        <tr><td class="l">Initial stock</td><td class="l">8 units</td>
+          <td class="l">Finished goods on hand at t=0.</td></tr>
+        <tr><td class="l">Demand interval</td><td class="l">672 ticks</td>
+          <td class="l">Demand arrives in weekly bursts and ages into "late" after one week.</td></tr>
+        <tr><td class="l">Objective</td><td class="l">profit</td>
+          <td class="l">revenue &minus; production &minus; FG holding &minus; WIP holding
+            &minus; backorder, over the full horizon.</td></tr>
+        </tbody></table></div></div>
+  </div>
+  <div class="card flag" style="margin-top:16px"><h3>The tension in one sentence</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">Backorder costs roughly four times what
+    finished-goods holding costs, so you want to build early &mdash; but the pipeline takes
+    <em>L</em> ticks to fill and every tick of earliness is charged. The optimal release is a
+    narrow window, and it sits <em>L</em> ticks before demand it cannot yet see.</p></div>
+</section>
+
+<section>
+  <p class="eyebrow">Three ways to attack it</p>
+  <h2 style="margin:10px 0 8px">What we had, what failed, and what we built</h2>
+  <div id="approaches"></div>
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card"><h3>1 &middot; Discrete-event simulation</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">Python objects: a machine holds
+      <code>busy</code> and <code>finish_time</code>; a queue is a list of arrival timestamps. One
+      trajectory at a time, one tick per loop iteration. Exact, readable, and the reference every
+      other implementation is checked against &mdash; but it produces <em>no</em> gradient, and at
+      358k steps/s it is a hard ceiling on how much experience you can generate.</p></div>
+    <div class="card open"><h3>2 &middot; Model-free RL &mdash; Maskable PPO</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">A policy network reads an 18-dim
+      observation and picks run/idle per tool. It learns from a <strong>per-tick reward</strong>
+      and a score-function gradient. Two problems: the reward is <em>local</em>, so a production
+      decision shows its cost immediately and its revenue hundreds of ticks later, discounted; and
+      the gradient is high-variance, needing 8&ndash;16M env steps. PPO reliably drifts into
+      under-production and erodes its own behavioural-cloning prior.</p></div>
+    <div class="card ok"><h3>3 &middot; Tensorized &amp; differentiable</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">The same dynamics rewritten as fixed
+      arrays with a batch axis, so thousands of trajectories advance in lockstep and automatic
+      differentiation can trace decisions to profit. Two payoffs: throughput
+      (60M steps/s vs 358k), and a gradient of <strong>true end-of-horizon profit</strong> with
+      respect to every decision &mdash; no local proxy, no discounting.</p></div>
+  </div>
+  <div class="card flag" style="margin-top:16px"><h3>Why the third exists at all</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">Not because the simulator was too slow
+    &mdash; it was never PPO's bottleneck. Because PPO's failure was diagnosed as
+    <em>reward misalignment</em>: the signal it optimises is not the objective we want. Making the
+    dynamics differentiable removes the proxy entirely. You stop asking "was this tick good?" and
+    start asking "how does this decision change the profit at the end?"</p></div>
+</section>
+
+<section>
+  <p class="eyebrow">The tensorization</p>
+  <h2 style="margin:10px 0 8px">How a discrete-event line becomes an array program</h2>
+  <p class="sub" style="margin-bottom:18px">The reference simulator stores each queue as a list of
+  timestamps and each tool as a (busy, finish_time) pair. Neither is differentiable, and neither
+  batches. Only <em>counts</em> and <em>countdowns</em> affect the dynamics, so the entire state of
+  B trajectories collapses to four arrays.</p>
+  <div class="grid g2">
+    <div class="card"><h3>State</h3>
+      <div class="scroll" style="margin-top:10px"><table>
+        <thead><tr><th class="l">Array</th><th class="l">Shape</th><th class="l">Meaning</th></tr></thead>
+        <tbody>
+        <tr><td class="l"><code>q</code></td><td class="l">[B, M]</td><td class="l">units waiting in each queue</td></tr>
+        <tr><td class="l"><code>reg</code></td><td class="l">[B, M, 17]</td><td class="l">delay register &mdash; jobs in flight</td></tr>
+        <tr><td class="l"><code>qfin</code></td><td class="l">[B]</td><td class="l">finished goods</td></tr>
+        <tr><td class="l"><code>backlog</code></td><td class="l">[B]</td><td class="l">demand not yet shipped</td></tr>
+        </tbody></table></div>
+      <p class="sub" style="font-size:.9rem;margin-top:10px">Plus integer accumulators for shipped
+      units, starts, and the three holding costs. Prices are applied once at the end, so profit is
+      a linear function of exact integers &mdash; no per-tick float rounding.</p></div>
+    <div class="card"><h3>The delay register</h3>
+      <div id="regviz" style="margin-top:6px"></div>
+      <p class="sub" style="font-size:.9rem;margin-top:8px">A start writes a 1 into slot
+      <em>pt</em>. The register shifts left one slot per tick. A job reaching slot 0 completes.
+      "Busy" is just <code>reg.sum() &gt; 0</code>, so one-job-at-a-time capacity is free.</p>
+      <p class="sub" style="font-size:.9rem;margin-top:8px"><strong>Why a register and not a
+      countdown:</strong> <code>done = reg[...,0]</code> is a pure selection, so the gradient flows
+      from a start decision straight through to its completion. A countdown would need
+      <code>rem == 1</code>, whose derivative is zero everywhere.</p></div>
+  </div>
+  <h3 style="margin:26px 0 10px">One tick, as five array operations</h3>
+  <div id="tickviz"></div>
+  <p class="sub muted" style="font-size:.88rem;margin-top:10px">Ordering is load-bearing:
+  completions run before starts, so a tool finishing at tick <em>t</em> can restart at <em>t</em>,
+  and a unit deposited by tool <em>m</em> is available to tool <em>m</em>+1 in the same tick.
+  Routing is a matrix product, which is what generalises the line to any depth &mdash; and to
+  reentrancy, where a route simply points backwards.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Where the gradient comes from</p>
+  <h2 style="margin:10px 0 8px">Tracing a decision to the profit it causes</h2>
+  <p class="sub" style="margin-bottom:16px">Every decision is a real-valued logit
+  &theta;[t, m]. The question autodiff answers is &part;profit / &part;&theta; &mdash; and the
+  answer travels the whole causal chain, not a one-tick reward.</p>
+  <div id="gradflow"></div>
+  <div class="grid g2" style="margin-top:22px">
+    <div class="card open"><h3>The obstacle: three hard gates</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">A start happens only if
+      <code>action &times; idle &times; canrun</code>. The action is binary, and
+      <code>canrun = 1[q &ge; take]</code> is a step function &mdash; derivative zero almost
+      everywhere, undefined at the jump. Differentiating the exact simulator returns
+      <strong>exactly zero</strong>, which we verify as a control.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The third gate is nearly free:
+      because a tool holds at most one job, <code>idle = 1 &minus; reg.sum()</code> is exact
+      <em>and</em> linear, so it needs no relaxation and contributes no bias.</p></div>
+    <div class="card ok"><h3>The fix: exact forward, surrogate backward</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">Straight-through estimation. The
+      forward pass uses the hard gate, so the simulation stays bit-identical to the reference. The
+      backward pass substitutes a sigmoid. Written
+      <code>hard + (soft &minus; stop_gradient(soft))</code> &mdash; the parenthesisation matters,
+      since the obvious alternative is not exact in float32 and silently invented $230 of profit
+      before it was caught.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">Gradients are therefore
+      <strong>biased but usable</strong>. That is inherent: you cannot have exact derivatives of a
+      discontinuous function.</p></div>
+  </div>
+  <div class="card flag" style="margin-top:16px"><h3>What this buys, and what it does not</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">It buys credit assignment across the
+    whole horizon: at 2,688 ticks, more than half the gradient magnitude sits in the first quarter
+    of the schedule, with zero non-finite values. The signal genuinely reaches decisions made
+    2,000+ ticks before the revenue they earn &mdash; exactly the decision PPO's discounted local
+    reward gets wrong.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:7px">It does <em>not</em> buy an optimiser
+    that always wins. The surrogate carries information only where the gates are live. Where the
+    line runs saturated, the gates are shut almost always, the gradient says little, and simple
+    random search beats it &mdash; which is precisely what the 92% results show.</p></div>
+</section>
+
 
 <section>
   <p class="eyebrow">Result 1 &mdash; the headline</p>
@@ -248,6 +479,406 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
       test.</p></div>
   </div>
 </section>
+
+
+<section>
+  <p class="eyebrow">How to read the results tables</p>
+  <h2 style="margin:10px 0 8px">What every column means</h2>
+  <p class="sub" style="margin-bottom:20px">Each row is one line configuration. Every method
+  competes on the same problem, from the same starting point, with the same budget &mdash; and
+  every profit figure is the final schedule replayed through the <strong>exact integer
+  simulator</strong>. Relaxed or approximate profit is never reported as a result.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Column</th><th class="l">What it is</th>
+      <th class="l">Why it is there</th></tr></thead>
+    <tbody>
+      <tr><td class="l"><strong>Line</strong></td>
+        <td class="l">Tool count as diffusion+litho pairs. "8 tools (4+4)" = 4 batch furnaces and
+          4 single-wafer tools alternating in a serial chain.</td>
+        <td class="l">The configuration under test.</td></tr>
+      <tr><td class="l"><strong>Lead</strong></td>
+        <td class="l">Minimum flow time &mdash; the sum of processing times along the chain
+          (16+2+16+2 = 36t for 2+2). The floor on ticks from releasing raw material to a
+          shippable unit, assuming zero queueing.</td>
+        <td class="l"><strong>The credit-assignment distance</strong>: how far a release decision
+          sits from the revenue it earns. This is family 3's independent variable.</td></tr>
+      <tr><td class="l"><strong>Commander</strong></td>
+        <td class="l">The greedy heuristic in <code>sim.py</code>: run any tool that is idle and
+          has enough input. No lookahead, no tuning, deterministic.</td>
+        <td class="l">The "without thinking" floor, and the schedule CP-SAT is warm-started from.</td></tr>
+      <tr><td class="l"><strong>Random</strong></td>
+        <td class="l">Random search over action tapes at run-rates spread across 0.1&ndash;0.95,
+          each evaluated on the exact simulator, best kept.</td>
+        <td class="l">The floor for search that sees only the simulator, never a gradient.</td></tr>
+      <tr><td class="l"><strong>Hill-climb</strong></td>
+        <td class="l">A (1+1) evolution strategy: starts from the <em>same</em> tapes as the
+          gradient, flips bits, keeps improvements. Flip-rate ladder of 1/4/16/64 bits across the
+          batch so it is not a strawman.</td>
+        <td class="l"><strong>The control that matters.</strong> Identical start, identical
+          budget; the only difference from Grad&nbsp;ST is whether a gradient is used.</td></tr>
+      <tr><td class="l"><strong>Grad soft</strong></td>
+        <td class="l">Adam on the tape through a <em>fully relaxed</em> simulator &mdash;
+          fractional jobs, smooth gates. Its own forward profit is not achievable, so the tape is
+          rounded and replayed through the exact sim.</td>
+        <td class="l">Tests whether smoothing the whole simulator helps. It does not: this loses
+          to the greedy heuristic on most configurations.</td></tr>
+      <tr><td class="l"><strong>Grad ST</strong></td>
+        <td class="l">Adam through <strong>straight-through</strong> gradients. Forward pass
+          bit-identical to the exact simulator; only the backward pass substitutes smooth
+          surrogates for the hard threshold gates.</td>
+        <td class="l">The method under test.</td></tr>
+      <tr><td class="l"><strong>vs best 0th-order</strong></td>
+        <td class="l">Grad&nbsp;ST minus the better of {Random, Hill-climb}.</td>
+        <td class="l">The honest margin. Taking the <em>best</em> of the two, rather than a
+          convenient one, avoids cherry-picking.</td></tr>
+      <tr><td class="l"><strong>% of bound</strong></td>
+        <td class="l">Grad&nbsp;ST as a fraction of CP-SAT's <em>dual bound</em> &mdash; a proven
+          ceiling that no schedule can exceed.</td>
+        <td class="l">How close to provably optimal, on a scale comparable across configurations
+          with different demand.</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card flag"><h3>Why "% of bound" is trustworthy before CP-SAT finishes</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The dual bound is proven at every
+      moment of a solve: it starts at the LP relaxation and only ever moves <strong>down</strong>
+      toward the true optimum. It can never move up. So these percentages are <em>conservative</em>
+      &mdash; a longer solve can only improve them.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">It does need some solve time to
+      become useful. At <strong>20 seconds it is still at the trivial $26,880</strong>
+      (336 units &times; $80 &mdash; ship everything, pay nothing). By 45 seconds it has tightened
+      to $19,008.0, and 600 seconds moves it only a further <strong>0.02%</strong> to $19,004.2.
+      So: tens of seconds to become meaningful, then stable.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The <em>incumbent</em> &mdash; CP-SAT's
+      best actual schedule &mdash; behaves the opposite way: it takes tens of minutes and is the
+      number still outstanding at depth.</p></div>
+    <div class="card"><h3>What makes the comparison fair</h3>
+      <ul class="sub" style="font-size:.92rem;margin-top:8px">
+        <li><strong>Equal budget.</strong> 76,800 rollout-equivalents, counting one gradient step
+          as three forward passes (forward + backward). The zeroth-order methods therefore get
+          1,200 iterations at batch 64.</li>
+        <li><strong>Same starting point.</strong> Grad&nbsp;ST and Hill-climb begin from identical
+          random tapes; only random search draws fresh samples.</li>
+        <li><strong>Same yardstick.</strong> Every number is exact-integer-sim profit, never the
+          relaxed objective a method optimised internally.</li>
+        <li><strong>Not comparable to PPO.</strong> All of these optimise an open-loop schedule
+          with full advance knowledge of demand. PPO is reactive and sees an observation vector.
+          The fair pairings are gradient&nbsp;vs&nbsp;CP-SAT and PPO&nbsp;vs&nbsp;commander.</li>
+      </ul></div>
+  </div>
+</section>
+
+
+<section>
+  <p class="eyebrow">Reading the demand labels</p>
+  <h2 style="margin:10px 0 8px">&ldquo;50%&rdquo; and &ldquo;92%&rdquo; of <em>which</em> capacity?</h2>
+  <p class="sub" style="margin-bottom:18px">Demand is set from a fixed nominal capacity of 672 units = 0.25 units/tick x 2688 ticks, where 0.25 is one diffusion stage (4 units / 16 ticks). That figure is depth-independent by construction: adding stages adds tools, and steady-state throughput is set by the slowest single stage, not by how many follow it.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Line</th><th>Lead</th><th>Nominal capacity</th>
+      <th>Actually achievable</th><th>336 units is</th><th>616 units is</th></tr></thead>
+    <tbody><tr><td class='l'>2+2 (4 tools)</td><td>36t</td><td>672</td><td>664</td><td>50.6%</td><td>92.8%</td></tr><tr><td class='l'>4+4 (8 tools)</td><td>72t</td><td>672</td><td>652</td><td>51.5%</td><td>94.5%</td></tr><tr><td class='l'>6+6 (12 tools)</td><td>108t</td><td>672</td><td>640</td><td>52.5%</td><td>96.2%</td></tr></tbody></table></div>
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card flag"><h3>Demand is constant in units, not in percent</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">Every depth receives the
+      <strong>same absolute demand</strong> &mdash; 336 units in the 50% sweep, 616 in the 92%
+      sweep. The percentage label is computed once against the depth-independent nominal figure of
+      672, so it is a convenient name for the experiment, not a per-line measurement.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">Against what each line can
+      <em>actually</em> deliver in a finite horizon, effective load rises with depth: the &ldquo;50%&rdquo;
+      sweep runs at 50.6% &rarr; 52.5%, and the &ldquo;92%&rdquo; sweep at 92.8% &rarr; 96.2%. A
+      deeper pipeline spends more of the horizon filling and draining, so fewer units clear it.</p></div>
+    <div class="card open"><h3>Correction: the deep lines are not capacity-short</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">An earlier version of this deck said
+      the 6+6 line could make only 596 units against 616 demanded, and therefore that backorder was
+      structural at 92%. <strong>That was wrong.</strong> 596 was the <em>commander's</em> output,
+      not the line's physical ceiling. Driving every tool whenever the gates permit yields 640
+      units, so 616 is satisfiable at every depth.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The real statement is narrower and
+      more interesting: the greedy heuristic leaves 44 units on the table at 6+6 versus 41 at 2+2,
+      so its shortfall is roughly constant &mdash; but at 92% demand there is no longer slack to
+      absorb it, which is why the commander's profit falls from $34,080 to $32,864 as the line
+      deepens.</p></div>
+  </div>
+</section>
+
+
+<section>
+  <p class="eyebrow">Family 3 &mdash; pipeline depth</p>
+  <h2 style="margin:10px 0 8px">The gradient's advantage grows with pipeline depth</h2>
+  <p class="sub" style="margin-bottom:18px">UNIFORM 50% demand, 400 Adam steps, identical budget and starts per method. All depths share the same capacity (672 units) and the same $24/unit total production cost, so only lead time varies.
+  This was a <strong>pre-registered prediction</strong>: if the gradient's advantage comes from
+  long-range credit assignment, a longer pipeline &mdash; which pushes the build-ahead decision
+  further from the revenue it earns &mdash; should widen its margin. It did.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Line</th><th>Lead time</th><th>Commander</th><th>Random</th>
+      <th>Hill-climb</th><th>Grad soft</th><th>Grad ST</th><th>vs best 0th-order</th>
+      <th>Bound</th><th>ST % bound</th></tr></thead>
+    <tbody><tr><td>4 tools (2+2)</td><td>36t</td><td class="neg">-108</td><td>17,289</td><td>3,756</td><td>16,833</td><td class='hero'>17,895</td><td class='hero'>+606</td><td class='muted'>19,008</td><td>94.1%</td></tr><tr><td>8 tools (4+4)</td><td>72t</td><td class="">1,233</td><td>17,451</td><td>5,389</td><td>17,289</td><td class='hero'>18,266</td><td class='hero'>+815</td><td class='muted'>19,008</td><td>96.1%</td></tr><tr><td>12 tools (6+6)</td><td>108t</td><td class="">2,488</td><td>16,956</td><td>6,301</td><td>14,771</td><td class='hero'>18,320</td><td class='hero'>+1,363</td><td class='muted'>19,008</td><td>96.4%</td></tr></tbody></table></div>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card ok"><h3>Margin grows +$606 &rarr; +$815 &rarr; +$1,363</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">Over the best zeroth-order method at
+      equal budget. The mechanistic story made a prediction before the run and the prediction
+      held &mdash; the strongest evidence the programme has produced so far.</p></div>
+    <div class="card"><h3>Relaxed forward degrades with depth</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">Grad-soft falls from $16,833 to
+      $14,771 as relaxation error compounds along a longer chain, while straight-through
+      improves. Further confirmation that exact-forward is the right design.</p></div>
+    <div class="card open"><h3>The bound is flat &mdash; read that carefully</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">$19,008 at all three, for two
+      different reasons that should not be conflated. Revenue and total production cost are held
+      fixed <em>by choice</em> (see below), so the ceiling should barely move. But the bound is
+      also too loose to resolve the difference that does exist &mdash; see the capacity note.</p></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card open"><h3>Correction: capacity is not exactly constant</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">An earlier version of this deck said
+      capacity was unchanged at 672 units. That holds for <em>steady-state</em> throughput &mdash;
+      the bottleneck is a single diffusion stage at 0.25 units/tick no matter how many stages
+      follow. But over a <em>finite</em> 2,688-tick horizon a longer pipeline loses real output to
+      fill and drain. Measured, driving every tool whenever the gates permit:</p>
+      <div class="kv" style="margin-top:10px">
+        <b>2+2</b><span>664 units &middot; 12 tool-ticks per unit</span>
+        <b>4+4</b><span>652 units &middot; 24 tool-ticks per unit</span>
+        <b>6+6</b><span>640 units &middot; 36 tool-ticks per unit</span>
+      </div>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">So the true optimum <strong>should
+      decline slightly with depth</strong>. The LP relaxation behind the dual bound can schedule
+      fractionally and never feels that penalty, which is why the bound does not show it. Flat
+      bound, genuinely non-flat optimum.</p></div>
+    <div class="card flag"><h3>Why cost is held constant &mdash; a modelling choice, not a fact</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:7px">Per-stage cost is set to 32/M for
+      diffusion and 16/M for litho, so the total stays <strong>$24/unit at every depth</strong>
+      and reproduces the original 8/4/8/4 at 2+2. Three options were considered:</p>
+      <div class="scroll" style="margin-top:10px"><table>
+        <thead><tr><th class="l">Option</th><th>Margin/unit</th><th class="l">Consequence</th></tr></thead>
+        <tbody>
+          <tr><td class="l"><strong>Fixed cost &amp; revenue</strong> (chosen)</td><td>$56 flat</td>
+            <td class="l">Isolates lead time; rows comparable in dollars</td></tr>
+          <tr><td class="l">Cost scales, revenue fixed</td><td>$56 &rarr; $32 &rarr; <strong>$8</strong></td>
+            <td class="l">Measures collapsing economics, not scheduling</td></tr>
+          <tr><td class="l">Both scale</td><td>$56 flat</td>
+            <td class="l">Same experiment, more physically honest</td></tr>
+        </tbody></table></div>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">The chosen option keeps the three
+      rows <em>directly comparable in dollars</em>, which is what licenses reading the margin as
+      +$606 &rarr; +$815 &rarr; +$1,363 rather than only as percentages. A 12-stage line at
+      unscaled per-stage cost would run an $8 margin against $80 revenue, and family 3 would stop
+      being a test of scheduling difficulty.</p></div>
+  </div>
+
+  <div class="card open" style="margin-top:16px"><h3>Incomplete: CP-SAT at depth</h3>
+    <p class="sub" style="font-size:.92rem;margin-top:7px">long 1800s solves running; 45s probes returned 777 / 1,471 / 2,502 (barely above commander) and M=12 peaked at 6.6 GB.
+    Long 1800-second solves are running now. Until they land we cannot say whether the exact
+    solver still beats the gradient at depth &mdash; the comparison that matters. The
+    &ldquo;% of bound&rdquo; column above uses the rigorous dual bound, valid regardless.</p></div>
+</section>
+
+<section>
+  <p class="eyebrow">How the line was generalised</p>
+  <h2 style="margin:10px 0 8px">From four fixed tools to any depth</h2>
+  <p class="sub" style="margin-bottom:18px">The line is now an alternating
+  diffusion&rarr;litho chain of any length, described by a <strong>route array</strong>: for each
+  tool, which queue its output lands in, with &minus;1 meaning &ldquo;ship&rdquo;. In the tensor
+  simulator this collapses to two matrix products, <code>emit @ route_mat</code> and
+  <code>emit @ to_fg</code>, replacing four hardcoded lines. The same route array is what
+  reentrancy (family 5) will need &mdash; a tool feeding its own input queue is just a route that
+  points backwards.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">File</th><th class="l">Change</th><th class="l">Risk note</th></tr></thead>
+    <tbody><tr><td class='l'><code>config.py</code></td><td class='l'>n_pairs parameter; alternating DIFF/LITHO chain; per-stage cost 32/M and 16/M so total stays $24/unit; WIP linear 0 -> $0.0075</td><td class='l muted'>economics held constant by design</td></tr><tr><td class='l'><code>spec.py</code></td><td class='l'>n_machines from config; route array (dest queue per machine, -1 = ship)</td><td class='l muted'>low</td></tr><tr><td class='l'><code>tensor_sim.py</code></td><td class='l'>four hardcoded routing lines replaced by emit @ route_mat + emit @ to_fg</td><td class='l muted'>low; this is also what reentrancy needs</td></tr><tr><td class='l'><code>sim.py</code></td><td class='l'>machine list replaces machine0..3; queues generated; loops over M; obs 3M+6; mask (M,2). machine0..3 kept as aliases for 14 dependent modules</td><td class='l muted'>largest refactor; gated by verify.py</td></tr><tr><td class='l'><code>env.py</code></td><td class='l'>obs 3M+6, MultiDiscrete([2]*M), phi and starts loop over M</td><td class='l muted'>invalid-action bug preserved deliberately</td></tr><tr><td class='l'><code>env_tensor.py</code></td><td class='l'>obs_dim(M) helper; time caps derived from batch size</td><td class='l muted'>low</td></tr><tr><td class='l'><code>optim.py</code></td><td class='l'>feeders/shippers from route; generalized recurrences and objective; COST_SCALE 1e3 -> 1e5; depth-agnostic warm start</td><td class='l muted'>cross-validated against tensor sim</td></tr></tbody></table></div>
+
+  <h3 style="margin:26px 0 10px">Verification &mdash; every gate, at every depth</h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Gate</th><th class="l">What it checks</th><th>M=4</th><th>M=8</th>
+      <th>M=12</th><th class="l">Kind of evidence</th></tr></thead>
+    <tbody><tr><td class='l'>verify.py</td><td class='l'>tensor sim vs sim.py, tick-by-tick, 7 action regimes</td><td>PASS</td><td>PASS</td><td>PASS</td><td class='l muted'>independent implementation</td></tr><tr><td class='l'>verify_env.py</td><td class='l'>tensor env vs FabEnv: obs, mask, reward, shaping, invalid</td><td>PASS</td><td>PASS</td><td>PASS</td><td class='l muted'>independent implementation</td></tr><tr><td class='l'>verify_diffsim.py</td><td class='l'>ST forward bit-identical to exact; hard gradient == 0</td><td>PASS</td><td>n/a</td><td>n/a</td><td class='l muted'>internal property</td></tr><tr><td class='l'>verify_general.py</td><td class='l'>CP-SAT schedule replayed in tensor sim matches its objective</td><td>PASS $0.0000</td><td>PASS $0.0027</td><td>pending</td><td class='l muted'>independent implementation</td></tr><tr><td class='l'>verify_general.py</td><td class='l'>invariants: unit conservation, non-negative queues, one job/tool, lead time</td><td>PASS</td><td>PASS</td><td>PASS</td><td class='l muted'>physical property</td></tr></tbody></table></div>
+  <p class="sub muted" style="font-size:.88rem;margin-top:12px">Generalising <code>sim.py</code>
+  paid for itself twice: it unblocks PPO at depth, and it restores a genuinely
+  <em>independent</em> tick-by-tick reference at M=8 and M=12. The earlier plan was to fall back
+  on self-consistency plus invariants at depth; that compromise is no longer needed.</p>
+
+  <h3 style="margin:26px 0 4px">Four defects found during the refactor</h3>
+  <p class="sub" style="font-size:.92rem">Three were introduced by the generalisation and caught
+  by the gates; the fourth was latent and would have quietly corrupted every deep-line solve.</p>
+  <div class='card open' style='margin-top:10px'><h3>Generalized commander completed jobs at t+pt-1 instead of t+pt</h3><p class='sub' style='font-size:.9rem;margin-top:6px'><strong>Impact:</strong> warm-start hint infeasible; CP-SAT silently discarded it and searched from nothing at M=8<br><strong>Caught by:</strong> CP-SAT returned UNKNOWN where a feasible hint existed</p></div><div class='card open' style='margin-top:10px'><h3>Generalized commander ignored that commander_decide runs before completions</h3><p class='sub' style='font-size:.9rem;margin-top:6px'><strong>Impact:</strong> produced 1667 starts vs the reference 1568; hint diverged from the quoted commander baseline<br><strong>Caught by:</strong> start-by-start comparison against the tensor-sim commander</p></div><div class='card open' style='margin-top:10px'><h3>Action tape shape hardcoded as (B, H, 4) in gradient and search code</h3><p class='sub' style='font-size:.9rem;margin-top:6px'><strong>Impact:</strong> family 3 silently produced no results at M=8 and M=12<br><strong>Caught by:</strong> empty method rows in the sweep output</p></div><div class='card open' style='margin-top:10px'><h3>COST_SCALE=1000 rounds a 12-stage line's WIP coefficients to 47% error</h3><p class='sub' style='font-size:.9rem;margin-top:6px'><strong>Impact:</strong> CP-SAT would optimise a materially different objective at depth<br><strong>Caught by:</strong> reviewing coefficient magnitudes before running</p></div>
+</section>
+
+
+<section>
+  <p class="eyebrow">Family 3 at 92% demand &mdash; a negative result</p>
+  <h2 style="margin:10px 0 8px">At high load the gradient loses, and loses harder with depth</h2>
+  <p class="sub" style="margin-bottom:18px">UNIFORM demand of 616 units at every depth, 400 Adam steps, same protocol as the 50% sweep. 616 is 92% of the nominal 672-unit capacity; as a fraction of what each line can actually deliver over a finite horizon it is 92.8% / 94.5% / 96.2%. Demand is held constant in absolute units, so effective load rises slightly with depth.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Line</th><th>Lead</th><th>Commander</th><th>Random</th>
+      <th>Hill-climb</th><th>Grad soft</th><th>Grad ST</th><th>ST vs best 0th-order</th></tr></thead>
+    <tbody><tr><td>4 tools (2+2)</td><td>36t</td><td>34,080</td><td>34,458</td><td>34,572</td><td class="">32,379</td><td>34,555</td><td class='neg'>-18</td></tr><tr><td>8 tools (4+4)</td><td>72t</td><td>34,174</td><td>34,153</td><td>34,259</td><td class="neg">-11,794</td><td>33,508</td><td class='neg'>-751</td></tr><tr><td>12 tools (6+6)</td><td>108t</td><td>32,864</td><td>33,789</td><td>32,456</td><td class="neg">-21,996</td><td>31,378</td><td class='neg'>-2,411</td></tr></tbody></table></div>
+  <div class="card open" style="margin-top:18px">
+    <h3>This inverts the 50% result and must be read alongside it</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">At 50% demand the gradient's margin
+    <em>grew</em> with depth: +$606 &rarr; +$815 &rarr; +$1,363. At 92% it goes the other way
+    &mdash; &minus;$18 &rarr; &minus;$751 &rarr; &minus;$2,411 &mdash; and at 12 tools the gradient
+    finishes below even the greedy commander. The pre-registered depth prediction held at low load
+    and failed at high load. Both are real; neither cancels the other; the deck reports both.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px"><strong>A hypothesis was tested and
+    rejected.</strong> Global-norm clipping at 100 and 1000 changed nothing: $31,350 / $31,380 vs $31,379 unclipped at 6+6. The Adam second-moment hypothesis was tested and rejected; this is not an optimiser-configuration artifact. Straight-through gradient norms reach 8.65e9 at 12 tools and 92%
+    demand, so the natural explanation was Adam's second-moment estimate being poisoned by an
+    enormous first gradient. Clipping should have fixed that. It did not, so the failure is in the
+    gradient signal itself, not in how it is consumed.</p></div>
+
+  <h3 style="margin:28px 0 8px">The pattern across everything measured so far</h3>
+  <p class="sub" style="margin-bottom:14px">Ordering every problem by how much <em>slack</em> it
+  leaves &mdash; capacity not already committed to meeting demand &mdash; produces a clean
+  monotonic trend in the gradient's advantage.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Problem</th><th>Utilisation</th><th class="l">Demand shape</th>
+      <th>Grad ST &minus; best zeroth-order</th></tr></thead>
+    <tbody><tr><td class='l'>Uniform 50%</td><td>50%</td><td class='l'>flat</td><td class="hero">+14,037</td></tr><tr><td class='l'>Alternating 50%</td><td>50%</td><td class='l'>bursty</td><td class="hero">+15,727</td></tr><tr><td class='l'>Alternating 89%</td><td>89%</td><td class='l'>bursty</td><td class="hero">+213</td></tr><tr><td class='l'>Alternating 92%</td><td>92%</td><td class='l'>bursty</td><td class="hero">+398</td></tr><tr><td class='l'>Uniform 92% (2+2)</td><td>92%</td><td class='l'>flat</td><td class="neg">-18</td></tr><tr><td class='l'>Uniform 92% (4+4)</td><td>92%</td><td class='l'>flat</td><td class="neg">-751</td></tr><tr><td class='l'>Uniform 92% (6+6)</td><td>92%</td><td class='l'>flat</td><td class="neg">-2,411</td></tr></tbody></table></div>
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card flag"><h3>Working hypothesis: the gradient needs slack</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">A start is gated by
+      <code>idle &times; canrun</code>. When a tool is busy or starved the gate is closed and the
+      derivative through that path is essentially uninformative. At 50% utilisation the gates are
+      often open and the choice to idle is genuinely live, so the surrogate carries signal. At 92%
+      with flat demand the line is saturated, gates are closed almost always, and the surrogate
+      has little to say &mdash; while random sampling still finds good schedules by luck.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">This also explains why
+      <em>bursty</em> 92% (Alternating 92) still favours the gradient at +$398 while <em>flat</em>
+      92% does not: bursty demand leaves slack in the light weeks even when the average load is
+      high. On this reading the operative variable is slack, not utilisation.</p></div>
+    <div class="card"><h3>CP-SAT vs depth &mdash; results so far</h3>
+      <div class="scroll" style="margin-top:8px"><table>
+        <thead><tr><th class="l">Line</th><th>CP-SAT</th><th>Grad ST</th><th>CP-SAT lead</th>
+          <th>Dual bound</th><th>Gap</th></tr></thead>
+        <tbody><tr><td>M=4</td><td>18,993</td><td>17,895</td><td class='muted'>+1,098</td><td>19,003</td><td>0.05%</td></tr><tr><td>M=8</td><td>18,840</td><td>18,266</td><td class='muted'>+574</td><td>19,003</td><td>0.86%</td></tr><tr><td>M=12</td><td>18,934</td><td>18,320</td><td class='muted'>+614</td><td>19,008</td><td>0.39%</td></tr></tbody></table></div>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">1800-second solves at 50% demand.
+      CP-SAT beats the gradient at <strong>every</strong> depth, by $1,098 / $574 / $614.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px"><strong>An earlier reading of this
+      table was wrong.</strong> With only M=4 and M=8 in hand the gap appeared to widen with depth
+      (0.05% &rarr; 0.86%), and that was reported here as the first sign of a scaling wall. M=12
+      then came in at 0.39% &mdash; better than M=8 &mdash; so the trend is not monotonic and
+      there is <strong>no scaling wall at these sizes</strong>. CP-SAT solves all three to within
+      1% in half an hour. The scaling premise needs a far larger instance to test, which is
+      exactly what family 5 and the multi-product work are for.</p></div>
+  </div>
+</section>
+
+
+
+<section>
+  <p class="eyebrow">The two-product line</p>
+  <h2 style="margin:10px 0 8px">Same four tools, two recipes, and a changeover penalty</h2>
+  <p class="sub" style="margin-bottom:16px">A separate simulator for this has existed in the
+  repository since April, predating all the single-product work. It is not a variant of the
+  1-product line &mdash; it models per-product processing times, sequence-dependent setup times,
+  changeover cost, and a three-way decision at every tool.</p>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--diff)"></span>Diffusion &mdash; batch, no changeover</span>
+    <span><span class="sw" style="background:var(--litho)"></span>Litho &mdash; single wafer, changeover applies</span>
+    <span><span class="sw" style="background:var(--hot)"></span>Changeover: 1 tick + $20</span>
+  </div>
+  <div id="tpline"></div>
+  <figcaption>Both products share every tool. The batch tools change recipe freely but run P1
+  25% slower; the single-wafer tools switch instantly in throughput terms but charge $20 and one
+  tick per changeover. A batch is one recipe &mdash; a furnace cannot mix products.</figcaption>
+
+  <div class="scroll" style="margin-top:24px"><table>
+    <thead><tr><th class="l">Product</th><th>Revenue</th><th>Prod cost</th><th>Margin</th>
+      <th>Batch pt</th><th>Bottleneck t/unit</th><th>Margin per bottleneck tick</th>
+      <th>FG holding</th><th>Backorder</th></tr></thead>
+    <tbody><tr><td class='l'><strong>P0</strong></td><td>$80</td><td>$24</td><td>$56</td><td>16t</td><td>4.0</td><td class='hero'>$14.00</td><td>$0.04</td><td>$0.15</td></tr><tr><td class='l'><strong>P1</strong></td><td>$100</td><td>$28</td><td>$72</td><td>20t</td><td>5.0</td><td class='hero'>$14.40</td><td>$0.05</td><td>$0.225</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <p class="eyebrow">Why the mix decision is real</p>
+  <h2 style="margin:10px 0 8px">The two products are deliberately balanced</h2>
+  <p class="sub" style="margin-bottom:16px">P1 pays more but consumes 25% more of the bottleneck.
+  Measured in the only currency that matters &mdash; profit per unit of scarce capacity &mdash;
+  they land within <strong>2.9%</strong> of each other. Neither dominates, so "which product to
+  run" is genuinely open at every decision point.</p>
+  <div id="tpbal"></div>
+  <div class="card open" style="margin-top:20px">
+    <h3>What "aligning the economics" could have destroyed</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">The obvious way to bring this line
+    inline with the 1-product settings would be to flatten revenue and production cost to
+    $80 / $24 for both products. That would have been a serious mistake. P1 would still take
+    25% longer on the bottleneck but earn the same margin, dropping it to
+    <strong>$11.20 per bottleneck tick against P0's $14.00</strong> &mdash; P0 dominating by 25%.
+    The optimal policy would collapse to "always make P0" and the mix decision, the entire point
+    of the two-product problem, would disappear.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">So revenue, production cost and
+    processing times were left untouched. Only the cost terms that carry no product
+    differentiation were aligned.</p></div>
+</section>
+
+<section>
+  <p class="eyebrow">Bringing it inline</p>
+  <h2 style="margin:10px 0 8px">Six changes, and what each one was for</h2>
+  <p class="sub" style="margin-bottom:16px">The approach was <em>level</em> alignment with
+  <em>ratio</em> preservation: match the absolute cost levels to the 1-product line, and keep every
+  one of P1's relative premiums exactly as they were. P0 was already economically identical to the
+  1-product product &mdash; same $80 revenue, same 8/4/8/4 cost structure &mdash; so after this it
+  <strong>is</strong> that product.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Change</th><th class="l">Before</th><th class="l">After</th>
+      <th class="l">Why it is safe</th></tr></thead>
+    <tbody><tr><td class='l'>FG holding</td><td class='l muted'>P0 0.02 / P1 0.025</td><td class='l'>P0 0.04 / P1 0.05</td><td class='l'>level matched to the 1-product line; P1's original 1.25x premium preserved exactly</td></tr><tr><td class='l'>Backorder rate</td><td class='l muted'>P0 0.10 / P1 0.15</td><td class='l'>P0 0.15 / P1 0.225</td><td class='l'>level matched; P1's original 1.5x premium preserved exactly</td></tr><tr><td class='l'>Backorder timing</td><td class='l muted'>charged from arrival</td><td class='l'>one-week grace period</td><td class='l'>the 1-product line charges only demand outstanding longer than demand_interval; this was the single largest difference between the two problems</td></tr><tr><td class='l'>WIP holding</td><td class='l muted'>absent</td><td class='l'>progressive 0 -> 0.0075, P1 at 1.25x</td><td class='l'>without it, parking inventory in mid-line queues is free — the exploit the 1-product line added WIP cost to close</td></tr><tr><td class='l'>demand_delay</td><td class='l muted'>96 ticks</td><td class='l'>0</td><td class='l'>demand lands on the period boundary, as in the 1-product line</td></tr><tr><td class='l'>setup_times[None]</td><td class='l muted'>missing — KeyError</td><td class='l'>added, cold start = changeover</td><td class='l'>a real defect: Machine.process looks this up on the first job, so the config could not drive its own simulator</td></tr><tr><td class='l'>Finished-goods matching</td><td class='l muted'>queue_fin was append-only</td><td class='l'>matched against demand each tick, per product</td><td class='l'>a real defect, not an alignment: nothing ever removed items from finished inventory, so units produced ahead of demand were stranded permanently. Observed directly — 4 units of P1 demand unmet while 12 finished P1 units sat in inventory.</td></tr></tbody></table></div>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card"><h3>Left untouched &mdash; these carry the difficulty</h3>
+      <ul class="sub" style="font-size:.91rem;margin-top:8px"><li>Per-product processing times (16t vs 20t on the batch tools) — the capacity trade-off</li><li>Sequence-dependent setup times (1 tick on the single-wafer tools)</li><li>$20 changeover cost on M1 and M3</li><li>Per-product revenue ($80 / $100) and production cost ($24 / $28)</li><li>Three-way action space per tool: idle, run P0, run P1</li><li>28-dim observation including each tool's last-finished product</li><li>The demand-share commander heuristic</li></ul></div>
+    <div class="card open"><h3>The honest consequence</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The commander baseline moved a long
+      way, in two stages, and both should be on the record:</p>
+      <div class="scroll" style="margin-top:10px"><table>
+        <thead><tr><th class="l">Stage</th><th>Profit</th><th>Inventory</th><th>Backorder</th>
+          <th>Shipped</th></tr></thead><tbody><tr><td class='l'>As found</td><td>7,328</td><td>2,063</td><td>22,313</td><td>524 / 544</td></tr><tr><td class='l'>After economics alignment</td><td>30,491</td><td>2,356</td><td>68</td><td>540 / 544</td></tr><tr><td class='l'>After finished-goods fix</td><td>33,076</td><td>207</td><td>0</td><td>544 / 544</td></tr></tbody></table></div>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">The grace period removed a backorder
+      cost that had been three quarters of revenue. The finished-goods fix then recovered the last
+      four unshipped units and $2,150 of holding on stock that could never move. Neither change
+      touched a product differentiator.</p></div>
+  </div>
+
+  <h3 style="margin:26px 0 10px">It is still harder than the 1-product line</h3>
+  <div class="grid g2">
+    <div class="card">
+      <div class="scroll"><table>
+        <thead><tr><th class="l">Mix @ 80%</th><th>Demand P0/P1</th><th>Commander</th>
+          <th>Naive ceiling</th><th>% of ceiling</th><th>Changeovers</th><th>Inventory</th></tr></thead>
+        <tbody><tr><td class='l'>50 / 50</td><td>236 / 236</td><td>25,028</td><td class='muted'>30,208</td><td>82.9%</td><td>32</td><td>2,075</td></tr><tr><td class='l'>90 / 10</td><td>472 / 52</td><td>25,827</td><td class='muted'>30,176</td><td>85.6%</td><td>14</td><td>1,773</td></tr><tr><td class='l'>10 / 90</td><td>40 / 392</td><td>25,433</td><td class='muted'>30,464</td><td>83.5%</td><td>18</td><td>2,231</td></tr></tbody></table></div>
+      <p class="sub" style="font-size:.9rem;margin-top:10px">The heuristic leaves
+      <strong>14&ndash;17%</strong> on the table at 80% load, and about 5% at 92%. The mix drives
+      changeover pressure directly &mdash; 32 switches at an even split against 14 when lopsided.
+      Most of the remaining gap is inventory: the commander over-produces and holds, which is
+      exactly the failure mode the gradient exploited on the 1-product line.</p></div>
+    <div class="card">
+      <div class="scroll"><table>
+        <thead><tr><th class="l">Configuration</th><th>Profit</th><th>Inventory</th><th>WIP</th>
+          <th>Setup</th><th>Backorder</th></tr></thead>
+        <tbody><tr><td class='l'>UNIFORM @ 80%</td><td>25,028</td><td>2,075</td><td>61</td><td>640</td><td>0</td></tr><tr><td class='l'>UNIFORM @ 92%</td><td>33,076</td><td>207</td><td>61</td><td>940</td><td>0</td></tr><tr><td class='l'>ALTERNATING @ 92%</td><td>32,723</td><td>729</td><td>61</td><td>840</td><td>0</td></tr></tbody></table></div>
+      <p class="sub" style="font-size:.9rem;margin-top:10px">Backorder is now inert in these
+      configurations &mdash; with the grace period and a working finished-goods buffer, the
+      commander meets all demand. It bites only under tighter load or burstier demand, so if we
+      want that lever active we should raise utilisation past 92%.</p></div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">The plan</p>
+  <h2 style="margin:10px 0 8px">The 1-product playbook, applied &mdash; with four new problems</h2>
+  <p class="sub" style="margin-bottom:14px">Each step mirrors what was built for the single-product
+  line, and each carries something genuinely new rather than being a port.</p>
+  <div class='card' style='margin-top:10px'><h3>1 &middot; Tensor simulator with a product axis</h3><p class='sub' style='font-size:.92rem;margin-top:6px'>q[B, M, P], a delay register carrying a product tag since a tool runs one recipe at a time, and per-tool changeover state. Verified tick-by-tick against simplefab/sim.py.</p><p class='sub' style='font-size:.86rem;margin-top:6px;color:var(--accent)'>New in the 2-product case: the product dimension and changeover state</p></div><div class='card' style='margin-top:10px'><h3>2 &middot; Tensor environment</h3><p class='sub' style='font-size:.92rem;margin-top:6px'>The 28-dim observation including each tool's last-finished product, the 12-wide action mask, reward and shaping. Verified against simplefab/env.py.</p><p class='sub' style='font-size:.86rem;margin-top:6px;color:var(--accent)'>New in the 2-product case: three-way masking instead of binary</p></div><div class='card' style='margin-top:10px'><h3>3 &middot; Differentiable line — a new relaxation</h3><p class='sub' style='font-size:.92rem;margin-top:6px'>The 1-product action was binary, so a sigmoid straight-through sufficed. Here the choice is three-way, so it becomes a SOFTMAX straight-through. This is a genuine redesign, not a port.</p><p class='sub' style='font-size:.86rem;margin-top:6px;color:var(--accent)'>New in the 2-product case: categorical relaxation</p></div><div class='card flag' style='margin-top:10px'><h3>4 &middot; The 2-product CP-SAT model — the real risk</h3><p class='sub' style='font-size:.92rem;margin-top:6px'>Decision variables become x[m][t][p] plus changeover-tracking variables. Setup structure is exactly what makes scheduling MILPs explode, so this is the first honest test of the scaling premise after pipeline depth failed to break the solver.</p><p class='sub' style='font-size:.86rem;margin-top:6px;color:var(--accent)'>New in the 2-product case: setup variables — the combinatorial step</p></div><div class='card' style='margin-top:10px'><h3>5 &middot; Method comparison across the three mixes</h3><p class='sub' style='font-size:.92rem;margin-top:6px'>Commander, random search, hill-climb, grad-soft, grad-ST, CP-SAT and retrained PPO at 80% utilisation, plus the bursty ALTERNATING mode.</p><p class='sub' style='font-size:.86rem;margin-top:6px;color:var(--accent)'>New in the 2-product case: mix becomes an experimental axis</p></div>
+  <div class="card open" style="margin-top:18px"><h3>Where this could end</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">Step 4 is the decisive one. Pipeline
+    depth grew the problem linearly and CP-SAT absorbed it without difficulty &mdash; all three
+    depths solved to within 1% in half an hour, with no scaling wall. Setup variables grow it
+    <em>combinatorially</em>, which is where scheduling MILPs are supposed to break.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px"><strong>If CP-SAT solves this
+    comfortably too, the scaling premise is in serious trouble and we should say so</strong> rather
+    than keep climbing toward reentrancy hoping the wall appears. That is a legitimate outcome and
+    worth knowing early.</p></div>
+</section>
+
 
 <section>
   <p class="eyebrow">Against the record</p>
@@ -532,4 +1163,289 @@ draw();
 new MutationObserver(draw).observe(document.documentElement,{attributes:true,
   attributeFilter:['data-theme']});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',draw);
+
+
+/* ---- annotated single-line anatomy ---- */
+function drawAnatomy(){
+  const host=document.getElementById('anat'); if(!host) return; host.innerHTML='';
+  const W=1040,H=210,NS2='http://www.w3.org/2000/svg';
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'annotated production line'});
+  const stages=[['D','Diffusion',16,4],['L','Litho',2,1],['D','Diffusion',16,4],['L','Litho',2,1]];
+  const col=k=>k==='D'?cv('--diff'):cv('--litho');
+  const bw=112, gap=(W-120-bw*4)/4, yB=74, bh=54;
+  let x=60;
+  const t0=el('text',{x:2,y:yB+32,fill:cv('--ink-3'),'font-size':11,'font-family':'ui-monospace,monospace'});
+  t0.textContent='RAW'; svg.appendChild(t0);
+  stages.forEach(([k,name,pt,b],i)=>{
+    svg.appendChild(el('line',{x1:x-gap+6,x2:x-4,y1:yB+bh/2,y2:yB+bh/2,stroke:cv('--rule'),'stroke-width':2}));
+    // queue glyph
+    for(let r=0;r<3;r++)
+      svg.appendChild(el('rect',{x:x-30,y:yB+14+r*7,width:15,height:5,rx:1.5,fill:cv('--ink-3'),opacity:.5}));
+    const ql=el('text',{x:x-22,y:yB+8,fill:cv('--ink-3'),'font-size':10,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'}); ql.textContent='q'+i; svg.appendChild(ql);
+    svg.appendChild(el('rect',{x,y:yB,width:bw,height:bh,rx:3,fill:'none',stroke:col(k),'stroke-width':2}));
+    const nm=el('text',{x:x+bw/2,y:yB-24,fill:col(k),'font-size':12,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600,'letter-spacing':'.06em'});
+    nm.textContent=name.toUpperCase(); svg.appendChild(nm);
+    const id=el('text',{x:x+bw/2,y:yB+22,fill:cv('--ink'),'font-size':14,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600}); id.textContent='M'+i; svg.appendChild(id);
+    const sp=el('text',{x:x+bw/2,y:yB+40,fill:cv('--ink-3'),'font-size':10.5,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'}); sp.textContent=`pt=${pt}t  batch=${b}`; svg.appendChild(sp);
+    x+=bw+gap;
+  });
+  const fx=x-gap+10;
+  svg.appendChild(el('line',{x1:fx-gap+2,x2:fx-6,y1:yB+bh/2,y2:yB+bh/2,stroke:cv('--rule'),'stroke-width':2}));
+  const fg=el('text',{x:fx,y:yB+bh/2+4,fill:cv('--fg'),'font-size':12,'font-family':'ui-monospace,monospace',
+    'font-weight':600}); fg.textContent='SHIP $80'; svg.appendChild(fg);
+  // lead-time bracket
+  const y2=yB+bh+26;
+  svg.appendChild(el('path',{d:`M60 ${y2} L60 ${y2+7} L${fx-10} ${y2+7} L${fx-10} ${y2}`,
+    fill:'none',stroke:cv('--accent'),'stroke-width':1.5}));
+  const lt=el('text',{x:(60+fx)/2,y:y2+24,fill:cv('--accent'),'font-size':11.5,'text-anchor':'middle',
+    'font-family':'ui-monospace,monospace'});
+  lt.textContent='lead time L = 16+2+16+2 = 36 ticks  (minimum release -> ship)'; svg.appendChild(lt);
+  const cap=el('text',{x:(60+fx)/2,y:y2+42,fill:cv('--ink-3'),'font-size':11,'text-anchor':'middle',
+    'font-family':'ui-monospace,monospace'});
+  cap.textContent='bottleneck = one diffusion tool: 4 units / 16 ticks = 0.25 units/tick -> 672 per horizon';
+  svg.appendChild(cap);
+  host.appendChild(svg);
+}
+
+/* ---- three approaches ---- */
+function drawApproaches(){
+  const host=document.getElementById('approaches'); if(!host) return; host.innerHTML='';
+  const W=1040,H=250;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'three approaches compared'});
+  const lanes=[
+    {y:26,c:cv('--ink-3'),t:'DISCRETE-EVENT SIM',
+     boxes:['Python objects','1 trajectory','sequential tick loop','profit'],
+     note:'exact reference - no gradient - 358k steps/s'},
+    {y:100,c:cv('--c4'),t:'MODEL-FREE RL (PPO)',
+     boxes:['obs (18-dim)','policy net','action','per-tick reward'],
+     note:'score-function gradient - local, discounted, high variance'},
+    {y:174,c:cv('--ok'),t:'TENSORIZED + PATHWISE',
+     boxes:['theta [B,H,M]','batched arrays','B trajectories','END profit'],
+     note:'d(profit)/d(theta) through the real dynamics - 60M steps/s'},
+  ];
+  lanes.forEach(L=>{
+    const lab=el('text',{x:0,y:L.y+4,fill:L.c,'font-size':10.5,'font-family':'ui-monospace,monospace',
+      'font-weight':600,'letter-spacing':'.09em'}); lab.textContent=L.t; svg.appendChild(lab);
+    let x=228, bw=150, gp=32;
+    L.boxes.forEach((b,i)=>{
+      svg.appendChild(el('rect',{x,y:L.y-12,width:bw,height:30,rx:3,fill:'none',
+        stroke:L.c,'stroke-width':1.6,opacity:.9}));
+      const t=el('text',{x:x+bw/2,y:L.y+7,fill:cv('--ink'),'font-size':11.5,'text-anchor':'middle',
+        'font-family':'ui-monospace,monospace'}); t.textContent=b; svg.appendChild(t);
+      if(i<L.boxes.length-1){
+        svg.appendChild(el('path',{d:`M${x+bw+4} ${L.y+3} L${x+bw+gp-6} ${L.y+3}`,stroke:L.c,
+          'stroke-width':1.4,'marker-end':''}));
+        svg.appendChild(el('path',{d:`M${x+bw+gp-10} ${L.y-1} L${x+bw+gp-5} ${L.y+3} L${x+bw+gp-10} ${L.y+7}`,
+          fill:'none',stroke:L.c,'stroke-width':1.4}));
+      }
+      x+=bw+gp;
+    });
+    const n=el('text',{x:228,y:L.y+34,fill:cv('--ink-3'),'font-size':10.5,
+      'font-family':'ui-monospace,monospace'}); n.textContent=L.note; svg.appendChild(n);
+  });
+  // backward gradient arc on lane 3
+  const y3=174;
+  svg.appendChild(el('path',{d:`M${228+3*182+150} ${y3+22} C${700} ${y3+50} ${420} ${y3+50} ${228+70} ${y3+22}`,
+    fill:'none',stroke:cv('--ok'),'stroke-width':1.6,'stroke-dasharray':'5 3'}));
+  const gt=el('text',{x:640,y:y3+62,fill:cv('--ok'),'font-size':11,'text-anchor':'middle',
+    'font-family':'ui-monospace,monospace'});
+  gt.textContent='backward: d(profit)/d(theta) traverses all 2,688 ticks'; svg.appendChild(gt);
+  host.appendChild(svg);
+}
+
+/* ---- delay register ---- */
+function drawReg(){
+  const host=document.getElementById('regviz'); if(!host) return; host.innerHTML='';
+  const W=470,H=104, n=9, cw=40, ch=26;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'delay register'});
+  for(let row=0;row<2;row++){
+    const y=14+row*46, filled=row===0?5:4;
+    const lb=el('text',{x:0,y:y+18,fill:cv('--ink-3'),'font-size':10,'font-family':'ui-monospace,monospace'});
+    lb.textContent=row===0?'tick t':'t+1'; svg.appendChild(lb);
+    for(let i=0;i<n;i++){
+      const x=52+i*(cw+3);
+      svg.appendChild(el('rect',{x,y,width:cw,height:ch,rx:2,fill:i===filled?cv('--accent'):'none',
+        stroke:i===filled?cv('--accent'):cv('--rule'),'stroke-width':1.4}));
+      if(row===0){
+        const t=el('text',{x:x+cw/2,y:y-4,fill:cv('--ink-3'),'font-size':9.5,'text-anchor':'middle',
+          'font-family':'ui-monospace,monospace'}); t.textContent=i; svg.appendChild(t);
+      }
+    }
+  }
+  const ar=el('text',{x:52,y:100,fill:cv('--accent'),'font-size':10.5,'font-family':'ui-monospace,monospace'});
+  ar.textContent='shifts left one slot per tick; slot 0 = completes now';
+  svg.appendChild(ar);
+  host.appendChild(svg);
+}
+
+/* ---- one tick, five ops ---- */
+function drawTick(){
+  const host=document.getElementById('tickviz'); if(!host) return; host.innerHTML='';
+  const steps=[
+    ['1','INJECT','q[:,0] += arrivals[t]; backlog += demand[t]','raw material and demand arrive; existing stock ships instantly'],
+    ['2','COMPLETE','done = reg[:,:,0];  q += (make*done) @ route_mat','jobs finishing this tick deposit into their destination queue'],
+    ['3','START','start = action * idle * canrun;  reg += start * slot_onehot','the only place a decision enters the dynamics'],
+    ['4','ACCRUE','sum_q += q; sum_qfin += qfin; sum_late += max(D_lag - shipped, 0)','integer accumulators; prices applied once at the end'],
+    ['5','SHIFT','reg = concat(reg[...,1:], zeros)','advance every in-flight job one tick closer to completion'],
+  ];
+  const W=1040, rh=52, H=steps.length*rh+6;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'one tick as five operations'});
+  steps.forEach(([n,name,code,note],i)=>{
+    const y=i*rh+8;
+    svg.appendChild(el('circle',{cx:12,cy:y+14,r:11,fill:'none',stroke:cv('--accent'),'stroke-width':1.5}));
+    const num=el('text',{x:12,y:y+18,fill:cv('--accent'),'font-size':11,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600}); num.textContent=n; svg.appendChild(num);
+    const nm=el('text',{x:34,y:y+18,fill:cv('--ink'),'font-size':12,'font-family':'ui-monospace,monospace',
+      'font-weight':600,'letter-spacing':'.06em'}); nm.textContent=name; svg.appendChild(nm);
+    const cd=el('text',{x:132,y:y+18,fill:cv('--c3'),'font-size':11.5,'font-family':'ui-monospace,monospace'});
+    cd.textContent=code; svg.appendChild(cd);
+    const nt=el('text',{x:34,y:y+35,fill:cv('--ink-3'),'font-size':10.5,'font-family':'ui-monospace,monospace'});
+    nt.textContent=note; svg.appendChild(nt);
+    if(i<steps.length-1)
+      svg.appendChild(el('line',{x1:12,x2:12,y1:y+26,y2:y+rh+1,stroke:cv('--rule'),'stroke-width':1.4}));
+  });
+  host.appendChild(svg);
+}
+
+/* ---- gradient flow ---- */
+function drawGrad(){
+  const host=document.getElementById('gradflow'); if(!host) return; host.innerHTML='';
+  const W=1040,H=200;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'gradient path from decision to profit'});
+  const nodes=[['theta[t,m]','decision logit',cv('--accent')],
+               ['start','gated: a x idle x canrun',cv('--hot')],
+               ['reg slot pt','job in flight',cv('--ink-3')],
+               ['q[next]','pt ticks later',cv('--ink-3')],
+               ['... M stages ...','routing',cv('--ink-3')],
+               ['cum_ship','revenue $80',cv('--fg')]];
+  const bw=142, gp=(W-bw*nodes.length)/(nodes.length-1);
+  const y=52, bh=42;
+  nodes.forEach(([t,sub,c],i)=>{
+    const x=i*(bw+gp);
+    svg.appendChild(el('rect',{x,y,width:bw,height:bh,rx:3,fill:'none',stroke:c,'stroke-width':1.8}));
+    const a=el('text',{x:x+bw/2,y:y+18,fill:c,'font-size':12,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600}); a.textContent=t; svg.appendChild(a);
+    const b=el('text',{x:x+bw/2,y:y+33,fill:cv('--ink-3'),'font-size':10,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'}); b.textContent=sub; svg.appendChild(b);
+    if(i<nodes.length-1){
+      const x1=x+bw, x2=x+bw+gp;
+      svg.appendChild(el('line',{x1:x1+3,x2:x2-7,y1:y+bh/2,y2:y+bh/2,stroke:cv('--rule'),'stroke-width':1.6}));
+      svg.appendChild(el('path',{d:`M${x2-11} ${y+bh/2-4} L${x2-5} ${y+bh/2} L${x2-11} ${y+bh/2+4}`,
+        fill:'none',stroke:cv('--rule'),'stroke-width':1.6}));
+    }
+  });
+  const fw=el('text',{x:0,y:30,fill:cv('--ink-3'),'font-size':10.5,'font-family':'ui-monospace,monospace',
+    'letter-spacing':'.08em'}); fw.textContent='FORWARD  (exact, bit-identical to the reference simulator)';
+  svg.appendChild(fw);
+  // backward arc
+  const yb=y+bh+30;
+  svg.appendChild(el('path',{d:`M${W-bw/2} ${y+bh+4} C${W-bw/2} ${yb+34} ${bw/2} ${yb+34} ${bw/2} ${y+bh+4}`,
+    fill:'none',stroke:cv('--ok'),'stroke-width':1.8,'stroke-dasharray':'6 3'}));
+  const bwd=el('text',{x:W/2,y:yb+56,fill:cv('--ok'),'font-size':11.5,'text-anchor':'middle',
+    'font-family':'ui-monospace,monospace'});
+  bwd.textContent='BACKWARD: d(profit)/d(theta) - hard gates replaced by sigmoids (biased, usable)';
+  svg.appendChild(bwd);
+  const blk=el('text',{x:W/2,y:yb+74,fill:cv('--ink-3'),'font-size':10.5,'text-anchor':'middle',
+    'font-family':'ui-monospace,monospace'});
+  blk.textContent='a start also BLOCKS the tool for pt ticks - that path is exact and linear (idle = 1 - reg.sum)';
+  svg.appendChild(blk);
+  host.appendChild(svg);
+}
+
+/* ---- two-product line ---- */
+function drawTP(){
+  const host=document.getElementById('tpline'); if(!host) return; host.innerHTML='';
+  const W=1040,H=196;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'two-product line'});
+  const stages=[['D','Diffusion',16,20,4],['L','Litho',2,2,1],['D','Diffusion',16,20,4],['L','Litho',2,2,1]];
+  const col=k=>k==='D'?cv('--diff'):cv('--litho');
+  const bw=120, gap=(W-140-bw*4)/4, yB=66, bh=56;
+  let x=64;
+  const t0=el('text',{x:0,y:yB+34,fill:cv('--ink-3'),'font-size':11,'font-family':'ui-monospace,monospace'});
+  t0.textContent='RAW'; svg.appendChild(t0);
+  stages.forEach(([k,name,pt0,pt1,b],i)=>{
+    svg.appendChild(el('line',{x1:x-gap+8,x2:x-4,y1:yB+bh/2,y2:yB+bh/2,stroke:cv('--rule'),'stroke-width':2}));
+    // two product lanes in the queue glyph
+    for(let pdt=0;pdt<2;pdt++)
+      for(let r=0;r<2;r++)
+        svg.appendChild(el('rect',{x:x-30,y:yB+10+pdt*18+r*7,width:15,height:5,rx:1.5,
+          fill:pdt===0?cv('--c3'):cv('--c5'),opacity:.75}));
+    svg.appendChild(el('rect',{x,y:yB,width:bw,height:bh,rx:3,fill:'none',stroke:col(k),'stroke-width':2}));
+    const nm=el('text',{x:x+bw/2,y:yB-22,fill:col(k),'font-size':11.5,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600,'letter-spacing':'.06em'});
+    nm.textContent=name.toUpperCase(); svg.appendChild(nm);
+    const id=el('text',{x:x+bw/2,y:yB+20,fill:cv('--ink'),'font-size':13,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace','font-weight':600}); id.textContent='M'+i; svg.appendChild(id);
+    const sp=el('text',{x:x+bw/2,y:yB+36,fill:cv('--ink-3'),'font-size':10,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'});
+    sp.textContent=`P0 ${pt0}t / P1 ${pt1}t`; svg.appendChild(sp);
+    const bt=el('text',{x:x+bw/2,y:yB+49,fill:cv('--ink-3'),'font-size':10,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'}); bt.textContent=`batch ${b}`; svg.appendChild(bt);
+    if(k==='L'){
+      svg.appendChild(el('rect',{x:x+bw/2-48,y:yB+bh+8,width:96,height:17,rx:2,fill:'none',
+        stroke:cv('--hot'),'stroke-width':1.3}));
+      const cg=el('text',{x:x+bw/2,y:yB+bh+20,fill:cv('--hot'),'font-size':9.5,'text-anchor':'middle',
+        'font-family':'ui-monospace,monospace'}); cg.textContent='1t + $20 switch'; svg.appendChild(cg);
+    }
+    x+=bw+gap;
+  });
+  const fx=x-gap+12;
+  svg.appendChild(el('line',{x1:fx-gap+4,x2:fx-6,y1:yB+bh/2,y2:yB+bh/2,stroke:cv('--rule'),'stroke-width':2}));
+  const fg=el('text',{x:fx,y:yB+bh/2-4,fill:cv('--fg'),'font-size':11,'font-family':'ui-monospace,monospace',
+    'font-weight':600}); fg.textContent='SHIP'; svg.appendChild(fg);
+  const fg2=el('text',{x:fx,y:yB+bh/2+11,fill:cv('--ink-3'),'font-size':10,
+    'font-family':'ui-monospace,monospace'}); fg2.textContent='$80 / $100'; svg.appendChild(fg2);
+  const lg=el('text',{x:0,y:H-8,fill:cv('--ink-3'),'font-size':10.5,'font-family':'ui-monospace,monospace'});
+  lg.textContent='queues carry both products separately (blue = P0, violet = P1); a batch is one recipe';
+  svg.appendChild(lg);
+  host.appendChild(svg);
+}
+
+/* ---- balanced-margin comparison ---- */
+function drawBal(){
+  const host=document.getElementById('tpbal'); if(!host) return; host.innerHTML='';
+  const W=1040,H=200;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'margin per bottleneck tick'});
+  const groups=[
+    {t:'AS CONFIGURED  (kept)', y:14, c:cv('--ok'),
+     bars:[['P0',14.00,cv('--c3')],['P1',14.40,cv('--c5')]],
+     note:'within 2.9% - neither product dominates, the mix decision is open'},
+    {t:'IF REVENUE + COST WERE FLATTENED  (rejected)', y:92, c:cv('--open'),
+     bars:[['P0',14.00,cv('--c3')],['P1',11.20,cv('--c5')]],
+     note:'P0 dominates by 25% - optimal policy collapses to "always make P0"'},
+  ];
+  const x0=250, maxv=16, scale=(W-x0-120)/maxv;
+  groups.forEach(g=>{
+    const lab=el('text',{x:0,y:g.y+12,fill:g.c,'font-size':10.5,'font-family':'ui-monospace,monospace',
+      'font-weight':600,'letter-spacing':'.07em'}); lab.textContent=g.t; svg.appendChild(lab);
+    g.bars.forEach(([n,v,c],i)=>{
+      const y=g.y+22+i*22;
+      const pl=el('text',{x:x0-30,y:y+11,fill:cv('--ink'),'font-size':11.5,'text-anchor':'end',
+        'font-family':'ui-monospace,monospace'}); pl.textContent=n; svg.appendChild(pl);
+      svg.appendChild(el('rect',{x:x0,y,width:v*scale,height:13,rx:3,fill:c}));
+      const vl=el('text',{x:x0+v*scale+8,y:y+11,fill:cv('--ink'),'font-size':11.5,
+        'font-family':'ui-monospace,monospace','font-weight':600});
+      vl.textContent='$'+v.toFixed(2); svg.appendChild(vl);
+    });
+    const nt=el('text',{x:x0,y:g.y+70,fill:cv('--ink-3'),'font-size':10.5,
+      'font-family':'ui-monospace,monospace'}); nt.textContent=g.note; svg.appendChild(nt);
+  });
+  const ax=el('text',{x:x0,y:H-4,fill:cv('--ink-3'),'font-size':10,
+    'font-family':'ui-monospace,monospace'});
+  ax.textContent='profit per unit of bottleneck time  ($ per tick of batch-tool capacity)';
+  svg.appendChild(ax);
+  host.appendChild(svg);
+}
+
+function drawTwoProd(){drawTP();drawBal();}
+drawTwoProd();
+new MutationObserver(drawTwoProd).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+function drawTech(){drawAnatomy();drawApproaches();drawReg();drawTick();drawGrad();}
+drawTech();
+new MutationObserver(drawTech).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 </script>

@@ -1,0 +1,52 @@
+{
+  "results": {
+    "2": {
+      "n_pairs": 2,
+      "M": 4,
+      "lead": 36,
+      "status": "FEASIBLE",
+      "is_optimal": false,
+      "incumbent": 18993.18,
+      "bound": 19003.2025,
+      "solver_wall": 1800.0915730000002,
+      "wall": 1800.354945375002,
+      "commander": -107.53499999999985,
+      "replay": 18993.18,
+      "replay_diff": 0.0,
+      "cross_validated": true,
+      "gap": 0.0005274111034705402
+    },
+    "4": {
+      "n_pairs": 4,
+      "M": 8,
+      "lead": 72,
+      "status": "FEASIBLE",
+      "is_optimal": false,
+      "incumbent": 18839.92043,
+      "bound": 19002.86447,
+      "solver_wall": 1800.102851,
+      "wall": 1800.5577252090152,
+      "commander": 1233.2578571428603,
+      "replay": 18839.920714285712,
+      "replay_diff": 0.00028428571386029944,
+      "cross_validated": true,
+      "gap": 0.008574709368539855
+    },
+    "6": {
+      "n_pairs": 6,
+      "M": 12,
+      "lead": 108,
+      "status": "FEASIBLE",
+      "is_optimal": false,
+      "incumbent": 18933.51492,
+      "bound": 19008.00492,
+      "solver_wall": 1800.1569240000001,
+      "wall": 1800.847254332999,
+      "commander": 2488.1843181818185,
+      "replay": 18933.51,
+      "replay_diff": 0.004920000003039604,
+      "cross_validated": true,
+      "gap": 0.00391887524827082
+    }
+  }
+}

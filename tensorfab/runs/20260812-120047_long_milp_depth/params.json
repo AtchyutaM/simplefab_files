@@ -1,0 +1,10 @@
+{
+  "pairs": [
+    2,
+    4,
+    6
+  ],
+  "seconds": 1800.0,
+  "mode": "UNIFORM",
+  "workers": 8
+}

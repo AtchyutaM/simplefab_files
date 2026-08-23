@@ -216,10 +216,12 @@ class ProductionLine:
             "revenue_per_unit": common_cfg["revenue_per_unit"],
             "production_cost": common_cfg["production_cost"],
             "setup_cost": common_cfg["setup_cost"],
+            "wip_cost_per_unit": common_cfg.get("wip_cost_per_unit", {}),
             "inventory_cost_per_unit": common_cfg["inventory_cost_per_unit"],
             "backorder_cost_per_unit": common_cfg["backorder_cost_per_unit"],
         }
-        self.costs = {"revenue": 0.0, "production": 0.0, "setup": 0.0, "inventory": 0.0, "backorder": 0.0}
+        self.costs = {"revenue": 0.0, "production": 0.0, "setup": 0.0,
+                      "inventory": 0.0, "wip": 0.0, "backorder": 0.0}
         self.cost_log: List[Dict[str, Any]] = []
 
         self.logging_enabled = False
@@ -258,7 +260,8 @@ class ProductionLine:
     # ---------------------------
     def profit_total(self) -> float:
         c = self.costs
-        return c["revenue"] - (c["production"] + c["setup"] + c["inventory"] + c["backorder"])
+        return c["revenue"] - (c["production"] + c["setup"] + c["inventory"]
+                               + c["wip"] + c["backorder"])
 
     # ---------------------------
     # state / obs / mask
@@ -418,6 +421,27 @@ class ProductionLine:
                 for _ in range(int(self.demand_schedule[j][current_time])):
                     self.add_item_to_queue("demand", j, current_time)
 
+            # Match existing finished inventory against unmet demand, per product.
+            #
+            # Added 2026-08-22. Without this, `queue_fin` was append-only: nothing
+            # ever removed an item from it, so any unit produced ahead of demand
+            # was stranded permanently and the initial stock could never ship.
+            # Observed directly before the fix: 4 units of P1 demand unmet while
+            # 12 finished P1 units sat in inventory. That removed the build-ahead
+            # trade-off entirely — earliness had cost and no possible benefit —
+            # and charged ~$1,935 of unavoidable holding on dead initial stock.
+            # The 1-product simulator has always done this; this is the same loop.
+            for j in (0, 1):
+                while self.queues["queue_fin"][j] and self.queues["demand"][j]:
+                    self.queues["queue_fin"][j].pop(0)
+                    self.logs["queue_fin"].append(
+                        ([len(q) for q in self.queues["queue_fin"]], int(current_time)))
+                    self.queues["demand"][j].pop(0)
+                    self.logs["demand"].append(
+                        ([len(q) for q in self.queues["demand"]], int(current_time)))
+                    self.demand_met_log.append((int(j), int(current_time)))
+                    self.costs["revenue"] += float(self.econ["revenue_per_unit"][j])
+
         state = self._state_dict(current_time)
         actions = self.commander.decide_actions(state) if actions_override is None else actions_override
 
@@ -504,7 +528,26 @@ class ProductionLine:
         for j in (0, 1):
             inv_units = len(self.queues["queue_fin"][j])
             self.costs["inventory"] += float(self.econ["inventory_cost_per_unit"][j]) * inv_units
-            self.costs["backorder"] += float(self.econ["backorder_cost_per_unit"][j]) * len(self.queues["demand"][j])
+
+            # Progressive WIP holding on the in-line queues (aligned with
+            # simplefab_1p, 2026-08-22). Units inside a machine are not charged —
+            # they are in flight, not queued.
+            wip_rates = self.econ.get("wip_cost_per_unit", {})
+            for q_idx in range(4):
+                rate = float(wip_rates.get(q_idx, {}).get(j, 0.0))
+                if rate:
+                    self.costs["wip"] += rate * len(self.queues[f"queue{q_idx}"][j])
+
+            # Backorder now carries the same one-week grace period as the
+            # 1-product line: demand is charged only once it has been outstanding
+            # for `demand_interval` ticks. Previously every unmet unit was charged
+            # from the instant it arrived, which made this line far more
+            # backorder-dominated than its 1-product counterpart.
+            late_units = sum(
+                1 for arrival_t in self.queues["demand"][j]
+                if current_time >= arrival_t + self.demand_interval
+            )
+            self.costs["backorder"] += float(self.econ["backorder_cost_per_unit"][j]) * late_units
 
         profit_now = self.profit_total()
         step_reward = (profit_now - prev_profit) + (float(invalid_penalty) * float(invalids))
@@ -525,6 +568,7 @@ class ProductionLine:
             "production": self.costs["production"],
             "setup": self.costs["setup"],
             "inventory": self.costs["inventory"],
+            "wip": self.costs["wip"],
             "backorder": self.costs["backorder"],
             "profit": profit_now,
             "step_reward": step_reward,

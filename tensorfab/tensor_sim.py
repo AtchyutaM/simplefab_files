@@ -128,7 +128,22 @@ class TensorLine:
         # slot_onehot[m, pt[m]] = 1 — where a start on machine m is written.
         onehot = np.zeros((M, L), dtype=np.int32)
         onehot[np.arange(M), spec.pt] = 1
-        self._slot_onehot = jnp.asarray(onehot, dtype=dtype)      # [4, L]
+        self._slot_onehot = jnp.asarray(onehot, dtype=dtype)      # [M, L]
+
+        # Routing matrix: R[m, j] = 1 when machine m's completions land in queue j.
+        route_mat = np.zeros((M, M), dtype=np.int32)
+        to_fg = np.zeros((M,), dtype=np.int32)
+        for m, dest in enumerate(np.asarray(spec.route)):
+            if dest < 0:
+                to_fg[m] = 1
+            else:
+                if not (0 <= dest < M):
+                    raise ValueError(f"route[{m}]={dest} out of range for M={M}")
+                route_mat[m, int(dest)] = 1
+        if to_fg.sum() == 0:
+            raise ValueError("no machine ships to finished goods (route has no -1)")
+        self._route_mat = jnp.asarray(route_mat, dtype=dtype)     # [M, M]
+        self._to_fg = jnp.asarray(to_fg, dtype=dtype)             # [M]
 
         self._arrivals = jnp.asarray(spec.arrivals, dtype=dtype)          # [H]
         self._demand = jnp.asarray(spec.demand, dtype=dtype)              # [H]
@@ -197,15 +212,17 @@ class TensorLine:
         action = action.astype(dt)
 
         # --- 3. completions (slot 0 of the register) --------------------
-        done = s.reg[:, :, 0]                                   # [B, 4]
+        done = s.reg[:, :, 0]                                   # [B, M]
         reg = s.reg.at[:, :, 0].set(0)
 
-        emit = self._make * done                                # [B, 4] units emitted
-        q = s.q
-        q = q.at[:, 1].add(emit[:, 0])                          # M0 -> q1
-        q = q.at[:, 2].add(emit[:, 1])                          # M1 -> q2
-        q = q.at[:, 3].add(emit[:, 2])                          # M2 -> q3
-        newfin = emit[:, 3]                                     # M3 -> ship or store
+        # Routing as a matrix product: emit @ R deposits every machine's output
+        # into its destination queue in one op. R[m, j] = 1 when machine m feeds
+        # queue j; machines that ship have an all-zero row and appear in to_fg
+        # instead. This is what generalises the line to any depth, and to
+        # reentrancy (a route pointing backwards is just a different R).
+        emit = self._make * done                                # [B, M] units emitted
+        q = s.q + emit @ self._route_mat                        # [B, M]
+        newfin = emit @ self._to_fg                             # [B]
 
         # _ship_or_store: ship against outstanding demand, otherwise inventory.
         shipped = jnp.minimum(newfin, s.backlog)

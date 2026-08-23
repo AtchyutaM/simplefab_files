@@ -10,7 +10,33 @@ def make_common_config(
     demand_delay: int = 671,      # ticks to delay demand (671 = last tick of each week)
     demand_interval: int = 672,   # ticks between demand batches (672 = 1 week)
     arrival_interval: int = 672,  # ticks between raw material deliveries (672 = 1 week)
+    n_pairs: int = 2,             # diffusion+litho pairs; 2 => the original 4-machine line
 ) -> Dict[str, Any]:
+    """
+    `n_pairs` controls pipeline depth (experiment family 3). The line is always an
+    alternating chain
+
+        raw -> DIFF -> LITHO -> DIFF -> LITHO -> ... -> ship
+
+    with `n_pairs` of each, so n_machines = 2 * n_pairs. n_pairs=2 reproduces the
+    original 4-machine configuration exactly, value for value.
+
+    Two economics choices, both deliberate, both reversible here and nowhere else:
+
+    * **Total production cost is held at $24/unit through the line at every
+      depth** (diffusion:litho stays 2:1, so per-stage cost is 32/M and 16/M).
+      Otherwise a 12-stage line would cost $72/unit against $80 revenue, leaving
+      an $8 margin, and the experiment would measure collapsing economics rather
+      than scheduling difficulty. Depth is the variable; economics are the control.
+
+    * **WIP holding stays linear from $0 at q0 to $0.0075 at the last queue**
+      (wip[m] = m/(M-1) * 0.0075). At M=4 this is exactly [0, .0025, .005, .0075].
+
+    Throughput is unaffected by depth: stages run concurrently, so the bottleneck
+    remains a single diffusion tool at 4 units / 16 ticks = 0.25 units/tick, i.e.
+    672 units per 2688-tick horizon at any n_pairs. Only *lead time* grows, as
+    9 * M ticks (36 / 72 / 108 for n_pairs 2 / 4 / 6).
+    """
     """
     Build a single "source of truth" config for the 1-product SimpleFab problem.
 
@@ -25,47 +51,49 @@ def make_common_config(
     """
     if H < 0:
         raise ValueError("H must be >= 0")
+    if n_pairs < 1:
+        raise ValueError("n_pairs must be >= 1")
+
+    M = 2 * int(n_pairs)
+    # Even index = diffusion (batch furnace), odd index = litho (single wafer).
+    is_diff = [(m % 2 == 0) for m in range(M)]
+
+    DIFF_PT, DIFF_BATCH = 16, 4
+    LITHO_PT, LITHO_BATCH = 2, 1
+    TOTAL_PROD_COST = 24.0   # $/unit through the whole line, held constant
+    WIP_MAX = 0.0075         # $/unit/tick at the last queue
+
+    processing_times = {m: {0: (DIFF_PT if is_diff[m] else LITHO_PT)} for m in range(M)}
+    batch_sizes = {m: (DIFF_BATCH if is_diff[m] else LITHO_BATCH) for m in range(M)}
+    # 2:1 diffusion:litho split, summing to TOTAL_PROD_COST per unit at any depth.
+    production_cost = {
+        m: {0: (2.0 if is_diff[m] else 1.0) * TOTAL_PROD_COST / (1.5 * M)}
+        for m in range(M)
+    }
+    wip_cost = {m: (0.0 if M == 1 else (m / (M - 1)) * WIP_MAX) for m in range(M)}
 
     common: Dict[str, Any] = {
         "time_horizon": int(H),
-        "machines": [0, 1, 2, 3],
+        "machines": list(range(M)),
         "products": [0],
+        "n_pairs": int(n_pairs),
+        "n_machines": M,
+        "machine_kind": ["DIFF" if is_diff[m] else "LITHO" for m in range(M)],
 
-        "processing_times": {
-            0: {0: 16},   # Batch machine 0: 16 ticks per batch
-            1: {0: 2},    # Single machine 1: 2 ticks per unit
-            2: {0: 16},   # Batch machine 2: 16 ticks per batch
-            3: {0: 2},    # Single machine 3: 2 ticks per unit
-        },
-        "batch_sizes": {0: 4, 1: 1, 2: 4, 3: 1},
+        "processing_times": processing_times,
+        "batch_sizes": batch_sizes,
 
         # No setup times or costs with a single product
-        "setup_times": {
-            0: {0: {0: 0}},
-            1: {0: {0: 0}},
-            2: {0: {0: 0}},
-            3: {0: {0: 0}},
-        },
+        "setup_times": {m: {0: {0: 0}} for m in range(M)},
 
         "revenue_per_unit": {0: 80},
-        "production_cost": {
-            0: {0: 8},
-            1: {0: 4},
-            2: {0: 8},
-            3: {0: 4},
-        },
-        "setup_cost": {0: 0, 1: 0, 2: 0, 3: 0},
+        "production_cost": production_cost,
+        "setup_cost": {m: 0 for m in range(M)},
         "inventory_cost_per_unit": {0: 0.04},
-        "wip_cost_per_unit": {0: 0.00, 1: 0.0025, 2: 0.005, 3: 0.0075},
+        "wip_cost_per_unit": wip_cost,
         "backorder_cost_per_unit": {0: 0.15},
 
-        "initial_inventory": {
-            0: {0: 0},
-            1: {0: 0},
-            2: {0: 0},
-            3: {0: 0},
-            "finished": {0: 0},
-        },
+        "initial_inventory": {**{m: {0: 0} for m in range(M)}, "finished": {0: 0}},
         "initial_finished_inventory": {0: 8},
 
         "arrivals_schedule": {},

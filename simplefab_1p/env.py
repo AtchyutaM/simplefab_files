@@ -62,8 +62,14 @@ class FabEnv(gym.Env):
         self.normalize_obs = bool(normalize_obs)
         self.shaping = shaping if shaping is not None else ShapingConfig()
 
-        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(18,), dtype=np.float32)
-        self.action_space = spaces.MultiDiscrete([2, 2, 2, 2])
+        # Observation is 3M + 6: M queue counts + finished goods + backlog,
+        # then M busy flags, then M time-remaining, then 4 time/demand features.
+        # At M=4 this is the original 18.
+        self.n_machines = int(self.common.get("n_machines", 4))
+        obs_dim = 3 * self.n_machines + 6
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(obs_dim,),
+                                            dtype=np.float32)
+        self.action_space = spaces.MultiDiscrete([2] * self.n_machines)
 
         self._max_steps = int(self.common["time_horizon"])
         self._t = 0
@@ -90,8 +96,8 @@ class FabEnv(gym.Env):
         backlog = len(q["demand"])
 
         wip = 0
-        for name in ("queue0", "queue1", "queue2", "queue3"):
-            wip += len(q[name])
+        for m in range(self.n_machines):
+            wip += len(q[f"queue{m}"])
 
         finished = len(q["queue_fin"])
 
@@ -113,26 +119,23 @@ class FabEnv(gym.Env):
         return obs, info
 
     def step(self, action):
-        a0, a1, a2, a3 = [int(x) for x in action]
-        mask = self.line.compute_action_mask(current_time=self._t)  # (4, 2)
+        M = self.n_machines
+        acts = [int(x) for x in action]
+        mask = self.line.compute_action_mask(current_time=self._t)  # (M, 2)
 
-        # compute invalid selections FIRST
-        invalid_selected = int(
-            (mask[0, a0] == 0) + (mask[1, a1] == 0) + (mask[2, a2] == 0) + (mask[3, a3] == 0)
-        )
+        # Compute invalid selections FIRST.
+        #
+        # BUG-COMPATIBLE: the original summed four numpy bools, and numpy bool
+        # addition is logical OR, so this saturates at 1 rather than counting
+        # 0..M. `any()` reproduces that exactly. It is preserved deliberately —
+        # with invalid_action_penalty=-2.0 it changes the reward, so "fixing" it
+        # would silently invalidate every logged baseline. See
+        # tensorfab/README.md "A latent bug in env.py".
+        invalid_selected = int(any(mask[m, acts[m]] == 0 for m in range(M)))
 
-        # project invalid picks to Idle
-        a0 = a0 if mask[0, a0] else 0
-        a1 = a1 if mask[1, a1] else 0
-        a2 = a2 if mask[2, a2] else 0
-        a3 = a3 if mask[3, a3] else 0
-
-        actions = {
-            "machine0": bool(a0),
-            "machine1": bool(a1),
-            "machine2": bool(a2),
-            "machine3": bool(a3),
-        }
+        # Project invalid picks to Idle.
+        acts = [acts[m] if mask[m, acts[m]] else 0 for m in range(M)]
+        actions = {f"machine{m}": bool(acts[m]) for m in range(M)}
 
         phi_before = self._phi() if self.shaping.enabled else 0.0
         base_reward = self.line.run_step(current_time=self._t, actions_override=actions, invalid_penalty=0.0)
@@ -183,10 +186,8 @@ class FabEnv(gym.Env):
                 "cost_wip": float(c.get("wip", 0.0)),
                 "cost_backorder": float(c.get("backorder", 0.0)),
                 "throughput": int(len(ln.demand_met_log)),
-                "starts_m0": int(len(ln.machine0.event_log)),
-                "starts_m1": int(len(ln.machine1.event_log)),
-                "starts_m2": int(len(ln.machine2.event_log)),
-                "starts_m3": int(len(ln.machine3.event_log)),
+                **{f"starts_m{m}": int(len(mach.event_log))
+                   for m, mach in enumerate(ln.machines)},
             }
 
         return obs, reward, terminated, truncated, info
@@ -195,12 +196,11 @@ class FabEnv(gym.Env):
         """
         Action mask for sb3-contrib MaskablePPO.
 
-        For MultiDiscrete([2,2,2,2]), return a flattened boolean array of length 8:
-        [m0_idle, m0_run, m1_idle, m1_run, m2_idle, m2_run, m3_idle, m3_run]
-        True = valid, False = invalid.
+        For MultiDiscrete([2]*M), return a flattened boolean array of length 2M:
+        [m0_idle, m0_run, m1_idle, m1_run, ...]. True = valid.
         """
-        mask_4x2 = self.line.compute_action_mask(current_time=self._t)  # shape (4,2), 0/1
-        return mask_4x2.astype(bool).reshape(-1)
+        mask_mx2 = self.line.compute_action_mask(current_time=self._t)  # (M, 2), 0/1
+        return mask_mx2.astype(bool).reshape(-1)
 
     def render(self):
         pass

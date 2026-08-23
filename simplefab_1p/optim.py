@@ -41,20 +41,89 @@ from typing import Dict, Any, List, Optional, Tuple
 from ortools.sat.python import cp_model
 
 
-COST_SCALE = 1000
+# Costs are scaled to integers for CP-SAT. 1e5 (not 1e3) because deep lines have
+# WIP coefficients as small as $0.00068/unit/tick — at 1e3 those round to 1 and
+# carry a ~47% coefficient error. At 1e5 they are exact to 5 decimal places, and
+# the largest objective term stays around 1e10, far inside int64.
+COST_SCALE = 100000
 
-# Processing times — must match sim.py. Hardcoded here so optim doesn't import sim.
+# Default processing times for the original 4-machine line. Any config carrying
+# `n_machines` supplies its own; this is only the fallback so old callers work.
 PT = {0: 16, 1: 2, 2: 16, 3: 2}
+
+
+def _line_params(common_cfg: Dict[str, Any]):
+    """(M, pt, take, make, route) for any line depth. route[m] = destination
+    queue of machine m's output, -1 meaning finished goods."""
+    M = int(common_cfg.get("n_machines", 4))
+    pt = [int(common_cfg["processing_times"][m][0]) for m in range(M)]
+    batch = [int(common_cfg["batch_sizes"][m]) for m in range(M)]
+    take = list(batch)
+    make = list(batch)
+    route = list(range(1, M + 1))
+    route[M - 1] = -1
+    return M, pt, take, make, route
+
+
+def commander_schedule_general(common_cfg: Dict[str, Any], horizon: int) -> Dict[int, List[int]]:
+    """
+    Greedy "run whenever idle and fed" schedule for a line of any depth, in plain
+    Python — used as the CP-SAT warm-start hint when the line is not the original
+    4-machine one (`commander_schedule` goes through ProductionLine, which is
+    hardcoded to 4 machines).
+
+    Only needs to be *feasible* to be a useful hint, and it is so by construction:
+    a machine starts only when its register is empty and its input queue holds at
+    least `take[m]`.
+    """
+    M, pt, take, make, route = _line_params(common_cfg)
+    arr = list(common_cfg["arrivals_schedule"][0])
+    q = [0] * M
+    rem = [0] * M                      # ticks until completion; 0 = idle
+    starts: Dict[int, List[int]] = {m: [] for m in range(M)}
+
+    for t in range(horizon):
+        if t < len(arr):
+            q[0] += int(arr[t])
+
+        # `sim.commander_decide` is called BEFORE completions inside run_step, so
+        # it sees the pre-completion busy flag: a machine finishing at tick t still
+        # reads as busy and is NOT restarted at t, even though the simulator would
+        # allow it. Reproducing that here keeps the hint identical to the commander
+        # baseline the rest of the project quotes.
+        decide = [rem[m] == 0 and q[m] >= take[m] for m in range(M)]
+
+        # Completions. Decrement THEN test zero: a job started at tick s with
+        # processing time pt completes at s+pt, matching the MILP's x[m][t-pt[m]]
+        # term. Testing `rem == 1` before decrementing completes it a tick early,
+        # which makes the hint infeasible — CP-SAT then silently discards it and
+        # searches from scratch, which is how this was found.
+        for m in range(M):
+            if rem[m] > 0:
+                rem[m] -= 1
+                if rem[m] == 0:
+                    dest = route[m]
+                    if dest >= 0:
+                        q[dest] += make[m]
+
+        # Starts, re-checked against the post-completion state exactly as run_step does.
+        for m in range(M):
+            if decide[m] and rem[m] == 0 and q[m] >= take[m]:
+                q[m] -= take[m]
+                rem[m] = pt[m]
+                starts[m].append(t)
+    return starts
 
 
 def _default_state(common_cfg: Dict[str, Any]) -> Dict[str, Any]:
     """The state at t=0 of a fresh ProductionLine: empty queues, qfin0 from cfg, no in-flight."""
     qfin0 = int(common_cfg.get("initial_finished_inventory", {0: 0}).get(0, 0))
-    return {
-        "q0": 0, "q1": 0, "q2": 0, "q3": 0, "qfin": qfin0,
-        "in_flight": [],
-        "backlog": [],
-    }
+    M = int(common_cfg.get("n_machines", 4))
+    state = {"q": [0] * M, "qfin": qfin0, "in_flight": [], "backlog": []}
+    # Legacy q0..q3 keys, kept so existing 4-machine callers keep working.
+    for m in range(min(M, 4)):
+        state[f"q{m}"] = 0
+    return state
 
 
 def _inject_state(line, t_start: int, state: Dict[str, Any]) -> None:
@@ -135,12 +204,16 @@ def _build_in_flight_arrays(
     in_flight: List[Tuple[int, int]],
     t_start: int,
     H_solve: int,
+    M: int = 4,
+    pt: Optional[List[int]] = None,
 ) -> Tuple[Dict[int, List[int]], Dict[int, set]]:
     """Pre-compute, for each machine: ticks at which an in-flight job completes,
     and the set of ticks during which the machine is busy with an in-flight job.
     """
-    completes_at = {m: [0] * H_solve for m in range(4)}
-    busy_ticks = {m: set() for m in range(4)}
+    if pt is None:
+        pt = [PT[m] for m in range(M)]
+    completes_at = {m: [0] * H_solve for m in range(M)}
+    busy_ticks = {m: set() for m in range(M)}
     for (m_idx, c) in in_flight:
         m_idx = int(m_idx)
         c = int(c)
@@ -148,7 +221,7 @@ def _build_in_flight_arrays(
             completes_at[m_idx][c] += 1
         # In-flight machine is busy from (c - pt[m]) to (c - 1) inclusive.
         # Within our solve window, intersect with [t_start, c-1].
-        busy_from = max(c - PT[m_idx], t_start)
+        busy_from = max(c - pt[m_idx], t_start)
         busy_to = min(c, H_solve)  # exclusive
         for tick in range(busy_from, busy_to):
             busy_ticks[m_idx].add(tick)
@@ -206,17 +279,21 @@ def solve_optimal_schedule(
     arr = list(common_cfg["arrivals_schedule"][0])
     dem = list(common_cfg["demand_schedule"][0])
 
+    M, PTs, TAKE, MAKE, ROUTE = _line_params(common_cfg)
     revenue = int(common_cfg["revenue_per_unit"][0])
-    prod_cost = [int(common_cfg["production_cost"][m][0]) for m in range(4)]
+    # Float, not int: deep lines have fractional per-stage costs (24/M split 2:1).
+    prod_cost = [float(common_cfg["production_cost"][m][0]) for m in range(M)]
     inv_cost_per = float(common_cfg["inventory_cost_per_unit"][0])
-    wip_costs = [float(common_cfg.get("wip_cost_per_unit", {}).get(m, 0.0)) for m in range(4)]
+    wip_costs = [float(common_cfg.get("wip_cost_per_unit", {}).get(m, 0.0)) for m in range(M)]
     bo_cost_per = float(common_cfg["backorder_cost_per_unit"][0])
     demand_interval = int(common_cfg.get("demand_interval", 672))
 
-    q0_init = int(initial_state["q0"])
-    q1_init = int(initial_state["q1"])
-    q2_init = int(initial_state["q2"])
-    q3_init = int(initial_state["q3"])
+    if "q" in initial_state:
+        q_init = [int(v) for v in initial_state["q"]]
+    else:
+        q_init = [int(initial_state[f"q{m}"]) for m in range(M)]
+    if len(q_init) != M:
+        raise ValueError(f"initial_state queue vector has {len(q_init)} entries, expected {M}")
     qfin_init = int(initial_state["qfin"])
     in_flight = [(int(m), int(c)) for (m, c) in initial_state.get("in_flight", [])]
     backlog = [int(at) for at in initial_state.get("backlog", [])]
@@ -241,7 +318,8 @@ def solve_optimal_schedule(
             f"demand arrived before t_start={t_start} ({cum_dem_full[t_start]})."
         )
 
-    completes_at, busy_ticks = _build_in_flight_arrays(in_flight, t_start, H_solve)
+    completes_at, busy_ticks = _build_in_flight_arrays(
+        in_flight, t_start, H_solve, M=M, pt=PTs)
 
     if verbose:
         print(
@@ -253,47 +331,56 @@ def solve_optimal_schedule(
     model = cp_model.CpModel()
 
     # Decision vars over [0, H_solve). Pre-t_start and in-flight-busy ticks are forced to 0.
-    x = [[model.NewBoolVar(f"x{m}_{t}") for t in range(H_solve)] for m in range(4)]
-    for m in range(4):
+    x = [[model.NewBoolVar(f"x{m}_{t}") for t in range(H_solve)] for m in range(M)]
+    for m in range(M):
         for t in range(H_solve):
             if t < t_start or t in busy_ticks[m]:
                 model.Add(x[m][t] == 0)
 
     # Capacity: at most one start per pt[m]-tick window
-    for m in range(4):
+    for m in range(M):
         for t in range(t_start, H_solve):
-            window = [x[m][tau] for tau in range(max(0, t - PT[m] + 1), t + 1)]
+            window = [x[m][tau] for tau in range(max(0, t - PTs[m] + 1), t + 1)]
             model.Add(sum(window) <= 1)
 
-    max_inv = qfin_init + q0_init + q1_init + q2_init + q3_init + sum(arr) + len(backlog) + 16
-    q0 = {t: model.NewIntVar(0, max_inv, f"q0_{t}") for t in range(t_start, H_solve)}
-    q1 = {t: model.NewIntVar(0, max_inv, f"q1_{t}") for t in range(t_start, H_solve)}
-    q2 = {t: model.NewIntVar(0, max_inv, f"q2_{t}") for t in range(t_start, H_solve)}
-    q3 = {t: model.NewIntVar(0, max_inv, f"q3_{t}") for t in range(t_start, H_solve)}
+    max_inv = qfin_init + sum(q_init) + sum(arr) + len(backlog) + 16
+    q = [{t: model.NewIntVar(0, max_inv, f"q{m}_{t}") for t in range(t_start, H_solve)}
+         for m in range(M)]
     qfin = {t: model.NewIntVar(0, max_inv, f"qfin_{t}") for t in range(t_start, H_solve)}
     cum_ship = {t: model.NewIntVar(already_shipped, max_inv, f"cs_{t}") for t in range(t_start, H_solve)}
     late = {t: model.NewIntVar(0, max_inv, f"late_{t}") for t in range(t_start, H_solve)}
 
+    # Inbound edges per queue, precomputed: queue j is fed by every machine whose
+    # route lands on j. For the serial line that is exactly machine j-1, but the
+    # loop form is what makes reentrancy (family 5) a config change, not a rewrite.
+    feeders = {j: [m for m in range(M) if ROUTE[m] == j] for j in range(M)}
+    shippers = [m for m in range(M) if ROUTE[m] < 0]
+
+    def _completed_units(m, t):
+        """Units machine m delivers at tick t: a start pt[m] ticks ago, plus any
+        in-flight job carried in from the initial state."""
+        terms = []
+        if t - PTs[m] >= 0:
+            terms.append(MAKE[m] * x[m][t - PTs[m]])
+        c = completes_at[m][t]
+        if c:
+            terms.append(MAKE[m] * c)
+        return terms
+
     for t in range(t_start, H_solve):
-        prev_q0 = q0[t - 1] if t > t_start else q0_init
-        model.Add(q0[t] == prev_q0 + arr[t] - 4 * x[0][t])
-
-        prev_q1 = q1[t - 1] if t > t_start else q1_init
-        new_m0_done = x[0][t - 16] if t >= 16 else 0
-        model.Add(q1[t] == prev_q1 + 4 * (new_m0_done + completes_at[0][t]) - x[1][t])
-
-        prev_q2 = q2[t - 1] if t > t_start else q2_init
-        new_m1_done = x[1][t - 2] if t >= 2 else 0
-        model.Add(q2[t] == prev_q2 + (new_m1_done + completes_at[1][t]) - 4 * x[2][t])
-
-        prev_q3 = q3[t - 1] if t > t_start else q3_init
-        new_m2_done = x[2][t - 16] if t >= 16 else 0
-        model.Add(q3[t] == prev_q3 + 4 * (new_m2_done + completes_at[2][t]) - x[3][t])
+        for j in range(M):
+            prev = q[j][t - 1] if t > t_start else q_init[j]
+            inflow = [arr[t]] if j == 0 else []
+            for src in feeders[j]:
+                inflow += _completed_units(src, t)
+            model.Add(q[j][t] == prev + sum(inflow) - TAKE[j] * x[j][t])
 
         prev_qfin = qfin[t - 1] if t > t_start else qfin_init
         prev_cs = cum_ship[t - 1] if t > t_start else already_shipped
-        new_m3_done = x[3][t - 2] if t >= 2 else 0
-        model.Add(qfin[t] == prev_qfin + (new_m3_done + completes_at[3][t]) - cum_ship[t] + prev_cs)
+        fg_in = []
+        for src in shippers:
+            fg_in += _completed_units(src, t)
+        model.Add(qfin[t] == prev_qfin + sum(fg_in) - cum_ship[t] + prev_cs)
 
         # Shipping: monotone, bounded by total demand arrived
         model.Add(cum_ship[t] <= cum_dem_full[t + 1])
@@ -307,22 +394,20 @@ def solve_optimal_schedule(
 
     # Objective — INCREMENTAL profit over the solve window only.
     # Pre-t_start production / shipping is sunk and not counted here.
-    prod_cost_total = (
-        4 * prod_cost[0] * sum(x[0][t] for t in range(t_start, H_solve))
-        + prod_cost[1] * sum(x[1][t] for t in range(t_start, H_solve))
-        + 4 * prod_cost[2] * sum(x[2][t] for t in range(t_start, H_solve))
-        + prod_cost[3] * sum(x[3][t] for t in range(t_start, H_solve))
-    )
-
+    # Scale to integers once, at COST_SCALE resolution. Production cost per start
+    # is take[m] units at prod_cost[m] each; both may be fractional on deep lines.
+    prod_scale = [int(round(TAKE[m] * prod_cost[m] * COST_SCALE)) for m in range(M)]
     wip_scale = [int(round(w * COST_SCALE)) for w in wip_costs]
     inv_scale = int(round(inv_cost_per * COST_SCALE))
     bo_scale = int(round(bo_cost_per * COST_SCALE))
 
-    # Revenue from shipments in this window: revenue * (cum_ship[H_solve-1] - already_shipped)
     rev_scaled = revenue * COST_SCALE * (cum_ship[H_solve - 1] - already_shipped)
-    prod_scaled = COST_SCALE * prod_cost_total
+    prod_scaled = sum(
+        prod_scale[m] * sum(x[m][t] for t in range(t_start, H_solve)) for m in range(M)
+    )
     wip_scaled = sum(
-        wip_scale[1] * q1[t] + wip_scale[2] * q2[t] + wip_scale[3] * q3[t]
+        wip_scale[m] * q[m][t]
+        for m in range(M) if wip_scale[m]
         for t in range(t_start, H_solve)
     )
     inv_scaled = inv_scale * sum(qfin[t] for t in range(t_start, H_solve))
@@ -333,15 +418,23 @@ def solve_optimal_schedule(
     if use_commander_hint:
         if verbose:
             print("[optim] Computing Commander schedule for hint...")
-        cmd_starts = commander_schedule(common_cfg, t_start=t_start, initial_state=initial_state, horizon=H_solve)
-        for m in range(4):
+        if M == 4:
+            cmd_starts = commander_schedule(common_cfg, t_start=t_start,
+                                            initial_state=initial_state, horizon=H_solve)
+        else:
+            # ProductionLine is hardcoded to 4 machines; use the depth-agnostic
+            # greedy schedule instead. Fresh starts only.
+            if t_start != 0:
+                raise ValueError("commander hint at t_start>0 requires the 4-machine line")
+            cmd_starts = commander_schedule_general(common_cfg, H_solve)
+        for m in range(M):
             cmd_set = set(cmd_starts[m])
             for t in range(t_start, H_solve):
                 if t not in busy_ticks[m]:
                     model.AddHint(x[m][t], 1 if t in cmd_set else 0)
         if verbose:
-            counts = {m: len(cmd_starts[m]) for m in range(4)}
-            print(f"[optim] Commander hint: M0={counts[0]}, M1={counts[1]}, M2={counts[2]}, M3={counts[3]}")
+            counts = [len(cmd_starts[m]) for m in range(M)]
+            print(f"[optim] Commander hint starts per machine: {counts}")
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = float(time_limit_sec)
@@ -363,8 +456,8 @@ def solve_optimal_schedule(
             "H_solve": H_solve,
         }
 
-    starts: Dict[int, List[int]] = {m: [] for m in range(4)}
-    for m in range(4):
+    starts: Dict[int, List[int]] = {m: [] for m in range(M)}
+    for m in range(M):
         for t in range(t_start, H_solve):
             if solver.Value(x[m][t]) == 1:
                 starts[m].append(t)
@@ -381,12 +474,14 @@ def solve_optimal_schedule(
 
     units_shipped = solver.Value(cum_ship[H_solve - 1]) - already_shipped
     total_rev = revenue * units_shipped
-    total_prod = solver.Value(prod_cost_total)
+    total_prod = sum(
+        TAKE[m] * prod_cost[m] * sum(solver.Value(x[m][t]) for t in range(t_start, H_solve))
+        for m in range(M)
+    )
     total_inv = sum(solver.Value(qfin[t]) for t in range(t_start, H_solve)) * inv_cost_per
     total_wip = sum(
-        solver.Value(q1[t]) * wip_costs[1]
-        + solver.Value(q2[t]) * wip_costs[2]
-        + solver.Value(q3[t]) * wip_costs[3]
+        solver.Value(q[m][t]) * wip_costs[m]
+        for m in range(M) if wip_costs[m]
         for t in range(t_start, H_solve)
     )
     total_bo = sum(solver.Value(late[t]) for t in range(t_start, H_solve)) * bo_cost_per
@@ -407,12 +502,11 @@ def solve_optimal_schedule(
             "backorder": float(total_bo),
         },
         "queues": {
-            "q0": [solver.Value(q0[t]) for t in range(t_start, H_solve)],
-            "q1": [solver.Value(q1[t]) for t in range(t_start, H_solve)],
-            "q2": [solver.Value(q2[t]) for t in range(t_start, H_solve)],
-            "q3": [solver.Value(q3[t]) for t in range(t_start, H_solve)],
+            **{f"q{m}": [solver.Value(q[m][t]) for t in range(t_start, H_solve)]
+               for m in range(M)},
             "qfin": [solver.Value(qfin[t]) for t in range(t_start, H_solve)],
         },
+        "n_machines": M,
         "solver_wall_time": solver.WallTime(),
         "t_start": t_start,
         "H_solve": H_solve,

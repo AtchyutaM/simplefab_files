@@ -1,0 +1,24 @@
+=== run 20260812-114555_compare_patterns ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"patterns": ["UNIFORM"], "batch": 64, "steps": 400, "lr": 0.1, "eval_every": 10, "init_scale": 1.0, "seed": 0, "milp_seconds": 180.0, "n_pairs": 4, "no_milp": true}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+======================================================================
+UNIFORM   n_pairs=4  M=8  lead=72t  demand=336  util=50.0%
+======================================================================
+  budget 76,800 rollout-equivalents (400 grad steps x B=64 == 1,200 zeroth-order iters)
+!! FAILED: TypeError: mul got incompatible shapes for broadcasting: (64, 4), (64, 8).
+=== done in 0.4s ===

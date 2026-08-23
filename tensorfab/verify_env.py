@@ -65,17 +65,18 @@ def reference_env_rollout(common, actions, shaping: Shaping, penalty: float):
     return {k: np.asarray(v, dtype=np.float64) for k, v in rec.items()}, np.asarray(obs0)
 
 
-def check(mode: str, seed: int, shaping: Shaping, penalty: float) -> bool:
-    common = make_common_config(mode=mode)
+def check(mode: str, seed: int, shaping: Shaping, penalty: float,
+          n_pairs: int = 2) -> bool:
+    common = make_common_config(mode=mode, n_pairs=n_pairs)
     spec = spec_from_common_config(common, mode=mode)
     line = make_line(spec)
     tenv = make_env(line, shaping=shaping, invalid_action_penalty=penalty)
 
     rng = np.random.default_rng(seed)
-    B = 3
+    B, M = 3, spec.n_machines
     acts = np.stack(
-        [rng.random((spec.H, 4)) < p for p in (0.9, 0.5, 0.2)], axis=1
-    ).astype(np.int32)                                   # [H, B, 4]
+        [rng.random((spec.H, M)) < p for p in (0.9, 0.5, 0.2)], axis=1
+    ).astype(np.int32)                                   # [H, B, M]
 
     _, outs = tenv.rollout(jnp.asarray(acts))
     got = {
@@ -125,9 +126,14 @@ def main() -> int:
                                    w_wip=0.0, w_finished=0.5), -1.0),
         ("UNIFORM", Shaping(enabled=False), 0.0),
     ]
-    for mode, sh, pen in cases:
-        print(f"\n=== {mode}  shaping={sh}  penalty={pen} ===")
-        all_ok &= check(mode, seed=1, shaping=sh, penalty=pen)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--n-pairs", type=int, nargs="+", default=[2])
+    args = ap.parse_args()
+    for np_ in args.n_pairs:
+        for mode, sh, pen in cases:
+            print(f"\n=== {mode}  n_pairs={np_}  penalty={pen}  shaping={sh.enabled} ===")
+            all_ok &= check(mode, seed=1, shaping=sh, penalty=pen, n_pairs=np_)
     print("\n" + "=" * 60)
     print("ENV VERIFICATION PASSED" if all_ok else "ENV VERIFICATION FAILED")
     return 0 if all_ok else 1

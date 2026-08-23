@@ -56,10 +56,14 @@ from jax import lax
 from tensorfab.spec import LineSpec
 from tensorfab.tensor_sim import LineState, TensorLine
 
-OBS_DIM = 18
 _MAX_UNITS = 64.0
-_TIME_CAP = np.array([20.0, 3.0, 20.0, 3.0], dtype=np.float64)
 _DEMAND_QTY_SCALE = 200.0
+
+
+def obs_dim(n_machines: int) -> int:
+    """M queue counts + FG + backlog, M busy flags, M time-remaining, 4 time
+    features. 18 at M=4, matching the original observation exactly."""
+    return 3 * n_machines + 6
 
 
 @dataclass(frozen=True)
@@ -140,7 +144,11 @@ class TensorEnv:
         self._obs_t_raw = jnp.asarray(
             np.stack([ts, ts % ivl, ticks_until, next_qty], axis=-1), dtype=f)
 
-        self._time_cap = jnp.asarray(_TIME_CAP, dtype=f)
+        # Batch furnaces run 16 ticks, single-wafer tools 2; these caps reproduce
+        # the original [20, 3, 20, 3] at M=4 and extend to any depth.
+        self._time_cap = jnp.asarray(
+            [20.0 if int(b) > 1 else 3.0 for b in spec.take], dtype=f)
+        self.obs_dim = obs_dim(spec.n_machines)
         self._take = jnp.asarray(spec.take, dtype=line.dtype)
 
         # --- per-tick profit deltas, as prices on integer increments ------

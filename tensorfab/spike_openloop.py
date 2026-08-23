@@ -153,12 +153,26 @@ def adam_ascend(
     eval_every: int,
     run: Run,
     tag: str,
+    clip: float = 0.0,
 ) -> Dict[str, Any]:
+    """
+    clip > 0 applies global-norm gradient clipping before the Adam update.
+
+    This matters more than it looks. Straight-through gradient norms scale
+    violently with pipeline depth and utilisation — 8.65e9 at 12 tools and 92%
+    demand, against ~1e6 at 50%. Adam's second-moment estimate v is seeded by
+    that first enormous gradient, which then suppresses the effective step size
+    for hundreds of iterations: the optimiser barely moves. Clipping caps the
+    norm before v ever sees it.
+    """
     b1, b2, eps = 0.9, 0.999, 1e-8
 
     @jax.jit
     def update(theta, m, v, t):
         val, g = dl.value_and_grad(theta)
+        if clip > 0:
+            gn = jnp.linalg.norm(g)
+            g = g * jnp.minimum(1.0, clip / (gn + 1e-12))
         m = b1 * m + (1 - b1) * g
         v = b2 * v + (1 - b2) * g * g
         mh = m / (1 - b1 ** t)
@@ -274,14 +288,14 @@ def run_horizon(
     common, spec = make_spike_problem(H, args.utilization, args.problem)
     line = make_line(spec)
     ev = make_exact_evaluator(line)
-    B = args.batch
+    B, M = args.batch, spec.n_machines
 
     run.log(f"\n--- {args.problem}  H={H}  demand={spec.total_demand} units  "
             f"util={spec.utilization:.2f} ---")
 
     # identical starting tapes for every method
     k_init, k_hc, k_rs = jax.random.split(key, 3)
-    theta0 = jax.random.normal(k_init, (B, H, 4)) * args.init_scale
+    theta0 = jax.random.normal(k_init, (B, H, M)) * args.init_scale
     acts0 = hard_actions(theta0)
 
     # budget: one gradient step ~= 3 forward rollouts (fwd + bwd)
@@ -311,12 +325,12 @@ def run_horizon(
     # --- zeroth-order controls -----------------------------------------
     ladder = np.array([1, 4, 16, 64], dtype=np.float64)
     p_flip = jnp.asarray(
-        np.repeat(ladder, max(1, B // len(ladder)))[:B] / (H * 4), dtype=jnp.float32
+        np.repeat(ladder, max(1, B // len(ladder)))[:B] / (H * M), dtype=jnp.float32
     )
     hc = hill_climb(ev, acts0, zeroth_iters, p_flip, k_hc)
     results["hillclimb"] = float(np.max(exact_profit_f64(line, hc["best_acts"])))
 
-    rs = random_search(ev, (B, H, 4), zeroth_iters, k_rs)
+    rs = random_search(ev, (B, H, M), zeroth_iters, k_rs)
     results["random"] = rs["best_profit"]
 
     # --- optional MILP ceiling -----------------------------------------

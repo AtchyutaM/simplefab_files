@@ -48,7 +48,6 @@ from tensorfab import policies  # noqa: E402
 from tensorfab.spec import LineSpec, spec_from_common_config  # noqa: E402
 from tensorfab.tensor_sim import make_line, profit_breakdown  # noqa: E402
 
-MACHINE_KEYS = ("machine0", "machine1", "machine2", "machine3")
 PROFIT_TOL = 1e-6  # absolute dollars
 
 
@@ -69,9 +68,10 @@ def reference_rollout(common: Dict, actions: Optional[np.ndarray]) -> Dict[str, 
         "q", "qfin", "backlog", "cum_ship", "busy", "rem",
         "started", "sum_qfin", "sum_q", "sum_late", "n_invalid",
     )}
-    started = np.zeros(4, dtype=np.int64)
+    M = line.n_machines
+    started = np.zeros(M, dtype=np.int64)
     sum_qfin = 0
-    sum_q = np.zeros(4, dtype=np.int64)
+    sum_q = np.zeros(M, dtype=np.int64)
     sum_late = 0
     n_invalid = 0
 
@@ -79,19 +79,19 @@ def reference_rollout(common: Dict, actions: Optional[np.ndarray]) -> Dict[str, 
     for t in range(H):
         override = None
         if actions is not None:
-            override = {k: bool(actions[t, i]) for i, k in enumerate(MACHINE_KEYS)}
+            override = {f"machine{i}": bool(actions[t, i]) for i in range(actions.shape[1])}
 
         # Count starts by watching each machine's event log grow.
-        machines = [line.machine0, line.machine1, line.machine2, line.machine3]
+        machines = line.machines
         pre_events = np.array([len(m.event_log) for m in machines], dtype=np.int64)
 
         line.run_step(t, actions_override=override)
 
-        machines = [line.machine0, line.machine1, line.machine2, line.machine3]
+        machines = line.machines
         post_events = np.array([len(m.event_log) for m in machines], dtype=np.int64)
         started = started + (post_events - pre_events)
 
-        q = np.array([len(line.queues[f"queue{i}"]) for i in range(4)], dtype=np.int64)
+        q = np.array([len(line.queues[f"queue{i}"]) for i in range(M)], dtype=np.int64)
         qfin = len(line.queues["queue_fin"])
         backlog = len(line.queues["demand"])
         # Every shipment (instant match or M3 completion) appends here.
@@ -191,36 +191,38 @@ def _tensor_to_ref_dict(trace, final, spec: LineSpec, b: int) -> Dict[str, np.nd
 # ----------------------------------------------------------------------
 # driver
 # ----------------------------------------------------------------------
-def build_action_bank(H: int, seed: int, n_random: int = 4) -> tuple[np.ndarray, List[str]]:
-    """[H, B, 4] of 0/1 plus a label per batch column."""
+def build_action_bank(H: int, seed: int, n_random: int = 4,
+                      M: int = 4) -> tuple[np.ndarray, List[str]]:
+    """[H, B, M] of 0/1 plus a label per batch column."""
     rng = np.random.default_rng(seed)
     cols, labels = [], []
 
-    cols.append(np.ones((H, 4), dtype=np.int32))
+    cols.append(np.ones((H, M), dtype=np.int32))
     labels.append("all-run")
-    cols.append(np.zeros((H, 4), dtype=np.int32))
+    cols.append(np.zeros((H, M), dtype=np.int32))
     labels.append("all-idle")
 
     for i in range(n_random):
         p = [0.9, 0.5, 0.25, 0.1][i % 4]
-        cols.append((rng.random((H, 4)) < p).astype(np.int32))
+        cols.append((rng.random((H, M)) < p).astype(np.int32))
         labels.append(f"bernoulli p={p}")
 
     return np.stack(cols, axis=1), labels
 
 
-def run_verification(mode: str = "ALTERNATING_92", seed: int = 0, n_random: int = 4) -> bool:
-    common = make_common_config(mode=mode)
+def run_verification(mode: str = "ALTERNATING_92", seed: int = 0, n_random: int = 4,
+                     n_pairs: int = 2) -> bool:
+    common = make_common_config(mode=mode, n_pairs=n_pairs)
     spec = spec_from_common_config(common, mode=mode)
     line = make_line(spec)
 
-    print(f"\n=== mode {mode} (H={spec.H}, util={spec.utilization:.3f}, "
-          f"demand={spec.total_demand}) ===")
+    print(f"\n=== mode {mode}  n_pairs={n_pairs}  M={spec.n_machines}  "
+          f"H={spec.H}  demand={spec.total_demand} ===")
 
     all_ok = True
 
     # ---- fixed action tapes, run as one batch ------------------------
-    actions, labels = build_action_bank(spec.H, seed, n_random)
+    actions, labels = build_action_bank(spec.H, seed, n_random, M=spec.n_machines)
     final, trace = line.rollout_trace(jnp.asarray(actions))
     jax.block_until_ready(final)
 
@@ -248,6 +250,8 @@ def main() -> int:
                     help="verify UNIFORM, ALTERNATING, ALTERNATING_50, ALTERNATING_92")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--n-random", type=int, default=4)
+    ap.add_argument("--n-pairs", type=int, nargs="+", default=[2],
+                    help="pipeline depths to verify; 2 = the original 4-machine line")
     args = ap.parse_args()
 
     print(device.describe())
@@ -255,11 +259,15 @@ def main() -> int:
     modes = (["UNIFORM", "ALTERNATING", "ALTERNATING_50", "ALTERNATING_92"]
              if args.all_modes else [args.mode])
 
-    results = {m: run_verification(m, args.seed, args.n_random) for m in modes}
+    results = {}
+    for np_ in args.n_pairs:
+        for m in modes:
+            results[f"{m} (n_pairs={np_})"] = run_verification(
+                m, args.seed, args.n_random, n_pairs=np_)
 
     print("\n" + "=" * 60)
     for m, ok in results.items():
-        print(f"  {m:<18} {'PASS' if ok else 'FAIL'}")
+        print(f"  {m:<30} {'PASS' if ok else 'FAIL'}")
     every = all(results.values())
     print("=" * 60)
     print("VERIFICATION PASSED" if every else "VERIFICATION FAILED")

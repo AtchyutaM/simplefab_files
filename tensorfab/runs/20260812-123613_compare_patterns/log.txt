@@ -1,0 +1,42 @@
+=== run 20260812-123613_compare_patterns ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"patterns": ["UNIFORM"], "batch": 64, "steps": 5, "lr": 0.1, "eval_every": 10, "init_scale": 1.0, "seed": 0, "milp_seconds": 180.0, "utilization": 0.92, "n_pairs": 2, "no_milp": true}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+======================================================================
+UNIFORM   n_pairs=2  M=4  lead=36t  demand=616  util=91.7%
+======================================================================
+  budget 960 rollout-equivalents (5 grad steps x B=64 == 15 zeroth-order iters)
+    grad-st: 5 Adam steps, grad norm 1.68e+07 -> 4.46e+07, non-finite grads: 0
+    grad-soft: 5 Adam steps, grad norm 195 -> 436, non-finite grads: 0
+
+  method                profit   vs commander   % of bound
+  random             34,384.77        +305.06             
+  commander          34,079.71          +0.00             
+  hillclimb          34,375.93        +296.23             
+  grad-soft          32,865.55      -1,214.15             
+  grad-st            34,446.43        +366.72             
+
+  historical (CLAUDE.md, OLD doubled WIP costs — context only):
+    agent     17,607   commander       -159   claimed 'max'      18786
+
+================================================================================================
+SUMMARY — exact-sim profit, best of batch, current (halved) WIP costs
+================================================================================================
+  pattern            util   commander      random   hillclimb   grad-soft     grad-st        milp  milp_bound  grad %bnd     grad-hc
+  UNIFORM            92%       34,080      34,385      34,376      32,866      34,446         nan         nan         +70
+>>> grad-st beats hillclimb on 1/1 patterns (margin $70 to $70); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1
+=== done in 2.5s ===

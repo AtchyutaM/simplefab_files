@@ -1,0 +1,16 @@
+{
+  "UNIFORM": {
+    "demand": 616,
+    "utilization": 0.9166666666666666,
+    "H": 2688,
+    "commander": 32864.104318181824,
+    "grad-st": 31380.464545454546,
+    "grad-soft": -21996.178030303032,
+    "hillclimb": 32456.209621212125,
+    "random": 33789.21875,
+    "grad_reach_frac": 0.9665178571428571,
+    "grad_mass_first_quarter": 0.5141528844833374,
+    "grad_norm_initial": 999.9998779296875,
+    "n_nonfinite": 0
+  }
+}
