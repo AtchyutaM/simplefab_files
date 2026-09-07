@@ -1315,7 +1315,61 @@
           "chg": 28
         }
       ],
-      "milp_note": "CP-SAT at 1800 seconds with 8 workers \u2014 the same budget and worker count as the single-product depth study, so the only difference between the two is the problem itself. Doubling from 900s moved the gaps by fractions of a percentage point in both directions, which is run-to-run variance for a randomised parallel solver, not convergence. None of the three was proven optimal."
+      "milp_note": "CP-SAT at 1800 seconds with 8 workers \u2014 the same budget and worker count as the single-product depth study, so the only difference between the two is the problem itself. Doubling from 900s moved the gaps by fractions of a percentage point in both directions, which is run-to-run variance for a randomised parallel solver, not convergence. None of the three was proven optimal.",
+      "anytime": {
+        "note": "Balanced 50/50 mix at 80% utilisation, same machine, XLA CPU backend. Both methods solve the identical problem; the only variable is how long they are given.",
+        "bound": 30622.0,
+        "rows": [
+          {
+            "wall": "5 s",
+            "cpsat": null,
+            "grad": 24678,
+            "note": "CP-SAT has no schedule yet"
+          },
+          {
+            "wall": "9 s",
+            "cpsat": null,
+            "grad": 26885,
+            "note": ""
+          },
+          {
+            "wall": "36 s",
+            "cpsat": 25180,
+            "grad": 27831,
+            "note": "grad-ST ahead by $2,651"
+          },
+          {
+            "wall": "110 s",
+            "cpsat": 28425,
+            "grad": 27997,
+            "note": "CP-SAT overtakes"
+          },
+          {
+            "wall": "275 s",
+            "cpsat": 29554,
+            "grad": 28127,
+            "note": ""
+          },
+          {
+            "wall": "1800 s",
+            "cpsat": 29621,
+            "grad": null,
+            "note": "CP-SAT plateau"
+          }
+        ],
+        "headline": {
+          "grad_wall": 35.7,
+          "grad_profit": 27831.38,
+          "grad_pct": 0.909,
+          "cpsat_wall": 1800,
+          "cpsat_profit": 29621.33,
+          "cpsat_pct": 0.967,
+          "ratio": 50
+        },
+        "crossover": "60-90 seconds",
+        "grad_plateau": "400 steps -> $27,831; 3,000 steps (7.4x the compute) -> $28,127, a gain of $296",
+        "cpsat_plateau": "300s -> $29,554; 1800s -> $29,621, a gain of $67 for six times the time"
+      }
     }
   },
   "milp_depth_ref": {

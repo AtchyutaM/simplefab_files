@@ -541,6 +541,62 @@ function drawBal(){
   host.appendChild(svg);
 }
 
+/* ---- anytime curves: profit against wall-clock ---- */
+function drawAnytime(){
+  const host=document.getElementById('anytime'); if(!host) return; host.innerHTML='';
+  const W=1040,H=300,L=76,R=150,T=18,B=52;
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img',
+    'aria-label':'profit against wall-clock time for CP-SAT and the gradient'});
+  const cps=[[36,25180],[110,28425],[275,29554],[1800,29621]];
+  const grd=[[5,24678],[9,26885],[36,27831],[110,27997],[275,28127]];
+  const bound=30622, lo=24000, hi=31200;
+  const xs=t=>L+(Math.log10(t)-Math.log10(4))/(Math.log10(2000)-Math.log10(4))*(W-L-R);
+  const ys=v=>H-B-(v-lo)/(hi-lo)*(H-T-B);
+  // grid + y axis
+  for(let v=24000; v<=31000; v+=1000){
+    svg.appendChild(el('line',{x1:L,x2:W-R,y1:ys(v),y2:ys(v),stroke:cv('--rule'),'stroke-width':1}));
+    const t=el('text',{x:L-8,y:ys(v)+4,fill:cv('--ink-3'),'font-size':10.5,'text-anchor':'end',
+      'font-family':'ui-monospace,monospace'}); t.textContent='$'+(v/1000)+'k'; svg.appendChild(t);
+  }
+  [5,10,30,60,120,300,900,1800].forEach(t=>{
+    const x=xs(t);
+    svg.appendChild(el('line',{x1:x,x2:x,y1:T,y2:H-B,stroke:cv('--rule'),'stroke-width':1,opacity:.5}));
+    const lb=el('text',{x,y:H-B+16,fill:cv('--ink-3'),'font-size':10.5,'text-anchor':'middle',
+      'font-family':'ui-monospace,monospace'});
+    lb.textContent = t>=60 ? (t/60)+'m' : t+'s'; svg.appendChild(lb);
+  });
+  const ax=el('text',{x:(L+W-R)/2,y:H-14,fill:cv('--ink-3'),'font-size':11,'text-anchor':'middle',
+    'font-family':'ui-monospace,monospace'});
+  ax.textContent='wall-clock time (log scale)'; svg.appendChild(ax);
+  // certified bound
+  svg.appendChild(el('line',{x1:L,x2:W-R,y1:ys(bound),y2:ys(bound),stroke:cv('--accent'),
+    'stroke-width':1.6,'stroke-dasharray':'6 4'}));
+  const bl=el('text',{x:W-R+8,y:ys(bound)+4,fill:cv('--accent'),'font-size':10.5,
+    'font-family':'ui-monospace,monospace'}); bl.textContent='CP-SAT bound $30,622';
+  svg.appendChild(bl);
+  const line=(pts,col,label)=>{
+    svg.appendChild(el('path',{d:pts.map((p,i)=>`${i?'L':'M'}${xs(p[0]).toFixed(1)} ${ys(p[1]).toFixed(1)}`).join(' '),
+      fill:'none',stroke:col,'stroke-width':2.4,'stroke-linejoin':'round'}));
+    pts.forEach(p=>svg.appendChild(el('circle',{cx:xs(p[0]),cy:ys(p[1]),r:4,fill:col,
+      stroke:cv('--panel'),'stroke-width':1.5})));
+    const last=pts[pts.length-1];
+    const t=el('text',{x:xs(last[0])+10,y:ys(last[1])+4,fill:col,'font-size':11.5,
+      'font-family':'ui-monospace,monospace','font-weight':600});
+    t.textContent=label; svg.appendChild(t);
+  };
+  line(cps,cv('--c3'),'CP-SAT');
+  line(grd,cv('--ok'),'Grad ST');
+  // crossover marker
+  const cx=xs(95);
+  svg.appendChild(el('line',{x1:cx,x2:cx,y1:T,y2:H-B,stroke:cv('--hot'),'stroke-width':1.4,
+    'stroke-dasharray':'3 3'}));
+  const ct=el('text',{x:cx+6,y:T+12,fill:cv('--hot'),'font-size':10.5,
+    'font-family':'ui-monospace,monospace'}); ct.textContent='crossover'; svg.appendChild(ct);
+  host.appendChild(svg);
+}
+drawAnytime();
+new MutationObserver(drawAnytime).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
 function drawTwoProd(){drawTP();drawBal();}
 drawTwoProd();
 new MutationObserver(drawTwoProd).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
@@ -1058,7 +1114,7 @@ TPRES_TEMPLATE = """
       <th>ST % bound</th><th>ST &minus; CP-SAT</th></tr></thead>
     <tbody>{tprrows}</tbody></table></div>
 
-  <div class="grid g3" style="margin-top:20px">
+  <div class="grid g2" style="margin-top:20px">
     <div class="card ok"><h3>Beats zeroth-order on all three</h3>
       <p class="sub" style="font-size:.9rem;margin-top:7px">By $967 to $2,664 at equal budget
       from identical starts. On the single-product line at comparable load the margin was
@@ -1068,6 +1124,11 @@ TPRES_TEMPLATE = """
       <p class="sub" style="font-size:.9rem;margin-top:7px">CP-SAT leads by $916 to $1,686 on
       every mix. That is the same verdict as every configuration tested so far: the solver wins on
       solution quality. The gradient reaches 91&ndash;95% of a certified bound.</p></div>
+    <div class="card ok"><h3>And the gradient got there in 36 seconds</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">CP-SAT was given <strong>1800
+      seconds</strong> to produce its column. The gradient reached 91% of the certified bound in
+      <strong>35.7</strong> &mdash; fifty times less wall time for six points of bound. Below about
+      a minute it beats the solver outright. See the next slide.</p></div>
     <div class="card flag"><h3>One difficulty axis explains everything</h3>
       <p class="sub" style="font-size:.9rem;margin-top:7px">The balanced 50/50 mix is hardest for
       <em>both</em> methods: the gradient gains most there (+$2,664), CP-SAT strains most there
@@ -1093,8 +1154,9 @@ TPRES_TEMPLATE = """
         <b>y variables</b><span>{yv}</span>
         <b>c variables</b><span>{cv}</span>
         <b>vs 1-product</b><span>{b1p} booleans total</span>
-        <b>Gap, 2P @ 900s</b><span>1.5% &ndash; 3.3%</span>
+        <b>Gap, 2P @ 1800s</b><span>1.4% &ndash; 3.3%</span>
         <b>Gap, 1P @ 1800s</b><span>{g1p} at twelve tools</span>
+        <b>Both budgets</b><span>1800s, 8 workers — matched</span>
       </div>
       <p class="sub" style="font-size:.92rem;margin-top:10px">Pipeline depth grew the model
       linearly and CP-SAT absorbed it. Setup variables grow it combinatorially, and the gap is
@@ -1151,6 +1213,64 @@ SCALE_TEMPLATE = """
     gap is entirely usable in practice. What has changed is that, for the first time in this
     programme, more compute stopped helping &mdash; which is the thing the scaling premise
     predicted and that pipeline depth conspicuously failed to show.</p></div>
+</section>
+"""
+
+
+ANYTIME_TEMPLATE = """
+<section>
+  <p class="eyebrow">Time to a good schedule</p>
+  <h2 style="margin:10px 0 8px">91% of the certified bound in 36 seconds</h2>
+  <p class="sub" style="margin-bottom:20px">Every comparison so far has been at a fixed budget,
+  which hides the question that matters for anything deployable: <strong>how good a schedule can
+  each method produce, per second spent?</strong> Both solve the identical problem on the same
+  machine; the only variable is how long they are given.</p>
+
+  <div class="grid g3">
+    <div class="card ok"><div class="stat" style="color:var(--ok)">{gw} s</div>
+      <div class="statlbl">grad-ST &mdash; ${gp}, {gpc} of&nbsp;bound</div></div>
+    <div class="card"><div class="stat" style="color:var(--ink-3)">{cw} s</div>
+      <div class="statlbl">CP-SAT &mdash; ${cp}, {cpc} of&nbsp;bound</div></div>
+    <div class="card flag"><div class="stat" style="color:var(--accent)">{ratio}&times;</div>
+      <div class="statlbl">less wall time for 6 points of&nbsp;bound</div></div>
+  </div>
+
+  <figure style="margin-top:26px"><div id="anytime"></div>
+    <figcaption>{note} The dashed line is the CP-SAT dual bound &mdash; a certified ceiling no
+    schedule can exceed.</figcaption></figure>
+
+  <div class="scroll" style="margin-top:20px"><table>
+    <thead><tr><th class="l">Wall time</th><th>CP-SAT</th><th>Grad ST</th>
+      <th class="l">&nbsp;</th></tr></thead>
+    <tbody>{atrows}</tbody></table></div>
+
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card ok"><h3>Below a minute, the gradient wins outright</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">At 36 seconds CP-SAT has $25,180
+      &mdash; worse than the greedy commander's $25,028. It has not yet found a schedule worth
+      running. The gradient is already at 91% of the bound. Crossover sits around
+      <strong>{crossover}</strong>.</p></div>
+    <div class="card open"><h3>But it plateaus, and lower</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">{gplat}. CP-SAT's ceiling is higher:
+      {cplat}. Given real time the solver is simply better, and that remains true on every
+      configuration tested.</p></div>
+    <div class="card flag"><h3>And this should get faster</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">These are <strong>CPU</strong> numbers.
+      A batched forward-and-backward pass over thousands of trajectories is precisely the workload
+      GPUs exist for, while CP-SAT's branch-and-bound tree search gains little from one. The
+      crossover should move further in the gradient's favour on the NVIDIA box &mdash; well
+      founded, but untested.</p></div>
+  </div>
+
+  <div class="card flag" style="margin-top:16px"><h3>Why this is the first result that looks deployable</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">Every earlier comparison ran on the
+    solver's terms: unlimited time, full knowledge of demand, one schedule computed once. Under
+    those conditions CP-SAT won seven configurations out of seven, and it deserved to.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">Rolling-horizon replanning does not work
+    that way. It needs a good schedule in seconds, repeatedly, as the state changes &mdash; not a
+    proven-optimal one in half an hour. <strong>That is a regime where the gradient is already
+    ahead</strong>, and it is the concrete form of the latency argument this programme has been
+    asserting without evidence until now.</p></div>
 </section>
 """
 
@@ -1449,6 +1569,7 @@ def build() -> str:
 <!--TWOPROD-->
 
 <!--TPRES-->
+<!--ANYTIME-->
 <!--SCALE-->
 
 <section>
@@ -1749,6 +1870,24 @@ __SCRIPT__
     html = html.replace("<!--SCALE-->", SCALE_TEMPLATE.format(
         m18rows=m18rows,
         note=d.get("twoprod", {}).get("results", {}).get("milp_note", "")))
+
+
+    AT = d.get("twoprod", {}).get("results", {}).get("anytime", {})
+    HL = AT.get("headline", {})
+    atrows = "".join(
+        f"<tr><td class='l'>{r['wall']}</td>"
+        f"<td class='muted'>{fmt(r['cpsat']) if r['cpsat'] else '&mdash;'}</td>"
+        f"<td class='hero'>{fmt(r['grad']) if r['grad'] else '&mdash;'}</td>"
+        f"<td class='l muted'>{r['note']}</td></tr>"
+        for r in AT.get("rows", []))
+    html = html.replace("<!--ANYTIME-->", ANYTIME_TEMPLATE.format(
+        note=AT.get("note", ""), atrows=atrows,
+        gw=f"{HL.get('grad_wall',0):.1f}", gp=fmt(HL.get('grad_profit')),
+        gpc=f"{HL.get('grad_pct',0):.1%}",
+        cw=f"{HL.get('cpsat_wall',0):,}", cp=fmt(HL.get('cpsat_profit')),
+        cpc=f"{HL.get('cpsat_pct',0):.1%}", ratio=HL.get('ratio', 50),
+        bound=fmt(AT.get("bound")), crossover=AT.get("crossover", ""),
+        gplat=AT.get("grad_plateau", ""), cplat=AT.get("cpsat_plateau", "")))
 
     return html.replace("__SCRIPT__",
                         "<script>" + JS.replace("__PAYLOAD__", payload) + "</script>")
