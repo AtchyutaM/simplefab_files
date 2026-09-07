@@ -41,7 +41,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax import lax
 
-from tensorfab.spec_2p import LineSpec2P
+from tensorfab.twoprod.spec import LineSpec2P
 
 
 class State2P(NamedTuple):

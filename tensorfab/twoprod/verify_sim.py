@@ -1,5 +1,5 @@
 """
-Equivalence harness: tensor_sim_2p vs the reference `simplefab/sim.py`.
+Equivalence harness: tensorfab.twoprod.tensor_sim vs the reference `simplefab/sim.py`.
 
 Same gate as `verify.py`, extended for the product axis and changeover state.
 Compared exactly at every tick:
@@ -19,8 +19,8 @@ off-by-one there would shift both the schedule and the bill without necessarily
 breaking anything visible.
 
 Usage:
-    python -m tensorfab.verify_2p
-    python -m tensorfab.verify_2p --alpha 0.9 --util 0.8
+    python -m tensorfab.twoprod.verify_sim
+    python -m tensorfab.twoprod.verify_sim --alpha 0.9 --util 0.8
 """
 
 from __future__ import annotations
@@ -39,8 +39,8 @@ import jax.numpy as jnp  # noqa: E402
 
 from simplefab.config import make_common_config  # noqa: E402
 from simplefab.sim import ProductionLine  # noqa: E402
-from tensorfab.spec_2p import spec2p_from_common_config  # noqa: E402
-from tensorfab.tensor_sim_2p import make_line_2p, profit_breakdown_2p  # noqa: E402
+from tensorfab.twoprod.spec import spec2p_from_common_config  # noqa: E402
+from tensorfab.twoprod.tensor_sim import make_line_2p, profit_breakdown_2p  # noqa: E402
 
 PROFIT_TOL = 1e-6
 ACT_NAMES = {0: "Prod0", 1: "Prod1"}
