@@ -56,3 +56,4 @@ far is `1413848+dirty`, since `tensorfab/` is not yet committed.
 | `20260812-125719_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,106 to $-1,106); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 154 | cpu | 0da7577+dirty |
 | `20260812-125954_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,076 to $-1,076); mean nan% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 152 | cpu | 0da7577+dirty |
 | `20260812-120047_long_milp_depth` | long_milp_depth | CP-SAT vs depth: M=4 inc $18,993 bound $19,003 gap 0.1% \| M=8 inc $18,840 bound $19,003 gap 0.9% \| M=12 inc $18,934 bound $19,008 gap 0.4% | 5402 | cpu | 0da7577+dirty |
+| `20260906-180010_twoprod_compare` | twoprod_compare | grad-st beats zeroth-order on 0/1 mixes (margin $-631 to $-631) | 3 | cpu | fda76ea+dirty |

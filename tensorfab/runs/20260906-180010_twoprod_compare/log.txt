@@ -1,0 +1,33 @@
+=== run 20260906-180010_twoprod_compare ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"alphas": [0.5], "util": 0.8, "mode": "UNIFORM", "batch": 16, "steps": 30, "lr": 0.1, "clip": 0.0, "eval_every": 10, "init_scale": 1.0, "seed": 0, "milp": false, "milp_seconds": 900.0}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+--- alpha=0.5  util=0.8  mode=UNIFORM  demand=[236, 236] ---
+    budget 1,440 rollout-equivalents (30 grad steps x B=16 == 90 zeroth-order iters)
+    grad-st: 30 steps, |g| 7e+09 -> 2.55e+07, non-finite 0
+    method             profit   vs commander
+    random          22,718.37      -2,309.48
+    commander       25,027.85          +0.00
+    hillclimb       23,706.70      -1,321.15
+    grad-st         23,075.67      -1,952.18
+
+====================================================================================
+SUMMARY — exact-sim profit, best of batch
+   alpha    commander       random    hillclimb      grad-st  ST - best0th
+     0.5       25,028       22,718       23,707       23,076          -631
+>>> grad-st beats zeroth-order on 0/1 mixes (margin $-631 to $-631)
+=== done in 3.1s ===
