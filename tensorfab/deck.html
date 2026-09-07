@@ -46,6 +46,10 @@ h1{font-size:clamp(2.4rem,5.4vw,3.9rem)}
 h2{font-size:clamp(1.5rem,2.9vw,2.1rem)}
 h3{font-size:1.12rem;letter-spacing:-.008em}
 p{margin:0}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:20px}
+.slideno{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--ink-3);
+  white-space:nowrap;flex:none}
+@media print{ .slideno{color:#6B6357} }
 .eyebrow{font-family:var(--mono);font-size:.685rem;letter-spacing:.15em;
   text-transform:uppercase;color:var(--accent);font-weight:600}
 .sub{color:var(--ink-2);max-width:var(--measure)}
@@ -134,7 +138,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 <section>
   <div class="stack">
-    <p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; technical review &nbsp;/&nbsp; 6 Sep 2026</p>
+    <div class="head"><p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; technical review &nbsp;/&nbsp; 6 Sep 2026</p><span class="slideno">01 / 28</span></div>
     <h1>A differentiable production line</h1>
     <p class="sub" style="font-size:1.16rem">
       We rewrote the fab simulator as a batched tensor program so that automatic
@@ -164,7 +168,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">The verdict</p>
+  <div class="head"><p class="eyebrow">The verdict</p><span class="slideno">02 / 28</span></div>
   <h2 style="margin:10px 0 20px">The mechanism works and predicts; the solver still wins</h2>
   <div class="grid g3">
     <div class="card ok"><span class="pill ok">Confirmed</span>
@@ -194,7 +198,36 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Anatomy</p>
+  <div class="head"><p class="eyebrow">How to use this deck</p><span class="slideno">03 / 28</span></div>
+  <h2 style="margin:10px 0 8px">Seven routes through twenty-eight pages</h2>
+  <p class="sub" style="margin-bottom:18px">Every page is numbered in its top-right corner, so a
+  slide can be cited directly. Pick the row that matches why someone is reading; the pages listed
+  are enough on their own and can be read in the order given.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">If you are&hellip;</th><th class="l">Read</th>
+      <th class="l">Which is</th></tr></thead>
+    <tbody><tr><td class='l'><strong>Five minutes</strong><br><span class='muted' style='font-size:.9em'>The outcome and nothing else.</span></td><td class='l mono'><strong>02</strong>, <strong>20</strong>, <strong>24</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>02</span> &nbsp;The mechanism works and predicts; the solver still wins</li><li><span class='mono'>20</span> &nbsp;91% of the certified bound in 36 seconds</li><li><span class='mono'>24</span> &nbsp;What is banked, and what is not</li></ul></td></tr><tr><td class='l'><strong>Deciding whether to continue</strong><br><span class='muted' style='font-size:.9em'>What was proved, what it cost, what is next.</span></td><td class='l mono'><strong>02</strong>, <strong>19</strong>, <strong>20</strong>, <strong>21</strong>, <strong>24</strong>, <strong>25</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>02</span> &nbsp;The mechanism works and predicts; the solver still wins</li><li><span class='mono'>19</span> &nbsp;The gradient wins every mix &mdash; and the solver still wins overall</li><li><span class='mono'>20</span> &nbsp;91% of the certified bound in 36 seconds</li><li><span class='mono'>21</span> &nbsp;Doubling the solver's time budget did not close the gap</li><li><span class='mono'>24</span> &nbsp;What is banked, and what is not</li><li><span class='mono'>25</span> &nbsp;Three moves, in priority order</li></ul></td></tr><tr><td class='l'><strong>Understanding the method</strong><br><span class='muted' style='font-size:.9em'>How the simulator became differentiable.</span></td><td class='l mono'><strong>04</strong>, <strong>05</strong>, <strong>06</strong>, <strong>07</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>04</span> &nbsp;The line, and every quantity that defines it</li><li><span class='mono'>05</span> &nbsp;What we had, what failed, and what we built</li><li><span class='mono'>06</span> &nbsp;How a discrete-event line becomes an array program</li><li><span class='mono'>07</span> &nbsp;Tracing a decision to the profit it causes</li></ul></td></tr><tr><td class='l'><strong>Reading the results properly</strong><br><span class='muted' style='font-size:.9em'>Start here before any table.</span></td><td class='l mono'><strong>08</strong>, <strong>09</strong>, <strong>10</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>08</span> &nbsp;What every column means</li><li><span class='mono'>09</span> &nbsp;&ldquo;50%&rdquo; and &ldquo;92%&rdquo; of which capacity?</li><li><span class='mono'>10</span> &nbsp;Gradient versus every baseline, four demand patterns</li></ul></td></tr><tr><td class='l'><strong>The full experimental record</strong><br><span class='muted' style='font-size:.9em'>Every family, in the order it was run.</span></td><td class='l mono'><strong>10</strong>, <strong>13</strong>, <strong>15</strong>, <strong>19</strong>, <strong>21</strong>, <strong>22</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>10</span> &nbsp;Gradient versus every baseline, four demand patterns</li><li><span class='mono'>13</span> &nbsp;The gradient's advantage grows with pipeline depth</li><li><span class='mono'>15</span> &nbsp;At high load the gradient loses, and loses harder with depth</li><li><span class='mono'>19</span> &nbsp;The gradient wins every mix &mdash; and the solver still wins overall</li><li><span class='mono'>21</span> &nbsp;Doubling the solver's time budget did not close the gap</li><li><span class='mono'>22</span> &nbsp;How this compares to the previous experiments</li></ul></td></tr><tr><td class='l'><strong>Picking up the code</strong><br><span class='muted' style='font-size:.9em'>What exists and what proves it correct.</span></td><td class='l mono'><strong>14</strong>, <strong>23</strong>, <strong>27</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>14</span> &nbsp;From four fixed tools to any depth</li><li><span class='mono'>23</span> &nbsp;Infrastructure, and what proves it correct</li><li><span class='mono'>27</span> &nbsp;Everything here is reproducible</li></ul></td></tr><tr><td class='l'><strong>The research case</strong><br><span class='muted' style='font-size:.9em'>Where the contribution is, honestly assessed.</span></td><td class='l mono'><strong>11</strong>, <strong>15</strong>, <strong>26</strong></td><td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'><li><span class='mono'>11</span> &nbsp;Credit assignment does not vanish</li><li><span class='mono'>15</span> &nbsp;At high load the gradient loses, and loses harder with depth</li><li><span class='mono'>26</span> &nbsp;An honest assessment</li></ul></td></tr></tbody></table></div>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card flag"><h3>The one-line version</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">A differentiable simulator reaches 91%
+      of a certified optimum in 36 seconds where the exact solver needs 30 minutes &mdash; but the
+      solver still returns the better schedule on all seven configurations tested.</p></div>
+    <div class="card"><h3>Corrections are kept, not tidied away</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">Several pages carry an explicit
+      <em>Correction</em> note where an earlier claim did not survive a later measurement. They are
+      left visible: the record of what changed is part of what makes the rest trustworthy.</p></div>
+    <div class="card"><h3>Everything is reproducible</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">No figure is typed by hand. Each traces
+      to a logged run under <code>tensorfab/runs/</code> capturing commit, backend, parameters and
+      full transcript. Page 27 lists the commands.</p></div>
+  </div>
+</section>
+
+
+
+
+<section>
+  <div class="head"><p class="eyebrow">Anatomy</p><span class="slideno">04 / 28</span></div>
   <h2 style="margin:10px 0 8px">The line, and every quantity that defines it</h2>
   <p class="sub" style="margin-bottom:16px">One product moves left to right through alternating
   batch and single-wafer tools. Everything the simulator knows is on this page.</p>
@@ -272,7 +305,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Three ways to attack it</p>
+  <div class="head"><p class="eyebrow">Three ways to attack it</p><span class="slideno">05 / 28</span></div>
   <h2 style="margin:10px 0 8px">What we had, what failed, and what we built</h2>
   <div id="approaches"></div>
   <div class="grid g3" style="margin-top:22px">
@@ -305,7 +338,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">The tensorization</p>
+  <div class="head"><p class="eyebrow">The tensorization</p><span class="slideno">06 / 28</span></div>
   <h2 style="margin:10px 0 8px">How a discrete-event line becomes an array program</h2>
   <p class="sub" style="margin-bottom:18px">The reference simulator stores each queue as a list of
   timestamps and each tool as a (busy, finish_time) pair. Neither is differentiable, and neither
@@ -344,7 +377,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Where the gradient comes from</p>
+  <div class="head"><p class="eyebrow">Where the gradient comes from</p><span class="slideno">07 / 28</span></div>
   <h2 style="margin:10px 0 8px">Tracing a decision to the profit it causes</h2>
   <p class="sub" style="margin-bottom:16px">Every decision is a real-valued logit
   &theta;[t, m]. The question autodiff answers is &part;profit / &part;&theta; &mdash; and the
@@ -385,7 +418,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">How to read the results tables</p>
+  <div class="head"><p class="eyebrow">How to read the results tables</p><span class="slideno">08 / 28</span></div>
   <h2 style="margin:10px 0 8px">What every column means</h2>
   <p class="sub" style="margin-bottom:20px">Each row is one line configuration. Every method
   competes on the same problem, from the same starting point, with the same budget &mdash; and
@@ -473,7 +506,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Reading the demand labels</p>
+  <div class="head"><p class="eyebrow">Reading the demand labels</p><span class="slideno">09 / 28</span></div>
   <h2 style="margin:10px 0 8px">&ldquo;50%&rdquo; and &ldquo;92%&rdquo; of <em>which</em> capacity?</h2>
   <p class="sub" style="margin-bottom:18px">Demand is set from a fixed nominal capacity of 672 units = 0.25 units/tick x 2688 ticks, where 0.25 is one diffusion stage (4 units / 16 ticks). That figure is depth-independent by construction: adding stages adds tools, and steady-state throughput is set by the slowest single stage, not by how many follow it.</p>
   <div class="scroll"><table>
@@ -506,7 +539,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Result 1 &mdash; the headline</p>
+  <div class="head"><p class="eyebrow">Result 1 &mdash; the headline</p><span class="slideno">10 / 28</span></div>
   <h2 style="margin:10px 0 8px">Gradient versus every baseline, four demand patterns</h2>
   <p class="sub" style="margin-bottom:22px">All methods start from the same random schedules
   and get the same budget in forward-rollout-equivalents. Every figure is the rounded schedule
@@ -561,7 +594,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Result 2 &mdash; the diagnostic that matters</p>
+  <div class="head"><p class="eyebrow">Result 2 &mdash; the diagnostic that matters</p><span class="slideno">11 / 28</span></div>
   <h2 style="margin:10px 0 8px">Credit assignment does not vanish</h2>
   <p class="sub" style="margin-bottom:22px">Gradient magnitude with respect to the decision at
   each tick. If this collapsed toward the right-hand edge, the gradient could not tell the
@@ -582,7 +615,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Result 3 &mdash; design findings</p>
+  <div class="head"><p class="eyebrow">Result 3 &mdash; design findings</p><span class="slideno">12 / 28</span></div>
   <h2 style="margin:10px 0 20px">Three things that would have cost weeks to learn later</h2>
   <div class="grid g3">
     <div class="card"><h3>Exact forward beats relaxed forward</h3>
@@ -609,7 +642,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Family 3 &mdash; pipeline depth</p>
+  <div class="head"><p class="eyebrow">Family 3 &mdash; pipeline depth</p><span class="slideno">13 / 28</span></div>
   <h2 style="margin:10px 0 8px">The gradient's advantage grows with pipeline depth</h2>
   <p class="sub" style="margin-bottom:18px">UNIFORM 50% demand, 400 Adam steps, identical budget and starts per method. All depths share the same capacity (672 units) and the same $24/unit total production cost, so only lead time varies.
   This was a <strong>pre-registered prediction</strong>: if the gradient's advantage comes from
@@ -680,7 +713,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">How the line was generalised</p>
+  <div class="head"><p class="eyebrow">How the line was generalised</p><span class="slideno">14 / 28</span></div>
   <h2 style="margin:10px 0 8px">From four fixed tools to any depth</h2>
   <p class="sub" style="margin-bottom:18px">The line is now an alternating
   diffusion&rarr;litho chain of any length, described by a <strong>route array</strong>: for each
@@ -711,7 +744,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Family 3 at 92% demand &mdash; a negative result</p>
+  <div class="head"><p class="eyebrow">Family 3 at 92% demand &mdash; a negative result</p><span class="slideno">15 / 28</span></div>
   <h2 style="margin:10px 0 8px">At high load the gradient loses, and loses harder with depth</h2>
   <p class="sub" style="margin-bottom:18px">UNIFORM demand of 616 units at every depth, 400 Adam steps, same protocol as the 50% sweep. 616 is 92% of the nominal 672-unit capacity; as a fraction of what each line can actually deliver over a finite horizon it is 92.8% / 94.5% / 96.2%. Demand is held constant in absolute units, so effective load rises slightly with depth.</p>
   <div class="scroll"><table>
@@ -771,7 +804,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">The two-product line</p>
+  <div class="head"><p class="eyebrow">The two-product line</p><span class="slideno">16 / 28</span></div>
   <h2 style="margin:10px 0 8px">Same four tools, two recipes, and a changeover penalty</h2>
   <p class="sub" style="margin-bottom:16px">A separate simulator for this has existed in the
   repository since April, predating all the single-product work. It is not a variant of the
@@ -795,7 +828,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Why the mix decision is real</p>
+  <div class="head"><p class="eyebrow">Why the mix decision is real</p><span class="slideno">17 / 28</span></div>
   <h2 style="margin:10px 0 8px">The two products are deliberately balanced</h2>
   <p class="sub" style="margin-bottom:16px">P1 pays more but consumes 25% more of the bottleneck.
   Measured in the only currency that matters &mdash; profit per unit of scarce capacity &mdash;
@@ -817,7 +850,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Bringing it inline</p>
+  <div class="head"><p class="eyebrow">Bringing it inline</p><span class="slideno">18 / 28</span></div>
   <h2 style="margin:10px 0 8px">Six changes, and what each one was for</h2>
   <p class="sub" style="margin-bottom:16px">The approach was <em>level</em> alignment with
   <em>ratio</em> preservation: match the absolute cost levels to the 1-product line, and keep every
@@ -872,7 +905,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Two-product results</p>
+  <div class="head"><p class="eyebrow">Two-product results</p><span class="slideno">19 / 28</span></div>
   <h2 style="margin:10px 0 8px">The gradient wins every mix &mdash; and the solver still wins overall</h2>
   <p class="sub" style="margin-bottom:18px">UNIFORM demand at 80% of capacity, 400 Adam steps with global-norm clipping at 1000, batch 64, equal budget of 76,800 rollout-equivalents. CP-SAT given 900 seconds. Every figure is the categorical tape replayed through the exact integer simulator.</p>
   <div class="scroll"><table>
@@ -937,7 +970,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Time to a good schedule</p>
+  <div class="head"><p class="eyebrow">Time to a good schedule</p><span class="slideno">20 / 28</span></div>
   <h2 style="margin:10px 0 8px">91% of the certified bound in 36 seconds</h2>
   <p class="sub" style="margin-bottom:20px">Every comparison so far has been at a fixed budget,
   which hides the question that matters for anything deployable: <strong>how good a schedule can
@@ -993,7 +1026,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">The scaling question</p>
+  <div class="head"><p class="eyebrow">The scaling question</p><span class="slideno">21 / 28</span></div>
   <h2 style="margin:10px 0 8px">Doubling the solver's time budget did not close the gap</h2>
   <p class="sub" style="margin-bottom:18px">CP-SAT at 1800 seconds with 8 workers — the same budget and worker count as the single-product depth study, so the only difference between the two is the problem itself. Doubling from 900s moved the gaps by fractions of a percentage point in both directions, which is run-to-run variance for a randomised parallel solver, not convergence. None of the three was proven optimal.</p>
   <div class="scroll"><table>
@@ -1038,7 +1071,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 
 
 <section>
-  <p class="eyebrow">Against the record</p>
+  <div class="head"><p class="eyebrow">Against the record</p><span class="slideno">22 / 28</span></div>
   <h2 style="margin:10px 0 8px">How this compares to the previous experiments</h2>
   <p class="sub" style="margin-bottom:22px">Because the models behind the historical scores had been
   overwritten, PPO was <strong>retrained from scratch on all three patterns</strong> (8M steps each,
@@ -1086,7 +1119,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">What was built</p>
+  <div class="head"><p class="eyebrow">What was built</p><span class="slideno">23 / 28</span></div>
   <h2 style="margin:10px 0 20px">Infrastructure, and what proves it correct</h2>
   <div class="grid g2">
     <div class="card"><h3>Three equivalence gates, all passing</h3>
@@ -1108,7 +1141,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">The honest ledger</p>
+  <div class="head"><p class="eyebrow">The honest ledger</p><span class="slideno">24 / 28</span></div>
   <h2 style="margin:10px 0 20px">What is banked, and what is not</h2>
   <div class="grid g2">
     <div class="card ok"><h3 style="color:var(--ok)">Banked</h3>
@@ -1133,7 +1166,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Next</p>
+  <div class="head"><p class="eyebrow">Next</p><span class="slideno">25 / 28</span></div>
   <h2 style="margin:10px 0 20px">Three moves, in priority order</h2>
   <div class="stack">
     <div class="card flag"><h3>1 &nbsp;&middot;&nbsp; Test the assumption everything rests on</h3>
@@ -1158,7 +1191,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Research potential</p>
+  <div class="head"><p class="eyebrow">Research potential</p><span class="slideno">26 / 28</span></div>
   <h2 style="margin:10px 0 20px">An honest assessment</h2>
   <div class="grid g2">
     <div class="card"><h3>Where there is little</h3>
@@ -1184,7 +1217,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section>
-  <p class="eyebrow">Provenance</p>
+  <div class="head"><p class="eyebrow">Provenance</p><span class="slideno">27 / 28</span></div>
   <h2 style="margin:10px 0 14px">Everything here is reproducible</h2>
   <p class="sub">Every figure traces to a logged run under <code>tensorfab/runs/</code>, each
   capturing the git commit, backend, parameters, full transcript and raw series. This deck is
@@ -1202,6 +1235,7 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 <section style="padding-bottom:72px">
+  <div class="head"><span></span><span class="slideno">28 / 28</span></div>
   <div class="lattice" aria-hidden="true" id="lat2"></div>
   <p class="muted mono" style="font-size:.72rem;margin-top:14px">
     SimpleFab RL &middot; tensorfab &middot; generated from logged runs &middot;

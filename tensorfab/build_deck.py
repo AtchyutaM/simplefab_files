@@ -66,6 +66,10 @@ h1{font-size:clamp(2.4rem,5.4vw,3.9rem)}
 h2{font-size:clamp(1.5rem,2.9vw,2.1rem)}
 h3{font-size:1.12rem;letter-spacing:-.008em}
 p{margin:0}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:20px}
+.slideno{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--ink-3);
+  white-space:nowrap;flex:none}
+@media print{ .slideno{color:#6B6357} }
 .eyebrow{font-family:var(--mono);font-size:.685rem;letter-spacing:.15em;
   text-transform:uppercase;color:var(--accent);font-weight:600}
 .sub{color:var(--ink-2);max-width:var(--measure)}
@@ -1274,6 +1278,133 @@ ANYTIME_TEMPLATE = """
 </section>
 """
 
+# Reading routes. Each entry names slides by a distinctive fragment of their
+# heading, and the numbers are resolved at build time from the assembled
+# document — so reordering or inserting a section cannot leave stale references.
+READING_ROUTES = [
+    ("Five minutes", "The outcome and nothing else.",
+     ["mechanism works and predicts", "91% of the certified bound",
+      "What is banked, and what is not"]),
+    ("Deciding whether to continue", "What was proved, what it cost, what is next.",
+     ["mechanism works and predicts", "gradient wins every mix",
+      "91% of the certified bound", "Doubling the solver",
+      "What is banked, and what is not", "Three moves, in priority order"]),
+    ("Understanding the method", "How the simulator became differentiable.",
+     ["every quantity that defines it", "what failed, and what we built",
+      "discrete-event line becomes an array program",
+      "Tracing a decision to the profit"]),
+    ("Reading the results properly", "Start here before any table.",
+     ["What every column means", "of which capacity",
+      "Gradient versus every baseline"]),
+    ("The full experimental record", "Every family, in the order it was run.",
+     ["Gradient versus every baseline", "advantage grows with pipeline depth",
+      "loses harder with depth", "gradient wins every mix",
+      "Doubling the solver", "compares to the previous experiments"]),
+    ("Picking up the code", "What exists and what proves it correct.",
+     ["Infrastructure, and what proves it correct", "Everything here is reproducible",
+      "From four fixed tools to any depth"]),
+    ("The research case", "Where the contribution is, honestly assessed.",
+     ["Credit assignment does not vanish", "loses harder with depth",
+      "An honest assessment"]),
+]
+
+
+def build_reading_guide(html: str) -> str:
+    """Resolve route slide numbers from the numbered document and inject the guide."""
+    import re
+    index = {}
+    for m in re.finditer(r'<span class="slideno">(\d+) / \d+</span>', html):
+        seg = html[m.end():m.end() + 600]
+        h = re.search(r"<h[12][^>]*>(.*?)</h[12]>", seg, re.S)
+        if h:
+            index[re.sub(r"<[^>]+>", "", h.group(1)).strip()] = int(m.group(1))
+
+    def find(frag):
+        for title, num in index.items():
+            if frag.lower() in title.lower():
+                return num, title
+        return None, frag
+
+    rows = []
+    for label, why, frags in READING_ROUTES:
+        hits = sorted((h for h in (find(f) for f in frags) if h[0]),
+                      key=lambda h: h[0])
+        nums = ", ".join(f"<strong>{n:02d}</strong>" for n, _ in hits if n)
+        titles = "".join(
+            f"<li><span class='mono'>{n:02d}</span> &nbsp;{t}</li>"
+            for n, t in hits if n)
+        rows.append(
+            f"<tr><td class='l'><strong>{label}</strong><br>"
+            f"<span class='muted' style='font-size:.9em'>{why}</span></td>"
+            f"<td class='l mono'>{nums}</td>"
+            f"<td class='l'><ul style='margin:0;padding-left:1.1em;font-size:.88em;text-align:left'>"
+            f"{titles}</ul></td></tr>")
+    return "".join(rows)
+
+
+GUIDE_TEMPLATE = """
+<section>
+  <p class="eyebrow">How to use this deck</p>
+  <h2 style="margin:10px 0 8px">Seven routes through twenty-eight pages</h2>
+  <p class="sub" style="margin-bottom:18px">Every page is numbered in its top-right corner, so a
+  slide can be cited directly. Pick the row that matches why someone is reading; the pages listed
+  are enough on their own and can be read in the order given.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">If you are&hellip;</th><th class="l">Read</th>
+      <th class="l">Which is</th></tr></thead>
+    <tbody>__ROWS__</tbody></table></div>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card flag"><h3>The one-line version</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">A differentiable simulator reaches 91%
+      of a certified optimum in 36 seconds where the exact solver needs 30 minutes &mdash; but the
+      solver still returns the better schedule on all seven configurations tested.</p></div>
+    <div class="card"><h3>Corrections are kept, not tidied away</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">Several pages carry an explicit
+      <em>Correction</em> note where an earlier claim did not survive a later measurement. They are
+      left visible: the record of what changed is part of what makes the rest trustworthy.</p></div>
+    <div class="card"><h3>Everything is reproducible</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">No figure is typed by hand. Each traces
+      to a logged run under <code>tensorfab/runs/</code> capturing commit, backend, parameters and
+      full transcript. Page 27 lists the commands.</p></div>
+  </div>
+</section>
+
+"""
+
+
+def add_slide_numbers(html: str) -> str:
+    """
+    Stamp `NN / TT` on every section so a page can be cited by number.
+
+    Done as a post-process rather than inside each template: sections arrive from
+    several generators and marker substitutions, so their final order is only
+    known once the document is assembled. Walks sections in document order and
+    numbers all of them, including the title page and any without an eyebrow.
+    """
+    import re
+    opens = [m.start() for m in re.finditer(r"<section\b", html)]
+    total = len(opens)
+    out, prev = [], 0
+    for i, pos in enumerate(opens, start=1):
+        out.append(html[prev:pos])
+        nxt = opens[i] if i < len(opens) else len(html)
+        block = html[pos:nxt]
+        badge = f'<span class="slideno">{i:02d} / {total:02d}</span>'
+        m = re.search(r'<p class="eyebrow">(.*?)</p>', block, flags=re.S)
+        if m:
+            block = (block[:m.start()]
+                     + f'<div class="head"><p class="eyebrow">{m.group(1)}</p>{badge}</div>'
+                     + block[m.end():])
+        else:
+            # no eyebrow (the title page): drop the badge in just after the tag
+            tag_end = block.index(">") + 1
+            block = block[:tag_end] + f'\n  <div class="head"><span></span>{badge}</div>' + block[tag_end:]
+        out.append(block)
+        prev = nxt
+    out.append(html[prev:])
+    return "".join(out)
+
+
 def fmt(v, dp=0):
     if v is None:
         return "&mdash;"
@@ -1401,6 +1532,8 @@ def build() -> str:
       CP-SAT cannot answer by being faster &mdash; remain untested.</p></div>
   </div>
 </section>
+
+<!--GUIDE-->
 
 <!--TECH-->
 
@@ -1889,6 +2022,13 @@ __SCRIPT__
         bound=fmt(AT.get("bound")), crossover=AT.get("crossover", ""),
         gplat=AT.get("grad_plateau", ""), cplat=AT.get("cpsat_plateau", "")))
 
+    # Put the guide in place FIRST so it is counted and positioned, number the
+    # whole document, then resolve the route references against those final
+    # numbers. Resolving before insertion shifts every reference after the guide
+    # by one, which is exactly the bug this ordering avoids.
+    html = html.replace("<!--GUIDE-->", GUIDE_TEMPLATE)
+    html = add_slide_numbers(html)
+    html = html.replace("__ROWS__", build_reading_guide(html))
     return html.replace("__SCRIPT__",
                         "<script>" + JS.replace("__PAYLOAD__", payload) + "</script>")
 
