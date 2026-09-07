@@ -1,0 +1,24 @@
+{
+  "run_id": "20260906-180113_twoprod_compare",
+  "name": "twoprod_compare",
+  "note": "Two-product method comparison: commander / random / hill-climb / softmax straight-through gradient / CP-SAT, equal budget",
+  "timestamp": "2026-09-06T18:05:15",
+  "wall_seconds": 241.64,
+  "failed": false,
+  "git": {
+    "commit": "fb63529",
+    "dirty": true
+  },
+  "env": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "machine": "arm64",
+    "processor": "arm",
+    "jax": "0.11.0",
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ],
+    "x64": false
+  }
+}

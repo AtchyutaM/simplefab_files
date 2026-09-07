@@ -1217,6 +1217,72 @@
         "detail": "Commander, random search, hill-climb, grad-soft, grad-ST, CP-SAT and retrained PPO at 80% utilisation, plus the bursty ALTERNATING mode.",
         "new": "mix becomes an experimental axis"
       }
-    ]
+    ],
+    "results": {
+      "note": "UNIFORM demand at 80% of capacity, 400 Adam steps with global-norm clipping at 1000, batch 64, equal budget of 76,800 rollout-equivalents. CP-SAT given 900 seconds. Every figure is the categorical tape replayed through the exact integer simulator.",
+      "rows": [
+        {
+          "mix": "50 / 50",
+          "commander": 25027.85,
+          "random": 23511.93,
+          "hillclimb": 25257.66,
+          "grad_st": 27921.9,
+          "milp": 29607.75,
+          "bound": 30622.38,
+          "gap": 0.0331,
+          "milp_chg": 64
+        },
+        {
+          "mix": "90 / 10",
+          "commander": 25827.37,
+          "random": 26806.87,
+          "hillclimb": 27770.02,
+          "grad_st": 28737.23,
+          "milp": 30124.95,
+          "bound": 30590.47,
+          "gap": 0.0152,
+          "milp_chg": 28
+        },
+        {
+          "mix": "10 / 90",
+          "commander": 25432.74,
+          "random": 27835.56,
+          "hillclimb": 28008.99,
+          "grad_st": 29321.99,
+          "milp": 30238.44,
+          "bound": 30880.0,
+          "gap": 0.0208,
+          "milp_chg": 28
+        }
+      ],
+      "clip": [
+        {
+          "mix": "50 / 50",
+          "unclipped": 27383.15,
+          "clipped": 27921.9,
+          "gnorm": 7170000000.0
+        },
+        {
+          "mix": "90 / 10",
+          "unclipped": 28435.71,
+          "clipped": 28737.23,
+          "gnorm": 217000.0
+        },
+        {
+          "mix": "10 / 90",
+          "unclipped": 29166.04,
+          "clipped": 29321.99,
+          "gnorm": 1040000.0
+        }
+      ],
+      "milp_scale": {
+        "y_vars": 64512,
+        "c_vars": 32256,
+        "build_s": 1.2,
+        "vs_1p_bools": 10752,
+        "vs_1p_gap": 0.0039,
+        "vs_1p_time": 1800
+      }
+    }
   }
 }

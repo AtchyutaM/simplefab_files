@@ -880,6 +880,66 @@ a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline
 </section>
 
 
+
+<section>
+  <p class="eyebrow">Two-product results</p>
+  <h2 style="margin:10px 0 8px">The gradient wins every mix &mdash; and the solver still wins overall</h2>
+  <p class="sub" style="margin-bottom:18px">UNIFORM demand at 80% of capacity, 400 Adam steps with global-norm clipping at 1000, batch 64, equal budget of 76,800 rollout-equivalents. CP-SAT given 900 seconds. Every figure is the categorical tape replayed through the exact integer simulator.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Mix</th><th>Commander</th><th>Random</th><th>Hill-climb</th>
+      <th>Grad ST</th><th>vs best 0th</th><th>CP-SAT</th><th>Bound</th><th>Solver gap</th>
+      <th>ST % bound</th><th>ST &minus; CP-SAT</th></tr></thead>
+    <tbody><tr><td class='l'>50 / 50</td><td>25,028</td><td>23,512</td><td>25,258</td><td class='hero'>27,922</td><td class='hero'>+2,664</td><td>29,608</td><td class='muted'>30,622</td><td>3.3%</td><td>91.2%</td><td class='neg'>-1,686</td></tr><tr><td class='l'>90 / 10</td><td>25,827</td><td>26,807</td><td>27,770</td><td class='hero'>28,737</td><td class='hero'>+967</td><td>30,125</td><td class='muted'>30,590</td><td>1.5%</td><td>93.9%</td><td class='neg'>-1,388</td></tr><tr><td class='l'>10 / 90</td><td>25,433</td><td>27,836</td><td>28,009</td><td class='hero'>29,322</td><td class='hero'>+1,313</td><td>30,238</td><td class='muted'>30,880</td><td>2.1%</td><td>95.0%</td><td class='neg'>-916</td></tr></tbody></table></div>
+
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card ok"><h3>Beats zeroth-order on all three</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">By $967 to $2,664 at equal budget
+      from identical starts. On the single-product line at comparable load the margin was
+      $213&ndash;$398, and at flat 92% utilisation the gradient <em>lost</em>. The harder problem
+      suits it better.</p></div>
+    <div class="card open"><h3>Still loses to the exact solver</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">CP-SAT leads by $916 to $1,686 on
+      every mix. That is the same verdict as every configuration tested so far: the solver wins on
+      solution quality. The gradient reaches 91&ndash;95% of a certified bound.</p></div>
+    <div class="card flag"><h3>One difficulty axis explains everything</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">The balanced 50/50 mix is hardest for
+      <em>both</em> methods: the gradient gains most there (+$2,664), CP-SAT strains most there
+      (3.3% gap against 1.5&ndash;2.1%), and the gradient sits furthest from the bound (91.2%).
+      Changeover pressure is the variable &mdash; 64 changeovers at 50/50 against 28 when the mix
+      is lopsided.</p></div>
+  </div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card"><h3>Gradient clipping matters here &mdash; it did not before</h3>
+      <div class="scroll" style="margin-top:8px"><table>
+        <thead><tr><th class="l">Mix</th><th>Unclipped</th><th>Clipped</th><th>Gain</th>
+          <th>Initial &#8214;g&#8214;</th></tr></thead>
+        <tbody><tr><td class='l'>50 / 50</td><td>27,383</td><td>27,922</td><td class='hero'>+539</td><td class='muted'>7.17e+09</td></tr><tr><td class='l'>90 / 10</td><td>28,436</td><td>28,737</td><td class='hero'>+302</td><td class='muted'>2.17e+05</td></tr><tr><td class='l'>10 / 90</td><td>29,166</td><td>29,322</td><td class='hero'>+156</td><td class='muted'>1.04e+06</td></tr></tbody></table></div>
+      <p class="sub" style="font-size:.9rem;margin-top:10px">On the single-product line the
+      hypothesis that huge gradients were poisoning Adam's second-moment estimate was
+      <em>tested and rejected</em> &mdash; clipping changed the result by $30 on $31,379. Here it
+      is worth $156 to $539. The reason is scale: norms reach 7.17e9 against a single-product worst
+      of 3.3e7, over 200&times; larger. A mechanism that was immaterial at one scale becomes real at
+      another; the earlier rejection stands for the regime it was tested in.</p></div>
+    <div class="card open"><h3>The first real strain on CP-SAT</h3>
+      <div class="kv" style="margin-top:10px">
+        <b>y variables</b><span>64,512</span>
+        <b>c variables</b><span>32,256</span>
+        <b>vs 1-product</b><span>10,752 booleans total</span>
+        <b>Gap, 2P @ 900s</b><span>1.5% &ndash; 3.3%</span>
+        <b>Gap, 1P @ 1800s</b><span>0.39% at twelve tools</span>
+      </div>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">Pipeline depth grew the model
+      linearly and CP-SAT absorbed it. Setup variables grow it combinatorially, and the gap is
+      roughly <strong>8&times; worse at half the time budget</strong>. This is the first
+      configuration where the scaling premise shows any evidence at all.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">It is strain, not collapse. CP-SAT
+      still returns a better schedule than every learned method on every mix, and a 3.3% gap is
+      perfectly usable in practice.</p></div>
+  </div>
+</section>
+
+
 <section>
   <p class="eyebrow">Against the record</p>
   <h2 style="margin:10px 0 8px">How this compares to the previous experiments</h2>

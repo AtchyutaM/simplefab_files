@@ -1,0 +1,18 @@
+{
+  "alphas": [
+    0.5,
+    0.9,
+    0.1
+  ],
+  "util": 0.8,
+  "mode": "UNIFORM",
+  "batch": 64,
+  "steps": 400,
+  "lr": 0.1,
+  "clip": 0.0,
+  "eval_every": 10,
+  "init_scale": 1.0,
+  "seed": 0,
+  "milp": false,
+  "milp_seconds": 900.0
+}

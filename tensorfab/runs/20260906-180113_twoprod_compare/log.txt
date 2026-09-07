@@ -1,0 +1,53 @@
+=== run 20260906-180113_twoprod_compare ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"alphas": [0.5, 0.9, 0.1], "util": 0.8, "mode": "UNIFORM", "batch": 64, "steps": 400, "lr": 0.1, "clip": 0.0, "eval_every": 10, "init_scale": 1.0, "seed": 0, "milp": false, "milp_seconds": 900.0}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+--- alpha=0.5  util=0.8  mode=UNIFORM  demand=[236, 236] ---
+    budget 76,800 rollout-equivalents (400 grad steps x B=64 == 1,200 zeroth-order iters)
+    grad-st: 400 steps, |g| 7.17e+09 -> 3.75e+05, non-finite 0
+    method             profit   vs commander
+    random          23,511.93      -1,515.92
+    commander       25,027.85          +0.00
+    hillclimb       25,257.66        +229.81
+    grad-st         27,383.15      +2,355.30
+
+--- alpha=0.9  util=0.8  mode=UNIFORM  demand=[472, 52] ---
+    budget 76,800 rollout-equivalents (400 grad steps x B=64 == 1,200 zeroth-order iters)
+    grad-st: 400 steps, |g| 2.17e+05 -> 693, non-finite 0
+    method             profit   vs commander
+    random          26,806.87        +979.50
+    commander       25,827.37          +0.00
+    hillclimb       27,770.02      +1,942.65
+    grad-st         28,435.71      +2,608.34
+
+--- alpha=0.1  util=0.8  mode=UNIFORM  demand=[40, 392] ---
+    budget 76,800 rollout-equivalents (400 grad steps x B=64 == 1,200 zeroth-order iters)
+    grad-st: 400 steps, |g| 1.04e+06 -> 1.13e+03, non-finite 0
+    method             profit   vs commander
+    random          27,835.56      +2,402.81
+    commander       25,432.74          +0.00
+    hillclimb       28,008.99      +2,576.25
+    grad-st         29,166.04      +3,733.30
+
+====================================================================================
+SUMMARY — exact-sim profit, best of batch
+   alpha    commander       random    hillclimb      grad-st  ST - best0th
+     0.5       25,028       23,512       25,258       27,383        +2,125
+     0.9       25,827       26,807       27,770       28,436          +666
+     0.1       25,433       27,836       28,009       29,166        +1,157
+>>> grad-st beats zeroth-order on 3/3 mixes (margin $666 to $2,125)
+=== done in 241.6s ===

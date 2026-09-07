@@ -1062,6 +1062,67 @@ TWOPROD_TEMPLATE = """
 </section>
 """
 
+
+TPRES_TEMPLATE = """
+<section>
+  <p class="eyebrow">Two-product results</p>
+  <h2 style="margin:10px 0 8px">The gradient wins every mix &mdash; and the solver still wins overall</h2>
+  <p class="sub" style="margin-bottom:18px">{note}</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Mix</th><th>Commander</th><th>Random</th><th>Hill-climb</th>
+      <th>Grad ST</th><th>vs best 0th</th><th>CP-SAT</th><th>Bound</th><th>Solver gap</th>
+      <th>ST % bound</th><th>ST &minus; CP-SAT</th></tr></thead>
+    <tbody>{tprrows}</tbody></table></div>
+
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card ok"><h3>Beats zeroth-order on all three</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">By $967 to $2,664 at equal budget
+      from identical starts. On the single-product line at comparable load the margin was
+      $213&ndash;$398, and at flat 92% utilisation the gradient <em>lost</em>. The harder problem
+      suits it better.</p></div>
+    <div class="card open"><h3>Still loses to the exact solver</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">CP-SAT leads by $916 to $1,686 on
+      every mix. That is the same verdict as every configuration tested so far: the solver wins on
+      solution quality. The gradient reaches 91&ndash;95% of a certified bound.</p></div>
+    <div class="card flag"><h3>One difficulty axis explains everything</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">The balanced 50/50 mix is hardest for
+      <em>both</em> methods: the gradient gains most there (+$2,664), CP-SAT strains most there
+      (3.3% gap against 1.5&ndash;2.1%), and the gradient sits furthest from the bound (91.2%).
+      Changeover pressure is the variable &mdash; 64 changeovers at 50/50 against 28 when the mix
+      is lopsided.</p></div>
+  </div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card"><h3>Gradient clipping matters here &mdash; it did not before</h3>
+      <div class="scroll" style="margin-top:8px"><table>
+        <thead><tr><th class="l">Mix</th><th>Unclipped</th><th>Clipped</th><th>Gain</th>
+          <th>Initial &#8214;g&#8214;</th></tr></thead>
+        <tbody>{cliprows}</tbody></table></div>
+      <p class="sub" style="font-size:.9rem;margin-top:10px">On the single-product line the
+      hypothesis that huge gradients were poisoning Adam's second-moment estimate was
+      <em>tested and rejected</em> &mdash; clipping changed the result by $30 on $31,379. Here it
+      is worth $156 to $539. The reason is scale: norms reach 7.17e9 against a single-product worst
+      of 3.3e7, over 200&times; larger. A mechanism that was immaterial at one scale becomes real at
+      another; the earlier rejection stands for the regime it was tested in.</p></div>
+    <div class="card open"><h3>The first real strain on CP-SAT</h3>
+      <div class="kv" style="margin-top:10px">
+        <b>y variables</b><span>{yv}</span>
+        <b>c variables</b><span>{cv}</span>
+        <b>vs 1-product</b><span>{b1p} booleans total</span>
+        <b>Gap, 2P @ 900s</b><span>1.5% &ndash; 3.3%</span>
+        <b>Gap, 1P @ 1800s</b><span>{g1p} at twelve tools</span>
+      </div>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">Pipeline depth grew the model
+      linearly and CP-SAT absorbed it. Setup variables grow it combinatorially, and the gap is
+      roughly <strong>8&times; worse at half the time budget</strong>. This is the first
+      configuration where the scaling premise shows any evidence at all.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">It is strain, not collapse. CP-SAT
+      still returns a better schedule than every learned method on every mix, and a 3.3% gap is
+      perfectly usable in practice.</p></div>
+  </div>
+</section>
+"""
+
 def fmt(v, dp=0):
     if v is None:
         return "&mdash;"
@@ -1348,6 +1409,8 @@ def build() -> str:
 
 <!--TWOPROD-->
 
+<!--TPRES-->
+
 <section>
   <p class="eyebrow">Against the record</p>
   <h2 style="margin:10px 0 8px">How this compares to the previous experiments</h2>
@@ -1610,6 +1673,28 @@ __SCRIPT__
             f"<td>{fmt(st['inventory'])}</td><td>{fmt(st['backorder'])}</td>"
             f"<td>{st['shipped']} / {BA.get('demand')}</td></tr>"
             for st in BA.get("stages", []))))
+
+
+    TPR = d.get("twoprod", {}).get("results", {})
+    tprrows = "".join(
+        f"<tr><td class='l'>{r['mix']}</td><td>{fmt(r['commander'])}</td>"
+        f"<td>{fmt(r['random'])}</td><td>{fmt(r['hillclimb'])}</td>"
+        f"<td class='hero'>{fmt(r['grad_st'])}</td>"
+        f"<td class='hero'>{signed(r['grad_st']-max(r['random'],r['hillclimb']))}</td>"
+        f"<td>{fmt(r['milp'])}</td><td class='muted'>{fmt(r['bound'])}</td>"
+        f"<td>{r['gap']:.1%}</td><td>{r['grad_st']/r['bound']:.1%}</td>"
+        f"<td class='neg'>{signed(r['grad_st']-r['milp'])}</td></tr>"
+        for r in TPR.get("rows", []))
+    cliprows = "".join(
+        f"<tr><td class='l'>{c['mix']}</td><td>{fmt(c['unclipped'])}</td>"
+        f"<td>{fmt(c['clipped'])}</td><td class='hero'>{signed(c['clipped']-c['unclipped'])}</td>"
+        f"<td class='muted'>{c['gnorm']:.2e}</td></tr>"
+        for c in d.get("twoprod", {}).get("results", {}).get("clip", []))
+    MS = d.get("twoprod", {}).get("results", {}).get("milp_scale", {})
+    html = html.replace("<!--TPRES-->", TPRES_TEMPLATE.format(
+        note=TPR.get("note", ""), tprrows=tprrows, cliprows=cliprows,
+        yv=f"{MS.get('y_vars',0):,}", cv=f"{MS.get('c_vars',0):,}",
+        b1p=f"{MS.get('vs_1p_bools',0):,}", g1p=f"{MS.get('vs_1p_gap',0):.2%}"))
 
     return html.replace("__SCRIPT__",
                         "<script>" + JS.replace("__PAYLOAD__", payload) + "</script>")
