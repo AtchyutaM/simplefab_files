@@ -1,0 +1,46 @@
+=== run 20260906-190453_twoprod_long_milp ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"alphas": [0.5, 0.9, 0.1], "seconds": 1800.0, "util": 0.8, "mode": "UNIFORM", "workers": 8}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+--- alpha=0.5  util=0.8  demand=[236, 236]  limit=1800s ---
+  status      FEASIBLE (optimal=False)
+  incumbent   $29,621.33
+  bound       $30,622.00
+  gap         3.27%
+  changeovers 64
+  replay      $29,621.36  |d| $0.0255  PASS
+  wall        1471s
+
+--- alpha=0.9  util=0.8  demand=[472, 52]  limit=1800s ---
+  status      FEASIBLE (optimal=False)
+  incumbent   $30,054.45
+  bound       $30,592.00
+  gap         1.76%
+  changeovers 28
+  replay      $30,054.46  |d| $0.0183  PASS
+  wall        1070s
+
+--- alpha=0.1  util=0.8  demand=[40, 392]  limit=1800s ---
+  status      FEASIBLE (optimal=False)
+  incumbent   $30,434.76
+  bound       $30,878.45
+  gap         1.44%
+  changeovers 28
+  replay      $30,434.80  |d| $0.0353  PASS
+  wall        1802s
+>>> 2-product CP-SAT at 1800s: gaps 3.27% / 1.76% / 1.44%; proven optimal 0/3
+=== done in 4342.9s ===

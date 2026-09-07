@@ -1227,9 +1227,9 @@
           "random": 23511.93,
           "hillclimb": 25257.66,
           "grad_st": 27921.9,
-          "milp": 29607.75,
-          "bound": 30622.38,
-          "gap": 0.0331,
+          "milp": 29621.33,
+          "bound": 30622.0,
+          "gap": 0.0327,
           "milp_chg": 64
         },
         {
@@ -1238,9 +1238,9 @@
           "random": 26806.87,
           "hillclimb": 27770.02,
           "grad_st": 28737.23,
-          "milp": 30124.95,
-          "bound": 30590.47,
-          "gap": 0.0152,
+          "milp": 30054.45,
+          "bound": 30592.0,
+          "gap": 0.0176,
           "milp_chg": 28
         },
         {
@@ -1249,9 +1249,9 @@
           "random": 27835.56,
           "hillclimb": 28008.99,
           "grad_st": 29321.99,
-          "milp": 30238.44,
-          "bound": 30880.0,
-          "gap": 0.0208,
+          "milp": 30434.76,
+          "bound": 30878.45,
+          "gap": 0.0144,
           "milp_chg": 28
         }
       ],
@@ -1282,7 +1282,44 @@
         "vs_1p_bools": 10752,
         "vs_1p_gap": 0.0039,
         "vs_1p_time": 1800
-      }
+      },
+      "milp_1800": [
+        {
+          "mix": "50 / 50",
+          "inc900": 29607.75,
+          "gap900": 0.0331,
+          "inc1800": 29621.33,
+          "bound1800": 30622.0,
+          "gap1800": 0.0327,
+          "wall": 1471,
+          "chg": 64
+        },
+        {
+          "mix": "90 / 10",
+          "inc900": 30124.95,
+          "gap900": 0.0152,
+          "inc1800": 30054.45,
+          "bound1800": 30592.0,
+          "gap1800": 0.0176,
+          "wall": 1070,
+          "chg": 28
+        },
+        {
+          "mix": "10 / 90",
+          "inc900": 30238.44,
+          "gap900": 0.0208,
+          "inc1800": 30434.76,
+          "bound1800": 30878.45,
+          "gap1800": 0.0144,
+          "wall": 1802,
+          "chg": 28
+        }
+      ],
+      "milp_note": "CP-SAT at 1800 seconds with 8 workers \u2014 the same budget and worker count as the single-product depth study, so the only difference between the two is the problem itself. Doubling from 900s moved the gaps by fractions of a percentage point in both directions, which is run-to-run variance for a randomised parallel solver, not convergence. None of the three was proven optimal."
     }
+  },
+  "milp_depth_ref": {
+    "note": "single-product line, twelve tools, 1800s, 8 workers",
+    "gap": 0.0039
   }
 }

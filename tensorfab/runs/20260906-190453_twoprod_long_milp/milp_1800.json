@@ -1,0 +1,50 @@
+{
+  "0.5": {
+    "alpha": 0.5,
+    "status": "FEASIBLE",
+    "is_optimal": false,
+    "incumbent": 29621.33078,
+    "bound": 30621.99792,
+    "gap": 0.032678048722171726,
+    "changeovers": 64,
+    "solver_wall": 1662.5667640000001,
+    "wall": 1471.2448976250016,
+    "n_y_vars": 64512,
+    "n_c_vars": 32256,
+    "replay": 29621.35625,
+    "replay_diff": 0.02547000000049593,
+    "cross_validated": true
+  },
+  "0.9": {
+    "alpha": 0.9,
+    "status": "FEASIBLE",
+    "is_optimal": false,
+    "incumbent": 30054.44543,
+    "bound": 30592.0,
+    "gap": 0.017571736728556494,
+    "changeovers": 28,
+    "solver_wall": 1800.603211,
+    "wall": 1069.6237598340376,
+    "n_y_vars": 64512,
+    "n_c_vars": 32256,
+    "replay": 30054.463750000003,
+    "replay_diff": 0.01832000000285916,
+    "cross_validated": true
+  },
+  "0.1": {
+    "alpha": 0.1,
+    "status": "FEASIBLE",
+    "is_optimal": false,
+    "incumbent": 30434.76092,
+    "bound": 30878.45104,
+    "gap": 0.014368924122043632,
+    "changeovers": 28,
+    "solver_wall": 1800.3581550000001,
+    "wall": 1801.7647789160255,
+    "n_y_vars": 64512,
+    "n_c_vars": 32256,
+    "replay": 30434.79625,
+    "replay_diff": 0.03532999999879394,
+    "cross_validated": true
+  }
+}

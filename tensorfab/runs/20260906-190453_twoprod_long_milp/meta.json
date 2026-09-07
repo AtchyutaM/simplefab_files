@@ -1,0 +1,24 @@
+{
+  "run_id": "20260906-190453_twoprod_long_milp",
+  "name": "twoprod_long_milp",
+  "note": "CP-SAT at a budget matched to the single-product depth study (1800s, 8 workers), so the only difference is the problem.",
+  "timestamp": "2026-09-06T20:32:41",
+  "wall_seconds": 4342.859,
+  "failed": false,
+  "git": {
+    "commit": "88ead65",
+    "dirty": true
+  },
+  "env": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "machine": "arm64",
+    "processor": "arm",
+    "jax": "0.11.0",
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ],
+    "x64": false
+  }
+}

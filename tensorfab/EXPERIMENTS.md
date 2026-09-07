@@ -59,3 +59,4 @@ far is `1413848+dirty`, since `tensorfab/` is not yet committed.
 | `20260906-180010_twoprod_compare` | twoprod_compare | grad-st beats zeroth-order on 0/1 mixes (margin $-631 to $-631) | 3 | cpu | fda76ea+dirty |
 | `20260906-180113_twoprod_compare` | twoprod_compare | grad-st beats zeroth-order on 3/3 mixes (margin $666 to $2,125) | 242 | cpu | fb63529+dirty |
 | `20260906-180516_twoprod_compare` | twoprod_compare | grad-st beats zeroth-order on 3/3 mixes (margin $967 to $2,664) | 243 | cpu | fb63529+dirty |
+| `20260906-190453_twoprod_long_milp` | twoprod_long_milp | 2-product CP-SAT at 1800s: gaps 3.27% / 1.76% / 1.44%; proven optimal 0/3 | 4343 | cpu | 88ead65+dirty |

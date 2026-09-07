@@ -1044,22 +1044,6 @@ TWOPROD_TEMPLATE = """
   </div>
 </section>
 
-<section>
-  <p class="eyebrow">The plan</p>
-  <h2 style="margin:10px 0 8px">The 1-product playbook, applied &mdash; with four new problems</h2>
-  <p class="sub" style="margin-bottom:14px">Each step mirrors what was built for the single-product
-  line, and each carries something genuinely new rather than being a port.</p>
-  {planrows}
-  <div class="card open" style="margin-top:18px"><h3>Where this could end</h3>
-    <p class="sub" style="font-size:.93rem;margin-top:8px">Step 4 is the decisive one. Pipeline
-    depth grew the problem linearly and CP-SAT absorbed it without difficulty &mdash; all three
-    depths solved to within 1% in half an hour, with no scaling wall. Setup variables grow it
-    <em>combinatorially</em>, which is where scheduling MILPs are supposed to break.</p>
-    <p class="sub" style="font-size:.93rem;margin-top:8px"><strong>If CP-SAT solves this
-    comfortably too, the scaling premise is in serious trouble and we should say so</strong> rather
-    than keep climbing toward reentrancy hoping the wall appears. That is a legitimate outcome and
-    worth knowing early.</p></div>
-</section>
 """
 
 
@@ -1120,6 +1104,53 @@ TPRES_TEMPLATE = """
       still returns a better schedule than every learned method on every mix, and a 3.3% gap is
       perfectly usable in practice.</p></div>
   </div>
+</section>
+"""
+
+
+SCALE_TEMPLATE = """
+<section>
+  <p class="eyebrow">The scaling question</p>
+  <h2 style="margin:10px 0 8px">Doubling the solver's time budget did not close the gap</h2>
+  <p class="sub" style="margin-bottom:18px">{note}</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Mix</th><th>Gap @ 900s</th><th>Gap @ 1800s</th><th>Moved</th>
+      <th>Incumbent</th><th>Bound</th><th>Changeovers</th>
+      <th>vs 1-product depth</th></tr></thead>
+    <tbody>{m18rows}</tbody></table></div>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card flag"><h3>Why this run exists</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">The first two-product solves used
+      900 seconds &mdash; an arbitrary choice made to get a result inside a reasonable wait. The
+      single-product depth study used 1800. An earlier version of this deck compared gaps across
+      those different budgets and called the difference "8x more strain", which was not a sound
+      comparison to draw.</p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">This re-runs every mix at 1800
+      seconds with the same eight workers, so the only remaining difference between the two studies
+      is the problem itself. <strong>The claim survives the matched test:</strong> the balanced mix
+      sits at 8.4x the depth study's gap, the lopsided mixes at 3.7&ndash;4.5x.</p></div>
+    <div class="card open"><h3>Twice the time bought nothing</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">Gaps moved by &minus;0.04, +0.24 and
+      &minus;0.64 percentage points &mdash; in <em>both</em> directions, which is run-to-run
+      variance for a randomised parallel solver rather than convergence. <strong>None of the three
+      was proven optimal.</strong></p>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">That is the signature worth having.
+      An under-resourced solve improves when given more time; a genuinely hard instance does not.
+      Pipeline depth grew the model linearly and CP-SAT closed to 0.39% at this same budget. Setup
+      variables grow it combinatorially, and the gap sits still.</p></div>
+  </div>
+
+  <div class="card" style="margin-top:16px"><h3>Read it carefully: this is strain, not collapse</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">A gap is the distance between the best
+    schedule CP-SAT has <em>found</em> and the best it can <em>prove</em> no schedule beats. It
+    measures proof progress, not solution quality &mdash; the incumbent may already be optimal
+    with the solver simply unable to certify it.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">And CP-SAT still returns a better
+    schedule than every learned method on every mix, by $733 to $1,700. A 1.4&ndash;3.3% unproven
+    gap is entirely usable in practice. What has changed is that, for the first time in this
+    programme, more compute stopped helping &mdash; which is the thing the scaling premise
+    predicted and that pipeline depth conspicuously failed to show.</p></div>
 </section>
 """
 
@@ -1193,7 +1224,7 @@ def build() -> str:
 
 <section>
   <div class="stack">
-    <p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; technical review &nbsp;/&nbsp; 12 Aug 2026</p>
+    <p class="eyebrow">SimpleFab RL &nbsp;/&nbsp; technical review &nbsp;/&nbsp; 6 Sep 2026</p>
     <h1>A differentiable production line</h1>
     <p class="sub" style="font-size:1.16rem">
       We rewrote the fab simulator as a batched tensor program so that automatic
@@ -1213,18 +1244,18 @@ def build() -> str:
   </div>
 
   <div class="grid g3" style="margin-top:32px">
-    <div class="card ok"><div class="stat" style="color:var(--ok)">4 / 4</div>
-      <div class="statlbl">patterns where the gradient beat every&nbsp;search baseline</div></div>
-    <div class="card flag"><div class="stat" style="color:var(--accent)">95.3%</div>
-      <div class="statlbl">mean of the certified upper&nbsp;bound</div></div>
-    <div class="card"><div class="stat">0</div>
-      <div class="statlbl">non-finite gradients across 2,688-step&nbsp;backprop</div></div>
+    <div class="card ok"><div class="stat" style="color:var(--ok)">4</div>
+      <div class="statlbl">predictions the mechanism made and&nbsp;got&nbsp;right</div></div>
+    <div class="card flag"><div class="stat" style="color:var(--accent)">8.4&times;</div>
+      <div class="statlbl">CP-SAT gap vs pipeline depth, matched&nbsp;budget</div></div>
+    <div class="card open"><div class="stat" style="color:var(--open)">0 / 7</div>
+      <div class="statlbl">configurations where a learned method beat&nbsp;the&nbsp;solver</div></div>
   </div>
 </section>
 
 <section>
   <p class="eyebrow">The verdict</p>
-  <h2 style="margin:10px 0 20px">The mechanism works, and it now has a margin</h2>
+  <h2 style="margin:10px 0 20px">The mechanism works and predicts; the solver still wins</h2>
   <div class="grid g3">
     <div class="card ok"><span class="pill ok">Confirmed</span>
       <h3 style="margin:12px 0 8px">Gradients survive the discontinuities</h3>
@@ -1233,90 +1264,25 @@ def build() -> str:
       mass sits in the first quarter of the horizon &mdash; the signal reaches decisions made
       2,000+ ticks before their revenue arrives.</p></div>
     <div class="card ok"><span class="pill ok">Confirmed</span>
-      <h3 style="margin:12px 0 8px">It beats every search baseline</h3>
-      <p class="sub" style="font-size:.93rem">On all four real demand patterns, at equal budget
-      from identical starts, and it lands within 3&ndash;8% of a certified upper bound. At 50%
-      utilisation, where the optimum requires coordinated idling, the margin over zeroth-order
-      search is an order of magnitude. The exact solver still edges it &mdash; see below.</p></div>
-    <div class="card open"><span class="pill open">Not yet shown</span>
-      <h3 style="margin:12px 0 8px">Nothing about closed-loop policies</h3>
-      <p class="sub" style="font-size:.93rem">Every result here optimises an open-loop
-      schedule with full horizon information &mdash; the MILP's game, not PPO's. No reactive
-      policy has been trained. That is the next experiment and the one that matters.</p></div>
+      <h3 style="margin:12px 0 8px">It beats every search baseline &mdash; where decisions are live</h3>
+      <p class="sub" style="font-size:.93rem">On all four single-product demand patterns and all
+      three two-product mixes, at equal budget from identical starts. The margin tracks one thing:
+      how many genuine choices the schedule contains. It is an order of magnitude at 50%
+      utilisation, $967&ndash;$2,664 across the product mixes, and <em>negative</em> where the line
+      runs saturated and there is nothing left to choose.</p></div>
+    <div class="card open"><span class="pill open">Not shown</span>
+      <h3 style="margin:12px 0 8px">The exact solver still wins, everywhere</h3>
+      <p class="sub" style="font-size:.93rem">CP-SAT returns a better schedule than every learned
+      method on every configuration tested &mdash; seven for seven. The gradient reaches
+      91&ndash;95% of a certified bound but never passes it.</p>
+      <p class="sub" style="font-size:.93rem;margin-top:8px">And every comparison so far is
+      deterministic, full-information and open-loop, which is the solver's ideal case. Inference
+      latency and adaptation to demand that differs from forecast &mdash; the two advantages
+      CP-SAT cannot answer by being faster &mdash; remain untested.</p></div>
   </div>
 </section>
 
 <!--TECH-->
-
-<section>
-  <p class="eyebrow">Result 1 &mdash; the headline</p>
-  <h2 style="margin:10px 0 8px">Gradient versus every baseline, four demand patterns</h2>
-  <p class="sub" style="margin-bottom:22px">All methods start from the same random schedules
-  and get the same budget in forward-rollout-equivalents. Every figure is the rounded schedule
-  replayed through the <em>exact</em> integer simulator &mdash; relaxed-forward profit is never
-  reported as a result.</p>
-  <div class="scroll"><table>
-    <thead><tr><th>Pattern</th><th>Util</th><th>Commander</th><th>Random</th>
-      <th>Hill-climb</th><th>Grad&nbsp;soft</th><th>Grad&nbsp;ST</th>
-      <th>ST&nbsp;&minus;&nbsp;HC</th><th>CP-SAT</th><th>Upper&nbsp;bound</th>
-      <th>ST % of bound</th></tr></thead>
-    <tbody>{table}</tbody></table></div>
-  <figure style="margin-top:30px">
-    <div class="legend" id="lg1"></div><div id="c1"></div>
-    <figcaption>Profit by method. The gap at 50% utilisation is the finding: there the commander
-    runs flat out and goes <em>negative</em> on holding costs, and local bit-flipping cannot
-    discover the coordinated shutdown that the optimum requires. The backward pass sees the whole
-    horizon at once. CP-SAT is omitted from the bars &mdash; it is a ceiling, not a competitor at
-    equal budget.</figcaption>
-  </figure>
-</section>
-
-<section>
-  <p class="eyebrow">Result 2 &mdash; the diagnostic that matters</p>
-  <h2 style="margin:10px 0 8px">Credit assignment does not vanish</h2>
-  <p class="sub" style="margin-bottom:22px">Gradient magnitude with respect to the decision at
-  each tick. If this collapsed toward the right-hand edge, the gradient could not tell the
-  optimiser to pre-build for a demand spike hundreds of ticks later &mdash; which is precisely
-  the decision PPO's local, discounted reward gets wrong.</p>
-  <figure><div class="legend" id="lg2"></div><div id="c2"></div>
-    <figcaption>Share of total gradient magnitude by tick, normalised per pattern.
-    Mass is spread across the full 2,688-tick horizon rather than concentrated near the
-    terminal reward.</figcaption></figure>
-  <div class="scroll" style="margin-top:26px"><table>
-    <thead><tr><th>Horizon</th><th>Grad ST</th><th>Hill-climb</th><th>Margin</th>
-      <th>Mass in 1st quarter</th><th>90% mass spans</th><th>Non-finite</th></tr></thead>
-    <tbody>{drows}</tbody></table></div>
-  <p class="sub muted" style="margin-top:14px;font-size:.88rem">Depth sweep on a synthetic
-  self-similar problem family held at 90% utilisation. Note the margins here are small &mdash;
-  that family turned out not to discriminate between optimisers, which is why the real demand
-  patterns above were run.</p>
-</section>
-
-<section>
-  <p class="eyebrow">Result 3 &mdash; design findings</p>
-  <h2 style="margin:10px 0 20px">Three things that would have cost weeks to learn later</h2>
-  <div class="grid g3">
-    <div class="card"><h3>Exact forward beats relaxed forward</h3>
-      <p class="sub" style="font-size:.93rem;margin-top:8px">The fully-relaxed simulator
-      (<code>grad-soft</code>) loses to the greedy heuristic on three of four patterns.
-      Optimising a smoothed system optimises the wrong system, and rounding back to integers
-      discards the gains. Straight-through &mdash; exact forward, surrogate backward &mdash;
-      is the correct design.</p></div>
-    <div class="card"><h3>The exact solver still wins &mdash; but slowly</h3>
-      <p class="sub" style="font-size:.93rem;margin-top:8px">CP-SAT beats the gradient on all four
-      patterns, by $590 to $1,375. It needed 600&nbsp;s to get there, and even then closed the
-      optimality gap on <em>none</em> of them &mdash; 0.4% to 1.5% remained on a single-product,
-      four-machine problem. At 180&nbsp;s it had been beaten by random search. Solve time, not
-      solution quality, is the variable to watch as the problem grows.</p></div>
-    <div class="card open"><h3>A live bug in the training reward</h3>
-      <p class="sub" style="font-size:.93rem;margin-top:8px"><code>env.py</code> sums four numpy
-      booleans, and numpy boolean addition is logical OR &mdash; so the invalid-action count
-      saturates at 1. With <code>invalid_action_penalty=-2.0</code>, an agent requesting four
-      illegal starts is penalised exactly as much as one. Found by the port's equivalence
-      test.</p></div>
-  </div>
-</section>
-
 
 <section>
   <p class="eyebrow">How to read the results tables</p>
@@ -1405,11 +1371,85 @@ def build() -> str:
   </div>
 </section>
 
-<!--CAP-->\n<!--FAMILY3-->\n<!--F92-->
+<!--CAP-->
+
+<section>
+  <p class="eyebrow">Result 1 &mdash; the headline</p>
+  <h2 style="margin:10px 0 8px">Gradient versus every baseline, four demand patterns</h2>
+  <p class="sub" style="margin-bottom:22px">All methods start from the same random schedules
+  and get the same budget in forward-rollout-equivalents. Every figure is the rounded schedule
+  replayed through the <em>exact</em> integer simulator &mdash; relaxed-forward profit is never
+  reported as a result.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Pattern</th><th>Util</th><th>Commander</th><th>Random</th>
+      <th>Hill-climb</th><th>Grad&nbsp;soft</th><th>Grad&nbsp;ST</th>
+      <th>ST&nbsp;&minus;&nbsp;HC</th><th>CP-SAT</th><th>Upper&nbsp;bound</th>
+      <th>ST % of bound</th></tr></thead>
+    <tbody>{table}</tbody></table></div>
+  <figure style="margin-top:30px">
+    <div class="legend" id="lg1"></div><div id="c1"></div>
+    <figcaption>Profit by method. The gap at 50% utilisation is the finding: there the commander
+    runs flat out and goes <em>negative</em> on holding costs, and local bit-flipping cannot
+    discover the coordinated shutdown that the optimum requires. The backward pass sees the whole
+    horizon at once. CP-SAT is omitted from the bars &mdash; it is a ceiling, not a competitor at
+    equal budget.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <p class="eyebrow">Result 2 &mdash; the diagnostic that matters</p>
+  <h2 style="margin:10px 0 8px">Credit assignment does not vanish</h2>
+  <p class="sub" style="margin-bottom:22px">Gradient magnitude with respect to the decision at
+  each tick. If this collapsed toward the right-hand edge, the gradient could not tell the
+  optimiser to pre-build for a demand spike hundreds of ticks later &mdash; which is precisely
+  the decision PPO's local, discounted reward gets wrong.</p>
+  <figure><div class="legend" id="lg2"></div><div id="c2"></div>
+    <figcaption>Share of total gradient magnitude by tick, normalised per pattern.
+    Mass is spread across the full 2,688-tick horizon rather than concentrated near the
+    terminal reward.</figcaption></figure>
+  <div class="scroll" style="margin-top:26px"><table>
+    <thead><tr><th>Horizon</th><th>Grad ST</th><th>Hill-climb</th><th>Margin</th>
+      <th>Mass in 1st quarter</th><th>90% mass spans</th><th>Non-finite</th></tr></thead>
+    <tbody>{drows}</tbody></table></div>
+  <p class="sub muted" style="margin-top:14px;font-size:.88rem">Depth sweep on a synthetic
+  self-similar problem family held at 90% utilisation. Note the margins here are small &mdash;
+  that family turned out not to discriminate between optimisers, which is why the real demand
+  patterns above were run.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Result 3 &mdash; design findings</p>
+  <h2 style="margin:10px 0 20px">Three things that would have cost weeks to learn later</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Exact forward beats relaxed forward</h3>
+      <p class="sub" style="font-size:.93rem;margin-top:8px">The fully-relaxed simulator
+      (<code>grad-soft</code>) loses to the greedy heuristic on three of four patterns.
+      Optimising a smoothed system optimises the wrong system, and rounding back to integers
+      discards the gains. Straight-through &mdash; exact forward, surrogate backward &mdash;
+      is the correct design.</p></div>
+    <div class="card"><h3>The exact solver still wins &mdash; but slowly</h3>
+      <p class="sub" style="font-size:.93rem;margin-top:8px">CP-SAT beats the gradient on all four
+      patterns, by $590 to $1,375. It needed 600&nbsp;s to get there, and even then closed the
+      optimality gap on <em>none</em> of them &mdash; 0.4% to 1.5% remained on a single-product,
+      four-machine problem. At 180&nbsp;s it had been beaten by random search. Solve time, not
+      solution quality, is the variable to watch as the problem grows.</p></div>
+    <div class="card open"><h3>A live bug in the training reward</h3>
+      <p class="sub" style="font-size:.93rem;margin-top:8px"><code>env.py</code> sums four numpy
+      booleans, and numpy boolean addition is logical OR &mdash; so the invalid-action count
+      saturates at 1. With <code>invalid_action_penalty=-2.0</code>, an agent requesting four
+      illegal starts is penalised exactly as much as one. Found by the port's equivalence
+      test.</p></div>
+  </div>
+</section>
+
+
+<!--FAMILY3-->
+<!--F92-->
 
 <!--TWOPROD-->
 
 <!--TPRES-->
+<!--SCALE-->
 
 <section>
   <p class="eyebrow">Against the record</p>
@@ -1695,6 +1735,20 @@ __SCRIPT__
         note=TPR.get("note", ""), tprrows=tprrows, cliprows=cliprows,
         yv=f"{MS.get('y_vars',0):,}", cv=f"{MS.get('c_vars',0):,}",
         b1p=f"{MS.get('vs_1p_bools',0):,}", g1p=f"{MS.get('vs_1p_gap',0):.2%}"))
+
+
+    M18 = d.get("twoprod", {}).get("results", {}).get("milp_1800", [])
+    ref_gap = d.get("milp_depth_ref", {}).get("gap", 0.0039)
+    m18rows = "".join(
+        f"<tr><td class='l'>{m['mix']}</td><td>{m['gap900']:.2%}</td>"
+        f"<td class='hero'>{m['gap1800']:.2%}</td>"
+        f"<td class='muted'>{(m['gap1800']-m['gap900'])*100:+.2f} pp</td>"
+        f"<td>{fmt(m['inc1800'])}</td><td class='muted'>{fmt(m['bound1800'])}</td>"
+        f"<td>{m['chg']}</td><td>{m['gap1800']/ref_gap:.1f}x</td></tr>"
+        for m in M18)
+    html = html.replace("<!--SCALE-->", SCALE_TEMPLATE.format(
+        m18rows=m18rows,
+        note=d.get("twoprod", {}).get("results", {}).get("milp_note", "")))
 
     return html.replace("__SCRIPT__",
                         "<script>" + JS.replace("__PAYLOAD__", payload) + "</script>")
