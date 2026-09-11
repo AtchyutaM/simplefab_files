@@ -1405,6 +1405,58 @@ def add_slide_numbers(html: str) -> str:
     return "".join(out)
 
 
+
+ANATOMY_TEMPLATE = """
+<section>
+  <p class="eyebrow">Schedule anatomy</p>
+  <h2 style="margin:10px 0 8px">The two schedules solve the problem in opposite ways</h2>
+  <p class="sub" style="margin-bottom:16px">Every table so far reports what each method
+  <em>scored</em>. None of them says what the schedules actually <em>do</em>. Replaying both
+  through the simulator and plotting every tick turns the $1,762 gap into something legible.</p>
+
+  <div class="scroll" style="padding:10px;background:var(--panel)">
+    <img src="__IMG__" alt="Cumulative flow, queue depth, tool activity, stocks and a zoomed week
+      for the CP-SAT and gradient schedules side by side" style="width:100%;display:block"/>
+  </div>
+  <figcaption style="margin-top:10px">Read the top row as a <strong>cumulative flow
+  diagram</strong>: each curve counts units past one milestone, so the vertical gap between two
+  curves is the queue at that stage and the horizontal gap is how long a unit waited there. One
+  chart therefore carries arrivals, starts, queue depths, completions and shipments at once.</figcaption>
+
+  <div class="grid g3" style="margin-top:24px">
+    <div class="card ok"><h3>CP-SAT meters the line and builds ahead</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">It stages finished goods before each
+      weekly spike and the amount <strong>escalates &mdash; 20, then 36, then 55 units</strong> as
+      the demand pattern repeats. Mid-line inventory averages 6 units and ends at
+      <strong>zero</strong>: every unit released gets converted and shipped.</p></div>
+    <div class="card open"><h3>The gradient pushes material and lets it pile up</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">Its staging goes the wrong way &mdash;
+      <strong>21, 18, 14</strong> &mdash; so it never learns the pattern. It runs the diffusion
+      tools harder (17% idle against 23.7%) and leaves <strong>68 units stranded mid-line</strong>
+      at the horizon, having averaged seven times the work-in-progress.</p></div>
+    <div class="card flag"><h3>And it thrashes between products</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">The zoomed week at the bottom shows it:
+      CP-SAT runs long single-recipe blocks, the gradient alternates constantly. On the litho tools
+      that is <strong>182 and 175 changeovers against 115 and 82</strong>.</p></div>
+  </div>
+
+  <div class="card flag" style="margin-top:18px">
+    <h3>The picture and the cost decomposition agree exactly</h3>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">Both schedules ship identical revenue,
+    $42,480. CP-SAT's $1,762 lead is three separate mistakes, each visible above:
+    <strong>+$712</strong> of production cost on units the gradient makes but never sells,
+    <strong>+$640</strong> of changeover cost from switching twice as often, and
+    <strong>+$352</strong> of holding cost on work-in-progress it leaves standing in the line.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px"><strong>There is a mechanistic
+    explanation for the thrashing.</strong> The changeover <em>cost</em> is differentiable and the
+    gradient does see it. What it cannot see is that switching now changes the tool's configuration
+    state, and therefore what every later switch will cost &mdash; that path runs through a discrete
+    variable held under <code>stop_gradient</code>. So the gradient prices each changeover in
+    isolation and is blind to the sequence. Batching runs of one recipe is precisely the kind of
+    decision that requires reasoning about the sequence.</p></div>
+</section>
+"""
+
 def fmt(v, dp=0):
     if v is None:
         return "&mdash;"
@@ -1702,6 +1754,7 @@ def build() -> str:
 <!--TWOPROD-->
 
 <!--TPRES-->
+<!--ANATOMY-->
 <!--ANYTIME-->
 <!--SCALE-->
 
@@ -2026,9 +2079,17 @@ __SCRIPT__
     # whole document, then resolve the route references against those final
     # numbers. Resolving before insertion shifts every reference after the guide
     # by one, which is exactly the bug this ordering avoids.
+    # schedule anatomy figure, inlined as a data URI (external images are blocked)
+    import base64 as _b64
+    _fig = HERE / "twoprod" / "schedules" / "schedule_anatomy.png"
+    _src = ("data:image/png;base64," + _b64.b64encode(_fig.read_bytes()).decode()
+            if _fig.exists() else "")
+    html = html.replace("<!--ANATOMY-->", ANATOMY_TEMPLATE.replace("__IMG__", _src))
     html = html.replace("<!--GUIDE-->", GUIDE_TEMPLATE)
     html = add_slide_numbers(html)
     html = html.replace("__ROWS__", build_reading_guide(html))
+
+
     return html.replace("__SCRIPT__",
                         "<script>" + JS.replace("__PAYLOAD__", payload) + "</script>")
 
