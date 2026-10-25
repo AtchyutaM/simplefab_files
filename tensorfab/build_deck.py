@@ -11,6 +11,8 @@ Output: tensorfab/deck.html
 
 from __future__ import annotations
 
+import re
+
 import json
 from pathlib import Path
 
@@ -611,25 +613,27 @@ new MutationObserver(drawTech).observe(document.documentElement,{attributes:true
 """
 
 
-
 FAMILY3_TEMPLATE = """
 <section>
   <p class="eyebrow">Family 3 &mdash; pipeline depth</p>
-  <h2 style="margin:10px 0 8px">The gradient's advantage grows with pipeline depth</h2>
+  <h2 style="margin:10px 0 8px">The depth prediction did not survive a corrected simulator</h2>
   <p class="sub" style="margin-bottom:18px">{note}
   This was a <strong>pre-registered prediction</strong>: if the gradient's advantage comes from
   long-range credit assignment, a longer pipeline &mdash; which pushes the build-ahead decision
-  further from the revenue it earns &mdash; should widen its margin. It did.</p>
+  further from the revenue it earns &mdash; should widen its margin. On the original run it
+  appeared to. It does not.</p>
   <div class="scroll"><table>
     <thead><tr><th class="l">Line</th><th>Lead time</th><th>Commander</th><th>Random</th>
       <th>Hill-climb</th><th>Grad soft</th><th>Grad ST</th><th>vs best 0th-order</th>
       <th>Bound</th><th>ST % bound</th></tr></thead>
     <tbody>{f3rows}</tbody></table></div>
   <div class="grid g3" style="margin-top:20px">
-    <div class="card ok"><h3>Margin grows +$606 &rarr; +$815 &rarr; +$1,363</h3>
-      <p class="sub" style="font-size:.9rem;margin-top:7px">Over the best zeroth-order method at
-      equal budget. The mechanistic story made a prediction before the run and the prediction
-      held &mdash; the strongest evidence the programme has produced so far.</p></div>
+    <div class="card open"><h3>Retracted: the margin does not grow with depth</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:7px">This deck previously reported
+      <strong>+$606 &rarr; +$815 &rarr; +$1,363</strong> over the best zeroth-order method, and
+      called it the strongest evidence the programme had produced. With the routing bug fixed the
+      sequence is <strong>+$606 &rarr; &minus;$180 &rarr; +$801</strong> &mdash; not monotone, and
+      negative in the middle. There is no depth trend here. The claim is withdrawn.</p></div>
     <div class="card"><h3>Relaxed forward degrades with depth</h3>
       <p class="sub" style="font-size:.9rem;margin-top:7px">Grad-soft falls from $16,833 to
       $14,771 as relaxation error compounds along a longer chain, while straight-through
@@ -727,11 +731,12 @@ F92_TEMPLATE = """
     <tbody>{f92rows}</tbody></table></div>
   <div class="card open" style="margin-top:18px">
     <h3>This inverts the 50% result and must be read alongside it</h3>
-    <p class="sub" style="font-size:.93rem;margin-top:8px">At 50% demand the gradient's margin
-    <em>grew</em> with depth: +$606 &rarr; +$815 &rarr; +$1,363. At 92% it goes the other way
-    &mdash; &minus;$18 &rarr; &minus;$751 &rarr; &minus;$2,411 &mdash; and at 12 tools the gradient
-    finishes below even the greedy commander. The pre-registered depth prediction held at low load
-    and failed at high load. Both are real; neither cancels the other; the deck reports both.</p>
+    <p class="sub" style="font-size:.93rem;margin-top:8px">This page used to contrast a rising
+    margin at 50% demand against a falling one here. Only half of that survived the routing fix.
+    At 50% there is now no trend at all (+$606 &rarr; &minus;$180 &rarr; +$801). At 92% the
+    pattern is unchanged and clear: <strong>&minus;$17 &rarr; &minus;$578 &rarr;
+    &minus;$1,095</strong> against hill-climb, and at 12 tools the gradient finishes below even
+    the greedy commander. So the surviving depth result is the negative one.</p>
     <p class="sub" style="font-size:.93rem;margin-top:8px"><strong>A hypothesis was tested and
     rejected.</strong> {clip} Straight-through gradient norms reach 8.65e9 at 12 tools and 92%
     demand, so the natural explanation was Adam's second-moment estimate being poisoned by an
@@ -1269,7 +1274,7 @@ ANYTIME_TEMPLATE = """
   <div class="card flag" style="margin-top:16px"><h3>Why this is the first result that looks deployable</h3>
     <p class="sub" style="font-size:.93rem;margin-top:8px">Every earlier comparison ran on the
     solver's terms: unlimited time, full knowledge of demand, one schedule computed once. Under
-    those conditions CP-SAT won seven configurations out of seven, and it deserved to.</p>
+    those conditions CP-SAT won ten configurations out of ten, and it deserved to.</p>
     <p class="sub" style="font-size:.93rem;margin-top:8px">Rolling-horizon replanning does not work
     that way. It needs a good schedule in seconds, repeatedly, as the state changes &mdash; not a
     proven-optimal one in half an hour. <strong>That is a regime where the gradient is already
@@ -1294,18 +1299,24 @@ READING_ROUTES = [
       "discrete-event line becomes an array program",
       "Tracing a decision to the profit"]),
     ("Reading the results properly", "Start here before any table.",
-     ["What every column means", "of which capacity",
+     ["What every column means", "of which capacity", "actually mean",
       "Gradient versus every baseline"]),
     ("The full experimental record", "Every family, in the order it was run.",
-     ["Gradient versus every baseline", "advantage grows with pipeline depth",
+     ["Gradient versus every baseline", "depth prediction did not survive",
       "loses harder with depth", "gradient wins every mix",
       "Doubling the solver", "compares to the previous experiments"]),
     ("Picking up the code", "What exists and what proves it correct.",
      ["Infrastructure, and what proves it correct", "Everything here is reproducible",
       "From four fixed tools to any depth"]),
+    ("What the schedules actually do", "The behaviour behind the numbers.",
+     ["actually mean", "opposite ways", "How to read the next three",
+      "holds the gating tool", "takes this one"]),
+    ("How load changes the answer", "The utilisation sweep at a fixed mix.",
+     ["three different loads", "looked worse at low load",
+      "feeds the line as the load rises", "holds the gating tool", "takes this one"]),
     ("The research case", "Where the contribution is, honestly assessed.",
      ["Credit assignment does not vanish", "loses harder with depth",
-      "An honest assessment"]),
+      "looked worse at low load", "An honest assessment"]),
 ]
 
 
@@ -1320,15 +1331,23 @@ def build_reading_guide(html: str) -> str:
             index[re.sub(r"<[^>]+>", "", h.group(1)).strip()] = int(m.group(1))
 
     def find(frag):
-        for title, num in index.items():
-            if frag.lower() in title.lower():
-                return num, title
-        return None, frag
+        """Every page whose heading contains the fragment, not just the first.
+
+        The three per-mix dashboard slides share a heading shape, so a route
+        that cites one of them should cite all three."""
+        return [(num, title) for title, num in index.items()
+                if frag.lower() in title.lower()]
 
     rows = []
     for label, why, frags in READING_ROUTES:
-        hits = sorted((h for h in (find(f) for f in frags) if h[0]),
-                      key=lambda h: h[0])
+        seen_pages = set()
+        hits = []
+        for f in frags:
+            for num, title in sorted(find(f)):
+                if num not in seen_pages:
+                    seen_pages.add(num)
+                    hits.append((num, title))
+        hits.sort()
         nums = ", ".join(f"<strong>{n:02d}</strong>" for n, _ in hits if n)
         titles = "".join(
             f"<li><span class='mono'>{n:02d}</span> &nbsp;{t}</li>"
@@ -1345,7 +1364,7 @@ def build_reading_guide(html: str) -> str:
 GUIDE_TEMPLATE = """
 <section>
   <p class="eyebrow">How to use this deck</p>
-  <h2 style="margin:10px 0 8px">Seven routes through twenty-eight pages</h2>
+  <h2 style="margin:10px 0 8px">__NROUTES__ routes through __NPAGES__ pages</h2>
   <p class="sub" style="margin-bottom:18px">Every page is numbered in its top-right corner, so a
   slide can be cited directly. Pick the row that matches why someone is reading; the pages listed
   are enough on their own and can be read in the order given.</p>
@@ -1357,7 +1376,7 @@ GUIDE_TEMPLATE = """
     <div class="card flag"><h3>The one-line version</h3>
       <p class="sub" style="font-size:.9rem;margin-top:7px">A differentiable simulator reaches 91%
       of a certified optimum in 36 seconds where the exact solver needs 30 minutes &mdash; but the
-      solver still returns the better schedule on all seven configurations tested.</p></div>
+      solver still returns the better schedule on all ten configurations tested.</p></div>
     <div class="card"><h3>Corrections are kept, not tidied away</h3>
       <p class="sub" style="font-size:.9rem;margin-top:7px">Several pages carry an explicit
       <em>Correction</em> note where an earlier claim did not survive a later measurement. They are
@@ -1405,6 +1424,119 @@ def add_slide_numbers(html: str) -> str:
     return "".join(out)
 
 
+DIAG_TEMPLATE = """
+<section>
+  <p class="eyebrow">The utilisation study &mdash; a claim worth checking</p>
+  <h2 style="margin:10px 0 8px">Why the gradient looked worse at low load, and what it really was</h2>
+  <p class="sub" style="margin-bottom:16px">{intro}</p>
+  <div class="grid g2" style="margin-bottom:20px">
+    <div class="card"><h3>It is two metrics, not one</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:8px">{first}</p></div>
+    <div class="card"><h3>And most of the rest is the denominator</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:8px">{second}</p></div>
+  </div>
+  <h3 style="margin:0 0 10px">Four explanations, tested in order</h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Hypothesis</th><th class="l">Test</th><th class="l">Result</th>
+      <th>Verdict</th></tr></thead>
+    <tbody>{drows}</tbody></table></div>
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card ok"><h3>What it is</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:8px">{mech}</p></div>
+    <div class="card flag"><h3>What that does and does not buy</h3>
+      <p class="sub" style="font-size:.9rem;margin-top:8px">{after}</p>
+      <p class="sub" style="font-size:.9rem;margin-top:10px">{honest}</p></div>
+  </div>
+  <div class="scroll" style="margin-top:20px"><table>
+    <thead><tr><th class="l">Load</th><th>Grad ST, default start</th><th>% of bound</th>
+      <th>Best idle bias</th><th>Grad ST, matched start</th><th>% of bound</th>
+      <th>% of CP-SAT</th><th>Released vs demand</th><th>Stranded</th></tr></thead>
+    <tbody>{irows}</tbody></table></div>
+  <figcaption style="margin-top:10px">The left half is the sweep as originally run; the right half
+  is the same optimiser, same budget, same seed, with only the initial idle logit changed. The
+  apparent decline at low load &mdash; 80.8% up to 91.8% &mdash; flattens to 93.2 / 93.5 / 92.0 /
+  91.8 and, if anything, tilts the other way.</figcaption>
+</section>
+"""
+
+UTIL_TEMPLATE = """
+<section>
+  <p class="eyebrow">The utilisation study</p>
+  <h2 style="margin:10px 0 8px">The same order book, run at three different loads</h2>
+  <p class="sub" style="margin-bottom:18px">{intro}</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Utilisation</th><th>Demand</th><th>M0 time needed</th>
+      <th>Commander</th><th>Grad ST</th><th>CP-SAT</th><th>Dual bound</th>
+      <th>ST &minus; commander</th><th>ST % of bound</th></tr></thead>
+    <tbody>{urows}</tbody></table></div>
+  <div class="grid g3" style="margin-top:22px">{ucards}</div>
+  <p class="foot" style="margin-top:16px">{note}</p>
+</section>
+"""
+
+RELEASE_TEMPLATE = """
+<section>
+  <p class="eyebrow">The utilisation study &mdash; release behaviour</p>
+  <h2 style="margin:10px 0 8px">How each method feeds the line as the load rises</h2>
+  <p class="sub" style="margin-bottom:16px">{intro}</p>
+  <div class="scroll" style="padding:10px;background:var(--panel)">
+    <img src="{src}" alt="Cumulative releases and rolling release rate at each tool for the
+      three utilisations" style="width:100%;display:block"/>
+  </div>
+  <div class="grid g3" style="margin-top:22px">{rpcards}</div>
+  <p class="foot" style="margin-top:14px">{note}</p>
+</section>
+"""
+
+DASHINTRO_TEMPLATE = """
+<section>
+  <p class="eyebrow">Full schedule dashboards</p>
+  <h2 style="margin:10px 0 8px">How to read the next three slides</h2>
+  <p class="sub" style="margin-bottom:18px">{intro}</p>
+  <div class="grid g2">{howto}</div>
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card ok"><h3>What they show</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">{finding}</p>
+      <p class="sub" style="font-size:.92rem;margin-top:10px">{mechanism}</p></div>
+    <div class="card flag"><h3>And what that implies</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">{restraint}</p></div>
+  </div>
+  <div class="card flag" style="margin-top:18px"><h3>Two caveats on these figures</h3>
+    <p class="sub" style="font-size:.9rem;margin-top:8px">{caveat}</p>
+    <p class="sub" style="font-size:.9rem;margin-top:10px">{integrity}</p></div>
+  <p class="foot" style="margin-top:14px">{fullres}</p>
+</section>
+"""
+
+DASHMIX_TEMPLATE = """
+<section>
+  <p class="eyebrow">Schedule dashboards &mdash; {mixlabel} mix at {util} utilisation</p>
+  <h2 style="margin:10px 0 8px">{headline}</h2>
+  <div class="scroll" style="margin-bottom:16px"><table>
+    <thead><tr><th class="l">Method</th><th>Profit ($)</th><th>% of bound</th><th>Changeovers</th>
+      <th>Mean mid-line WIP</th><th>Stranded mid-line</th><th>Unsold finished goods</th>
+      <th>M0 duty cycle</th><th>Units shipped</th></tr></thead>
+    <tbody>{drows}</tbody></table></div>
+  <figcaption style="margin-bottom:18px"><strong>Mean mid-line WIP</strong> is the average number
+  of units waiting at queues 1 and 2 &mdash; the interior of the line, which should stay near
+  empty if material is flowing. <strong>Stranded mid-line</strong> and <strong>unsold finished
+  goods</strong> are what each method is still holding when the horizon closes: the first is
+  material released and partly processed, the second is product built after the order book was
+  already satisfied. Both were paid for and neither earns anything. <strong>M0 duty cycle</strong>
+  is the fraction of ticks the gating tool is busy. {shipnote}</figcaption>
+  {imgs}
+</section>
+"""
+
+DASHIMG_TEMPLATE = """
+  <div style="margin-bottom:18px">
+    <p class="sub" style="margin:0 0 6px"><strong>{label}</strong> &mdash; {cap}</p>
+    <div class="scroll" style="padding:8px;background:var(--panel)">
+      <img src="{src}" alt="Schedule dashboard for {label} at mix {mixlabel}"
+           style="width:100%;display:block"/>
+    </div>
+  </div>
+"""
 
 ANATOMY_TEMPLATE = """
 <section>
@@ -1454,6 +1586,26 @@ ANATOMY_TEMPLATE = """
     variable held under <code>stop_gradient</code>. So the gradient prices each changeover in
     isolation and is blind to the sequence. Batching runs of one recipe is precisely the kind of
     decision that requires reasoning about the sequence.</p></div>
+</section>
+"""
+
+
+MIXES_TEMPLATE = """
+<section>
+  <p class="eyebrow">The three two-product experiments</p>
+  <h2 style="margin:10px 0 8px">What 50/50, 90/10 and 10/90 actually mean</h2>
+  <p class="sub" style="margin-bottom:18px">{note}</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Mix</th><th>&alpha;</th><th>P0 demand</th><th>P1 demand</th>
+      <th>Total units</th><th>Bottleneck ticks</th><th>% of horizon</th><th>Profit ceiling</th>
+      <th>CP-SAT changeovers</th><th class="l">What it tests</th></tr></thead>
+    <tbody>{mxrows}</tbody></table></div>
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card flag"><h3>Matched on capacity, not on unit count</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">{capnote}</p></div>
+    <div class="card"><h3>Which leaves changeover pressure as the real variable</h3>
+      <p class="sub" style="font-size:.92rem;margin-top:8px">{ceilnote}</p></div>
+  </div>
 </section>
 """
 
@@ -1547,11 +1699,12 @@ def build() -> str:
   </div>
 
   <div class="grid g3" style="margin-top:32px">
-    <div class="card ok"><div class="stat" style="color:var(--ok)">4</div>
-      <div class="statlbl">predictions the mechanism made and&nbsp;got&nbsp;right</div></div>
+    <div class="card ok"><div class="stat" style="color:var(--ok)">4 / 5</div>
+      <div class="statlbl">predictions the mechanism made that&nbsp;held<br>
+      <span style="text-transform:none;letter-spacing:0">(the depth prediction did not)</span></div></div>
     <div class="card flag"><div class="stat" style="color:var(--accent)">8.4&times;</div>
       <div class="statlbl">CP-SAT gap vs pipeline depth, matched&nbsp;budget</div></div>
-    <div class="card open"><div class="stat" style="color:var(--open)">0 / 7</div>
+    <div class="card open"><div class="stat" style="color:var(--open)">0 / 10</div>
       <div class="statlbl">configurations where a learned method beat&nbsp;the&nbsp;solver</div></div>
   </div>
 </section>
@@ -1570,13 +1723,14 @@ def build() -> str:
       <h3 style="margin:12px 0 8px">It beats every search baseline &mdash; where decisions are live</h3>
       <p class="sub" style="font-size:.93rem">On all four single-product demand patterns and all
       three two-product mixes, at equal budget from identical starts. The margin tracks one thing:
-      how many genuine choices the schedule contains. It is an order of magnitude at 50%
-      utilisation, $967&ndash;$2,664 across the product mixes, and <em>negative</em> where the line
-      runs saturated and there is nothing left to choose.</p></div>
+      how many genuine choices the schedule contains. Held at a fixed mix and swept across load,
+      the gradient's margin over the industrial heuristic runs <strong>+$12,397 at 60%
+      utilisation, +$2,803 at 80% and &minus;$726 at 92%</strong> &mdash; the mechanism as a
+      monotone curve rather than an inference from two points.</p></div>
     <div class="card open"><span class="pill open">Not shown</span>
       <h3 style="margin:12px 0 8px">The exact solver still wins, everywhere</h3>
       <p class="sub" style="font-size:.93rem">CP-SAT returns a better schedule than every learned
-      method on every configuration tested &mdash; seven for seven. The gradient reaches
+      method on every configuration tested &mdash; ten for ten. The gradient reaches
       91&ndash;95% of a certified bound but never passes it.</p>
       <p class="sub" style="font-size:.93rem;margin-top:8px">And every comparison so far is
       deterministic, full-information and open-loop, which is the solver's ideal case. Inference
@@ -1753,8 +1907,15 @@ def build() -> str:
 
 <!--TWOPROD-->
 
+<!--MIXES-->
 <!--TPRES-->
 <!--ANATOMY-->
+<!--DASHINTRO-->
+<!--DASHMIX-->
+<!--UTIL-->
+<!--DIAG-->
+<!--RELEASE-->
+<!--DASHUTIL-->
 <!--ANYTIME-->
 <!--SCALE-->
 
@@ -2079,8 +2240,154 @@ __SCRIPT__
     # whole document, then resolve the route references against those final
     # numbers. Resolving before insertion shifts every reference after the guide
     # by one, which is exactly the bug this ordering avoids.
-    # schedule anatomy figure, inlined as a data URI (external images are blocked)
+    MX = d.get("twoprod", {}).get("mixes_explained", {})
+    mxrows = "".join(
+        f"<tr><td class='l'><strong>{r['label']}</strong></td><td>{r['alpha']}</td>"
+        f"<td>{r['d0']}</td><td>{r['d1']}</td><td>{r['total']}</td>"
+        f"<td>{r['ticks']:,}</td><td>{r['pct']:.1%}</td><td>{fmt(r['ceiling'])}</td>"
+        f"<td>{r['chg']}</td><td class='l'>{r['why']}</td></tr>"
+        for r in MX.get("rows", []))
+    html = html.replace("<!--MIXES-->", MIXES_TEMPLATE.format(
+        note=MX.get("note", ""), mxrows=mxrows,
+        capnote=MX.get("capacity_note", ""), ceilnote=MX.get("ceiling_note", "")))
+
     import base64 as _b64
+    # ---- schedule dashboards: intro plus one slide per demand mix ----------
+    DN = d.get("twoprod", {}).get("dashboards_note", {})
+    howto = "".join(
+        f"<div class='card'><h3>{h}</h3>"
+        f"<p class='sub' style='font-size:.9rem;margin-top:7px'>{t}</p></div>"
+        for h, t in DN.get("howto", []))
+    html = html.replace("<!--DASHINTRO-->", DASHINTRO_TEMPLATE.format(
+        intro=DN.get("intro", ""), howto=howto, finding=DN.get("finding", ""),
+        mechanism=DN.get("mechanism", ""), restraint=DN.get("restraint", ""),
+        caveat=DN.get("caveat", ""), integrity=DN.get("integrity", ""),
+        fullres=DN.get("fullres", "")))
+
+    DB = d.get("twoprod", {}).get("dashboards", {})
+    CAP = {"CP-SAT": "the reference: gating tool deliberately idle, interior of the line empty",
+           "Grad-ST": "the method under test",
+           "Commander": "the industrial heuristic: runs the gating tool hardest of the three"}
+
+    def dash_slide(key):
+        """One dashboard page for one run, keyed by its <alpha,util> run tag."""
+        run = DB.get(key)
+        if not run:
+            return ""
+        drows = "".join(
+            f"<tr><td class='l'><strong>{r['method']}</strong></td>"
+            f"<td class={'\'hero\'' if r['method'] == 'Grad-ST' else '\'\''}>"
+            f"{fmt(r['profit'])}</td>"
+            f"<td>{r['pct_bound']:.1%}</td><td>{r['changeovers']}</td>"
+            f"<td>{r['midline_wip']:.1f}</td><td>{r['stranded']}</td>"
+            f"<td>{r['fg_left']}</td>"
+            f"<td>{r['m0_duty']:.0%}</td><td>{r['shipped']}</td></tr>"
+            for r in run.get("rows", []))
+        imgs = []
+        for r in run.get("rows", []):
+            meth = {"CP-SAT": "cpsat", "Grad-ST": "gradst",
+                    "Commander": "commander"}[r["method"]]
+            f = HERE / "twoprod" / "schedules" / f"dash_{key}_{meth}_web.png"
+            if not f.exists():
+                continue
+            imgs.append(DASHIMG_TEMPLATE.format(
+                label=r["method"], cap=CAP.get(r["method"], ""),
+                src="data:image/png;base64," + _b64.b64encode(f.read_bytes()).decode(),
+                mixlabel=run.get("label", key)))
+        rows = {r["method"]: r for r in run.get("rows", [])}
+        cp, gs_ = rows.get("CP-SAT"), rows.get("Grad-ST")
+        best = max(run.get("rows", []), key=lambda r: r["profit"], default=None)
+        if cp and gs_ and best and best["method"] != "CP-SAT":
+            headline = (f"{best['method']} takes this one &mdash; {fmt(best['profit'])} "
+                        f"against CP-SAT's {fmt(cp['profit'])}")
+        elif cp and gs_:
+            headline = (f"CP-SAT holds the gating tool at {cp['m0_duty']:.0%}; "
+                        f"grad-ST runs it at {gs_['m0_duty']:.0%}")
+        else:
+            headline = "Schedules side by side"
+        alpha, util = run.get("alpha", 0.5), run.get("util", 0.80)
+        pct = int(round(alpha * 100))
+        # Whether the profit spread is purely cost depends on whether everyone
+        # actually cleared the order book, which stops being true under load.
+        ship = {r["method"]: r["shipped"] for r in run.get("rows", [])}
+        demand = sum(run.get("demand", [])) or max(ship.values(), default=0)
+        short = {m: demand - v for m, v in ship.items() if v < demand}
+        if not short:
+            shipnote = ("Every method ships the full order book, so the profit spread here is "
+                        "entirely cost, not lost revenue.")
+        else:
+            bits = ", ".join(f"{m} is {n} unit{'s' if n != 1 else ''} short" 
+                             for m, n in short.items())
+            shipnote = (f"Note that the order book is <strong>not</strong> fully cleared at this "
+                        f"load: {bits} of the {demand} demanded. Part of the profit gap is "
+                        f"therefore lost revenue, not just cost.")
+        return DASHMIX_TEMPLATE.format(
+            mixlabel=f"{pct} / {100 - pct}", alpha=f"{alpha}", util=f"{util:.0%}",
+            headline=headline, drows=drows, imgs="".join(imgs), shipnote=shipnote)
+
+    # the product-mix study: three mixes, all at 80% utilisation
+    html = html.replace("<!--DASHMIX-->",
+                        "".join(dash_slide(k) for k in
+                                ("a050_u080", "a090_u080", "a010_u080")))
+
+    # ---- the utilisation study: one mix, three utilisations ---------------
+    UT = d.get("twoprod", {}).get("util_study", {})
+    urows = "".join(
+        f"<tr><td class='l'><strong>{r['util']}</strong></td><td>{r['demand']}</td>"
+        f"<td>{r['pct_ceiling']}</td>"
+        f"<td class='muted'>{r['commander']}</td><td>{r['gradst']}</td>"
+        f"<td class='muted'>{r['cpsat']}</td><td>{r['bound']}</td>"
+        f"<td class={'\'hero\'' if r.get('st_wins') else '\'neg\''}>{r['margin']}</td>"
+        f"<td>{r['pct_bound']}</td></tr>"
+        for r in UT.get("rows", []))
+    ucards = "".join(
+        f"<div class='card {c.get('kind','')}'><h3>{c['h']}</h3>"
+        f"<p class='sub' style='font-size:.91rem;margin-top:8px'>{c['t']}</p></div>"
+        for c in UT.get("cards", []))
+    html = html.replace("<!--UTIL-->", UTIL_TEMPLATE.format(
+        intro=UT.get("intro", ""), urows=urows, ucards=ucards,
+        note=UT.get("note", "")))
+
+    # ---- the low-load diagnosis -------------------------------------------
+    DG = d.get("twoprod", {}).get("diagnosis", {})
+    VC = {"Confirmed": "ok", "Rejected": "open"}
+    drows = "".join(
+        f"<tr><td class='l'><strong>{r['h']}</strong></td><td class='l'>{r['test']}</td>"
+        f"<td class='l'>{r['res']}</td>"
+        f"<td><span class='pill {VC.get(r['v'], '')}'>{r['v']}</span></td></tr>"
+        for r in DG.get("rows", []))
+    IS = d.get("twoprod", {}).get("init_summary", {}).get("rows", [])
+    irows = "".join(
+        f"<tr><td class='l'><strong>{r['util']:.0%}</strong></td>"
+        f"<td class='muted'>{fmt(r['base'])}</td><td class='muted'>{r['base_pct_b']:.1%}</td>"
+        f"<td>+{r['best_bias']:.0f}</td>"
+        f"<td class='hero'>{fmt(r['best'])}</td><td>{r['best_pct_b']:.1%}</td>"
+        f"<td>{r['best_pct_cp']:.1%}</td>"
+        f"<td>{r['base_rel']:.2f}&times; &rarr; {r['best_rel']:.2f}&times;</td>"
+        f"<td>{r['base_stranded']} &rarr; {r['best_stranded']}</td></tr>"
+        for r in IS)
+    html = html.replace("<!--DIAG-->", DIAG_TEMPLATE.format(
+        intro=DG.get("intro", ""), first=DG.get("first", ""), second=DG.get("second", ""),
+        drows=drows, mech=DG.get("mech", ""), after=DG.get("after", ""),
+        honest=DG.get("honest", ""), irows=irows))
+
+    _rp = HERE / "twoprod" / "schedules" / "release_patterns_web.png"
+    RP = d.get("twoprod", {}).get("release_note", {})
+    rpcards = "".join(
+        f"<div class='card {c.get('kind','')}'><h3>{c['h']}</h3>"
+        f"<p class='sub' style='font-size:.91rem;margin-top:8px'>{c['t']}</p></div>"
+        for c in RP.get("cards", []))
+    html = html.replace("<!--RELEASE-->", RELEASE_TEMPLATE.format(
+        intro=RP.get("intro", ""), rpcards=rpcards, note=RP.get("note", ""),
+        src=("data:image/png;base64," + _b64.b64encode(_rp.read_bytes()).decode()
+             if _rp.exists() else "")))
+
+    # dedicated dashboard pages for the two new utilisations
+    html = html.replace("<!--DASHUTIL-->",
+                        "".join(dash_slide(k) for k in
+                                ("a050_u050", "a050_u060", "a050_u092")))
+
+    # schedule anatomy figure, inlined as a data URI (external images are blocked)
     _fig = HERE / "twoprod" / "schedules" / "schedule_anatomy.png"
     _src = ("data:image/png;base64," + _b64.b64encode(_fig.read_bytes()).decode()
             if _fig.exists() else "")
@@ -2088,6 +2395,10 @@ __SCRIPT__
     html = html.replace("<!--GUIDE-->", GUIDE_TEMPLATE)
     html = add_slide_numbers(html)
     html = html.replace("__ROWS__", build_reading_guide(html))
+    WORDS = {5: "Five", 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten"}
+    _total = re.search(r'<span class="slideno">\d+ / (\d+)</span>', html)
+    html = html.replace("__NROUTES__", WORDS.get(len(READING_ROUTES), str(len(READING_ROUTES))))
+    html = html.replace("__NPAGES__", _total.group(1) if _total else "?")
 
 
     return html.replace("__SCRIPT__",

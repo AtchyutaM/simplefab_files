@@ -1,0 +1,27 @@
+=== run 20260913-092131_twoprod_init ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"alpha": 0.5, "util": [0.6], "biases": [0.0, 1.0, 2.0, 3.0, 4.0], "steps": 400, "batch": 64, "seed": 0}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+=== util 60%   demand 352   CP-SAT $21,966 ===
+ idle bias     profit  released   vs dem  stranded   midWIP % of CP-SAT
+       0.0     19,773       468    1.33x       128     33.4      90.0%
+       1.0     20,297       468    1.33x       128     35.3      92.4%
+       2.0     21,449       360    1.02x        20     13.4      97.6%
+       3.0     20,532       332    0.94x         8     16.6      93.5%
+       4.0    -17,194       204    0.58x         2     24.2     -78.3%
+>>> util 60%: profit $19,773 -> $20,297 -> $21,449 -> $20,532 -> $-17,194 as idle bias 0 -> 1 -> 2 -> 3 -> 4
+=== done in 172.1s ===

@@ -15,6 +15,7 @@ from tensorfab import device
 device.configure()
 import jax, jax.numpy as jnp
 from simplefab.config import make_common_config
+from tensorfab.twoprod.naming import sched_name
 from tensorfab.twoprod.spec import spec2p_from_common_config
 from tensorfab.twoprod.tensor_sim import make_line_2p, profit_breakdown_2p
 from tensorfab.twoprod.diffsim import DiffLine2P, Relax2P
@@ -121,8 +122,9 @@ def main():
                 flat[f"{k}__{kk}"] = np.asarray(vv)
         else:
             flat[k] = np.asarray(v)
-    np.savez_compressed(OUT / "schedules.npz", **flat)
-    print(f"\nwrote {OUT/'schedules.npz'}")
+    name = sched_name(args.alpha, args.util)
+    np.savez_compressed(OUT / name, **flat)
+    print(f"\nwrote {OUT}/{name}")
 
 
 if __name__ == "__main__":

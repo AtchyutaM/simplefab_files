@@ -1,0 +1,1430 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>The Tensorised Line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+:root{
+  --ground:#F6F7FA; --surface:#FFFFFF; --sunk:#EDF0F5;
+  --ink:#11151C; --ink-2:#434C5C; --ink-3:#737D8E; --rule:#D9DEE7;
+  --accent:#2B4A9B;          /* litho / primary */
+  --accent-soft:#E6EBF7;
+  --furnace:#A8650B;         /* DIFF tools, used semantically only */
+  --furnace-soft:#F7EEDF;
+  --gain:#0E6A4B; --loss:#A3293F;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --measure:68ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1116; --surface:#161B23; --sunk:#11161D;
+    --ink:#E6EAF0; --ink-2:#AEB7C6; --ink-3:#78828F; --rule:#262E39;
+    --accent:#7FA0E8; --accent-soft:#1A2338;
+    --furnace:#D99A3F; --furnace-soft:#2A2113;
+    --gain:#3FB98B; --loss:#E0768C;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1116; --surface:#161B23; --sunk:#11161D;
+  --ink:#E6EAF0; --ink-2:#AEB7C6; --ink-3:#78828F; --rule:#262E39;
+  --accent:#7FA0E8; --accent-soft:#1A2338;
+  --furnace:#D99A3F; --furnace-soft:#2A2113;
+  --gain:#3FB98B; --loss:#E0768C;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--serif); font-size:17px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1000px;margin:0 auto;padding:0 26px}
+.col{max-width:var(--measure)}
+h1,h2,h3,h4{font-family:var(--sans);text-wrap:balance;margin:0;letter-spacing:-.02em;line-height:1.2}
+h1{font-size:clamp(2.1rem,4.6vw,3.1rem);font-weight:700}
+h2{font-size:clamp(1.35rem,2.6vw,1.8rem);font-weight:650}
+h3{font-size:1.08rem;font-weight:600;letter-spacing:-.005em}
+h4{font-size:.93rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);font-weight:500}
+.lede{font-size:1.1rem;color:var(--ink-2)}
+.muted{color:var(--ink-3)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header.hero{padding:62px 0 38px;border-bottom:1px solid var(--rule)}
+header.hero .col{display:flex;flex-direction:column;gap:16px}
+
+/* sections are a genuine ordered sequence, so they are numbered */
+section{padding:46px 0;border-top:1px solid var(--rule)}
+section:first-of-type{border-top:none}
+.shead{display:flex;gap:14px;align-items:baseline;margin-bottom:6px}
+.snum{font-family:var(--mono);font-size:.8rem;font-weight:500;color:var(--accent);
+  flex:none;padding-top:.25em}
+.stack{display:flex;flex-direction:column;gap:18px}
+.stack-s{display:flex;flex-direction:column;gap:10px}
+
+/* wide bands for data that must not squeeze the prose measure */
+.wide{overflow-x:auto;background:var(--surface);border:1px solid var(--rule);
+  border-radius:4px;padding:16px 18px}
+.wide pre{margin:0}
+pre,code{font-family:var(--mono);font-variant-numeric:tabular-nums}
+pre{font-size:.82rem;line-height:1.62;margin:0;white-space:pre}
+p code,li code,td code{font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+
+table{width:100%;border-collapse:collapse;font-family:var(--mono);
+  font-size:.79rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 11px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+thead th{font-size:.67rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;background:var(--sunk)}
+tbody tr:last-child td{border-bottom:none}
+td.pos{color:var(--gain)} td.neg{color:var(--loss)}
+.wide table{font-size:.76rem}
+
+/* the repeated "array" object: one shape for every tensor we introduce */
+.arrays{display:grid;gap:12px}
+@media(min-width:720px){.arrays{grid-template-columns:1fr 1fr}}
+.arr{background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:13px 15px;display:flex;flex-direction:column;gap:5px}
+.arr .nm{font-family:var(--mono);font-size:.86rem;font-weight:600;color:var(--ink)}
+.arr .sh{font-family:var(--mono);font-size:.73rem;color:var(--accent)}
+.arr .ds{font-size:.9rem;color:var(--ink-2);line-height:1.5}
+.arr.furn{border-left:3px solid var(--furnace)}
+.arr.lith{border-left:3px solid var(--accent)}
+
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);
+  border-radius:0 4px 4px 0;padding:14px 17px;font-size:.95rem;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.warn{background:var(--furnace-soft);border-left:3px solid var(--furnace);
+  border-radius:0 4px 4px 0;padding:14px 17px;font-size:.95rem;color:var(--ink-2)}
+.warn strong{color:var(--ink)}
+
+/* the tick: an ordered list where the number is the execution order */
+ol.phases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;
+  counter-reset:ph}
+ol.phases li{display:grid;grid-template-columns:2.1rem 1fr;gap:14px;
+  padding:13px 0;border-bottom:1px solid var(--rule)}
+ol.phases li:last-child{border-bottom:none}
+ol.phases li::before{counter-increment:ph;content:counter(ph);
+  font-family:var(--mono);font-size:.78rem;color:var(--accent);font-weight:600;padding-top:.2em}
+.phase-b{display:flex;flex-direction:column;gap:7px}
+.phase-b h4{font-family:var(--sans)}
+.phase-b .why{font-size:.93rem;color:var(--ink-2)}
+.phase-b pre{font-size:.78rem;background:var(--sunk);padding:9px 12px;border-radius:3px;
+  overflow-x:auto}
+
+.chip{display:inline-block;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;
+  text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid currentColor;
+  font-weight:600}
+.chip.f{color:var(--furnace)} .chip.l{color:var(--accent)}
+
+ul.tight{margin:0;padding-left:1.15em} ul.tight li{margin:6px 0}
+ul.tight li::marker{color:var(--accent)}
+
+.toc{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:16px 20px}
+.toc ol{margin:0;padding-left:1.4em;columns:2;column-gap:34px;font-family:var(--sans);font-size:.9rem}
+@media(max-width:700px){.toc ol{columns:1}}
+.toc li{margin:4px 0}
+.toc a{text-decoration:none;color:var(--ink-2)}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+
+footer{padding:40px 0 70px;color:var(--ink-3);font-size:.87rem}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="col">
+    <p class="eyebrow">SimpleFab&nbsp;/&nbsp;tensorfab&nbsp;&middot;&nbsp;complete walkthrough</p>
+    <h1>The tensorised line</h1>
+    <p class="lede">A two-machine factory, twenty-four ticks, forty-eight decisions.
+    Every array it holds, how each one changes with time, and how calculus turns
+    &ldquo;when should I release material?&rdquo; into a number for each decision.</p>
+    <p class="muted" style="font-size:.93rem">Every figure on this page comes from running the
+    code. Reproduce with <code>python -m tensorfab.demo_walkthrough</code> and
+    <code>python -m tensorfab.demo_gradient</code>.</p>
+  </div>
+</header>
+
+<section>
+  <div class="col toc">
+    <ol>
+      <li><a href="#s1">The factory, and why it is hard</a></li>
+      <li><a href="#s2">Two kinds of array</a></li>
+      <li><a href="#s3">The fixed arrays</a></li>
+      <li><a href="#s4">The changing arrays</a></li>
+      <li><a href="#s5">One tick, in order</a></li>
+      <li><a href="#s6">Twenty-four ticks, watched</a></li>
+      <li><a href="#s7">Turning a run into one number</a></li>
+      <li><a href="#s8">&theta;, &tau;<sub>a</sub> and &tau;<sub>q</sub></a></li>
+      <li><a href="#s9">Why plain autodiff returns zero</a></li>
+      <li><a href="#s10">Straight-through</a></li>
+      <li><a href="#s11">Where &minus;2.73 comes from</a></li>
+      <li><a href="#s12">How the backward pass actually runs</a></li>
+      <li><a href="#s13">Two schedules, side by side</a></li>
+      <li><a href="#s14">How the optimiser finds the schedule</a></li>
+      <li><a href="#s15">What this toy cannot show</a></li>
+      <li><a href="#s16">Is this reinforcement learning?</a></li>
+      <li><a href="#s17">A bug found writing this page</a></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s1">
+  <div class="col stack">
+    <div class="shead"><span class="snum">01</span><h2>The factory, and why it is hard</h2></div>
+
+    <div class="wide"><pre>  arrivals ──▶ [q0] ──▶ <span style="color:var(--furnace);font-weight:600">M0 furnace</span> ──▶ [q1] ──▶ <span style="color:var(--accent);font-weight:600">M1 litho</span> ──▶ shipped
+                        takes 2 units            takes 1 unit
+                        runs  4 ticks            runs  2 ticks
+                        emits 2 units            emits 1 unit</pre></div>
+
+    <p>Four units of raw material arrive at tick 0. Two finished units are due at
+    tick 10 and two more at tick 18. The horizon is 24 ticks. Each unit sells for
+    $80. The furnace costs $10 per unit it processes, the litho tool $5.</p>
+
+    <p>Two costs create the whole problem. Finished goods sitting on the shelf cost
+    <strong>$1 per unit per tick</strong>. Demand you have not met costs
+    <strong>$4 per unit per tick</strong>, charged only after a four-tick grace period.</p>
+
+    <div class="note">
+      <strong>So build too early and you pay to store it; build too late and you pay four
+      times as much for being late.</strong> Each batch has a window. And because the
+      furnace holds 2 units for 4 ticks, then litho converts them one at a time over 2
+      ticks each, a release at tick <em>t</em> yields finished units at <em>t</em>+6 and
+      <em>t</em>+8. The decision and its consequence are eight ticks apart.
+    </div>
+
+    <p>There is a third trap, which catches naive schedules. A tool can only start a job
+    if it is <em>free</em> and has <em>enough input</em>. Ask the furnace to start at tick 0
+    and again at tick 1 and the second request is simply refused — it is still busy. Two of
+    your four units are never made. Capacity here is not a cost you pay; it is a gate that
+    silently drops your request.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s2">
+  <div class="col stack">
+    <div class="shead"><span class="snum">02</span><h2>Two kinds of array</h2></div>
+
+    <p>A normal discrete-event simulator stores a queue as a <em>list of arrival
+    timestamps</em> and a machine as a pair <code>(busy, finish_time)</code>. Lists grow and
+    shrink, so they cannot be stacked into a rectangular block of numbers, and nothing about
+    them is differentiable.</p>
+
+    <p>But look at what the rules actually read. They never ask <em>which</em> unit is
+    waiting or <em>when</em> it arrived. They ask only <strong>how many units are
+    waiting</strong> and <strong>how long until this job lands</strong>. Both are numbers.
+    So the whole factory collapses into a handful of fixed-size arrays, and everything
+    splits into two groups:</p>
+
+    <div class="arrays">
+      <div class="arr">
+        <span class="nm">Fixed arrays</span>
+        <span class="sh">never change during a run</span>
+        <span class="ds">Processing times, batch sizes, the shape of the line, the arrival
+        and demand schedule, the prices. Set once, then compiled into the program as
+        constants.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">State arrays</span>
+        <span class="sh">rewritten every tick</span>
+        <span class="ds">Queue contents, jobs in flight, finished goods, what we owe, and
+        the running cost counters. This is the bundle that gets carried from one tick to
+        the next.</span>
+      </div>
+    </div>
+
+    <p>Keeping them separate is what lets the whole 24-tick loop — or the real line's
+    2,688-tick loop — compile into a single fused computation, and run thousands of
+    different schedules side by side at once.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s3">
+  <div class="col stack">
+    <div class="shead"><span class="snum">03</span><h2>The fixed arrays</h2></div>
+    <p>Every one of them, with its real value in this example. <span class="chip f">furnace</span>
+    and <span class="chip l">litho</span> are positions 0 and 1 in every per-machine array.</p>
+  </div>
+
+  <div class="wrap" style="padding:0">
+    <div class="arrays" style="margin-top:20px">
+      <div class="arr furn">
+        <span class="nm">pt = [4, 2]</span><span class="sh">shape [M] &middot; ticks</span>
+        <span class="ds"><strong>Processing time.</strong> How long a tool is occupied by one
+        job. Used exactly once, when the program is built, to decide which slot a start
+        writes into. After that the dynamics never mention it again.</span>
+      </div>
+      <div class="arr furn">
+        <span class="nm">take = [2, 1]</span><span class="sh">shape [M] &middot; units</span>
+        <span class="ds"><strong>Units consumed</strong> from the input queue by one start.
+        The furnace is a batch tool and swallows 2 at a time; litho takes 1.</span>
+      </div>
+      <div class="arr lith">
+        <span class="nm">make = [2, 1]</span><span class="sh">shape [M] &middot; units</span>
+        <span class="ds"><strong>Units emitted</strong> when a job completes. Kept separate
+        from <code>take</code> because they need not match — yield loss would simply be
+        <code>make &lt; take</code>, with no other change anywhere.</span>
+      </div>
+      <div class="arr lith">
+        <span class="nm">route = [1, &minus;1]</span><span class="sh">shape [M]</span>
+        <span class="ds"><strong>The entire topology.</strong> <code>route[m]</code> is the
+        queue that machine <em>m</em>'s output lands in; <code>&minus;1</code> means
+        &ldquo;ship it&rdquo;. This single list is the only place the shape of the factory is
+        declared.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">arrivals</span><span class="sh">shape [H] &middot; [4, 0, 0, &hellip;]</span>
+        <span class="ds">Raw material entering q0 at each tick. Here: everything at tick 0.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">demand</span><span class="sh">shape [H] &middot; 2 at t=10, 2 at t=18</span>
+        <span class="ds">New demand appearing at each tick. It joins the backlog immediately.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">demand_lag_cum</span><span class="sh">shape [H]</span>
+        <span class="ds"><strong>The grace period, precomputed.</strong> Cumulative demand
+        shifted forward 4 ticks. Demand appears at t=10, and this array only rises to 2 at
+        <strong>t=14</strong> — so lateness becomes one subtraction instead of tracking an age
+        per unit. See the note below.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">prices</span><span class="sh">scalars and [M]</span>
+        <span class="ds">revenue $80/unit; prod_cost [$10, $5] per unit; fg_holding
+        $1/unit/tick; wip_holding [$0, $0.50] per queue; backorder $4/unit/tick.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">H = 24, M = 2</span><span class="sh">scalars</span>
+        <span class="ds">Horizon in ticks, and number of machines. Fixed sizes are what make
+        the whole run one compiled block.</span>
+      </div>
+      <div class="arr">
+        <span class="nm">reg_len = 5</span><span class="sh">scalar</span>
+        <span class="ds">Length of the delay register, <code>max(pt) + 1 = 4 + 1</code>. The
+        <code>+1</code> exists because slot 0 must be able to hold &ldquo;landing right
+        now&rdquo;.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col stack" style="margin-top:26px">
+    <div class="note">
+      <strong>Why <code>demand_lag_cum</code> is worth the trouble.</strong> Backorder is only
+      charged on demand that has gone unmet for more than four ticks. Tracking that directly
+      would mean storing an age for every outstanding unit — a variable-length structure, the
+      exact thing we are trying to avoid. Instead we precompute the demand curve shifted four
+      ticks into the future. Then lateness at any tick is just
+      <code>max(demand_lag_cum[t] &minus; cum_ship, 0)</code>: one subtraction, no loop, no
+      per-unit bookkeeping.
+    </div>
+
+    <h3 style="margin-top:12px">Two arrays derived from <code>route</code></h3>
+    <p>Before the run starts, <code>route</code> is expanded into a matrix and a mask:</p>
+
+    <div class="wide"><pre>route = [1, -1]        "M0's output goes to q1;  M1's output ships"
+
+        ┌ to q0   to q1 ┐                ┌ ships? ┐
+   M0   │   0       1   │           M0   │   0    │
+   M1   │   0       0   │           M1   │   1    │
+        └ R [M, M] ─────┘                └ to_fg ─┘</pre></div>
+
+    <p><code>R[m, j] = 1</code> when machine <em>m</em> feeds queue <em>j</em>. A machine that
+    ships has an <strong>all-zero row</strong>, because its output is picked up by
+    <code>to_fg</code> instead — so the two never double-count. With those two arrays, routing
+    the entire factory is a single matrix product, which you will see in section 5.</p>
+
+    <h3 style="margin-top:12px">And one more: where a start writes</h3>
+    <div class="wide"><pre>slot_onehot [M, L]        slot:  0   1   2   3   4
+                     M0 (pt=4)  [  0   0   0   0   1  ]
+                     M1 (pt=2)  [  0   0   1   0   0  ]</pre></div>
+    <p>Row <em>m</em> is a single 1 at position <code>pt[m]</code>. Starting a job becomes
+    <code>reg += start × slot_onehot</code> — a multiply and an add, with
+    <code>pt</code> compiled away into a constant.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s4">
+  <div class="col stack">
+    <div class="shead"><span class="snum">04</span><h2>The changing arrays</h2></div>
+    <p>This is the bundle carried from tick to tick. Shown at their starting values.</p>
+  </div>
+
+  <div class="arrays" style="margin-top:20px">
+    <div class="arr">
+      <span class="nm">q = [0, 0]</span><span class="sh">[M] &middot; units</span>
+      <span class="ds"><strong>How many units wait in front of each machine.</strong> The list
+      of timestamps collapses to a single count, because holding <em>n</em> units for a tick
+      costs <em>n</em> × rate no matter which units they are.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">reg = [[0,0,0,0,0],<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[0,0,0,0,0]]</span>
+      <span class="sh">[M, L] &middot; the delay register</span>
+      <span class="ds"><strong>Jobs in flight.</strong> <code>reg[m][k] = 1</code> means
+      machine <em>m</em> finishes in <em>k</em> ticks. This one array replaces
+      <code>(busy, finish_time)</code> — see the box below, it is the central trick.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">qfin = 0</span><span class="sh">scalar &middot; units</span>
+      <span class="ds">Finished goods sitting on the shelf, waiting for demand.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">backlog = 0</span><span class="sh">scalar &middot; units</span>
+      <span class="ds">Demand that has appeared and has not been delivered.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">cum_ship = 0</span><span class="sh">scalar &middot; units</span>
+      <span class="ds">Total delivered so far. Multiplied by $80 at the very end to give
+      revenue.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">started = [0, 0]</span><span class="sh">[M] &middot; jobs</span>
+      <span class="ds">How many jobs each machine has begun. Production cost is charged on
+      this, at job <em>start</em> — not on completion, and not on sale.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">sum_qfin = 0</span><span class="sh">scalar &middot; unit-ticks</span>
+      <span class="ds">Running total of <code>qfin</code> added up over every tick. One unit
+      held for ten ticks and ten units held for one tick both come to 10.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">sum_q = [0, 0]</span><span class="sh">[M] &middot; unit-ticks</span>
+      <span class="ds">The same running total for each work-in-process queue.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">sum_late = 0</span><span class="sh">scalar &middot; unit-ticks</span>
+      <span class="ds">Running total of demand that is past its grace period and still
+      unmet.</span>
+    </div>
+    <div class="arr">
+      <span class="nm">n_invalid = 0</span><span class="sh">scalar &middot; count</span>
+      <span class="ds">Requests that were refused because the tool was busy or the queue
+      short. Carried for diagnostics; it does not enter profit.</span>
+    </div>
+  </div>
+
+  <div class="col stack" style="margin-top:26px">
+    <div class="note">
+      <strong>The delay register is the idea the whole design rests on.</strong>
+      <code>reg[m][k] = 1</code> means &ldquo;machine <em>m</em> finishes in <em>k</em>
+      ticks&rdquo;. A start writes a 1 into slot <code>pt</code>; every tick the row slides one
+      place left; the job completes when the 1 reaches slot 0. Three things follow.
+      <br><br>
+      <strong>Capacity becomes free.</strong> &ldquo;Is this machine busy?&rdquo; is just
+      &ldquo;does its row contain a 1?&rdquo; — <code>reg.sum() &gt; 0</code>. No branch, no
+      comparison against a clock.
+      <br><br>
+      <strong>Time disappears from the state.</strong> Everything is relative to now, so the
+      carried bundle has no notion of <em>t</em>. That is what lets the tick be one pure
+      function applied over and over.
+      <br><br>
+      <strong>It is the path the gradient travels.</strong> Completion is
+      <code>done = reg[..., 0]</code>, a plain selection, so sensitivity flows from a start
+      decision through to its completion. A countdown integer would need a test like
+      <code>remaining == 1</code>, whose derivative is zero everywhere. Section 9 returns to
+      this.
+    </div>
+
+    <div class="warn">
+      <strong>Why the cost counters are kept as unit-ticks instead of dollars.</strong> They
+      accumulate plain integer counts, and prices are applied <em>once</em>, at the end.
+      Multiplying by a price every tick would let floating-point rounding pile up over
+      hundreds of steps. Counting integers and pricing once makes profit an exact linear
+      function of exact integers — which is why this implementation matches the original
+      simulator to nine decimal places rather than &ldquo;closely enough&rdquo;.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s5">
+  <div class="col stack">
+    <div class="shead"><span class="snum">05</span><h2>One tick, in order</h2></div>
+    <p>Eight phases. The order is not cosmetic — getting it wrong changed the reference
+    simulator's behaviour by 99 job starts when it happened once in this project.</p>
+  </div>
+
+  <div style="margin-top:22px">
+  <ol class="phases">
+    <li><div class="phase-b">
+      <h4>Raw material arrives</h4>
+      <pre>q[0] += arrivals[t]</pre>
+      <p class="why">New material drops into the first queue.</p>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>New demand joins the backlog, and existing stock ships against it</h4>
+      <pre>backlog += demand[t]
+matched   = min(qfin, backlog)
+qfin     -= matched
+backlog  -= matched
+cum_ship += matched</pre>
+      <p class="why">Anything already on the shelf is handed over immediately. <code>min</code>
+      is what stops you shipping more than was ordered — and, as section 11 shows, its
+      derivative is exactly zero once you have more stock than orders, which is the correct
+      signal: an extra unit beyond demand earns nothing.</p>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>Jobs in flight complete</h4>
+      <pre>done = reg[:, 0]        # 1 for each machine landing now
+reg[:, 0] = 0
+emit = make × done      # units produced</pre>
+      <p class="why">Completions are handled <strong>before</strong> starts. That is what lets
+      a tool that finishes at tick <em>t</em> begin a new job at tick <em>t</em>, and lets
+      output reach the next machine within the same tick.</p>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>Output is routed — the whole factory in one matrix product</h4>
+      <pre>q      += emit @ R          # into downstream queues
+newfin  = emit @ to_fg      # or out of the line</pre>
+      <p class="why">At the tick the furnace lands, with real numbers:</p>
+      <pre>done = [1, 0]        make = [2, 1]
+emit = make × done          = [2, 0]
+q before                    = [2, 0]
+emit @ R                    = [0, 2]   ← the 2 units land in q1
+q after                     = [2, 2]
+newfin = emit @ to_fg       = 0        ← nothing shipped this tick</pre>
+      <p class="why">Writing it as a product rather than <code>q[route[m]] += emit[m]</code>
+      is deliberate: an indexed write needs a loop over machines, which kills batching. This
+      is one fixed-shape operation whose derivative is just <code>R</code>. It is also why
+      the identical code runs a 2-, 4-, 8- or 12-machine line, and why a re-entrant flow —
+      a tool feeding <em>backwards</em>, as real fabs do — is only a different
+      <code>R</code>.</p>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>Fresh output ships if anything is owed</h4>
+      <pre>shipped   = min(newfin, backlog)
+backlog  -= shipped
+cum_ship += shipped
+qfin     += newfin - shipped</pre>
+      <p class="why">What is owed goes straight out; the rest goes on the shelf and starts
+      accruing holding cost.</p>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>The three gates decide what actually starts</h4>
+      <pre>idle   = (reg.sum() == 0)     # is the machine free?
+canrun = (q &gt;= take)          # is there enough input?
+start  = action × idle × canrun</pre>
+      <p class="why"><code>action</code> is what the schedule requested. The other two are the
+      physics. All three must hold, which is why a request can be silently refused — and why,
+      in section 11, the sensitivity of a refused decision is exactly zero.</p>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>Input is consumed and the completion is scheduled</h4>
+      <pre>q   -= take × start
+reg += start × slot_onehot    # writes a 1 into slot pt</pre>
+    </div></li>
+
+    <li><div class="phase-b">
+      <h4>Costs accrue, then the register slides</h4>
+      <pre>late      = max(demand_lag_cum[t] - cum_ship, 0)
+sum_qfin += qfin
+sum_q    += q
+sum_late += late
+started  += start
+
+reg = concat([reg[:, 1:], zeros])   # every job one tick closer</pre>
+      <p class="why">The slide is a fixed gather — take columns 1 onward and pad a zero. No
+      index arithmetic, which is what keeps it exactly differentiable.</p>
+    </div></li>
+  </ol>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s6">
+  <div class="col stack">
+    <div class="shead"><span class="snum">06</span><h2>Twenty-four ticks, watched</h2></div>
+    <p>The <em>optimal</em> schedule: start the furnace at tick 4 and tick 12, and let litho
+    run whenever it legally can. Values are as at the end of each tick.</p>
+  </div>
+
+  <div class="wide" style="margin-top:18px"><pre>  t │ q0  q1 │ reg M0 (slots 0-4)   reg M1 (slots 0-4) │ qfin  owed  shipped  late │ what happened
+────┼────────┼───────────────────────────────────────┼───────────────────────────┼──────────────────────────────
+  0 │  4   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      0      0   │ 4 raw units arrive
+  1 │  4   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      0      0   │ waiting — deliberately idle
+  2 │  4   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      0      0   │
+  3 │  4   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      0      0   │
+  4 │  2   0 │ [0,0,0,0,<span style="color:var(--furnace);font-weight:600">1</span>]          [0,0,0,0,0]        │   0     0      0      0   │ <span style="color:var(--furnace);font-weight:600">FURNACE STARTS</span> — takes 2, writes slot 4
+  5 │  2   0 │ [0,0,0,<span style="color:var(--furnace);font-weight:600">1</span>,0]          [0,0,0,0,0]        │   0     0      0      0   │ register slides
+  6 │  2   0 │ [0,0,<span style="color:var(--furnace);font-weight:600">1</span>,0,0]          [0,0,0,0,0]        │   0     0      0      0   │
+  7 │  2   0 │ [0,<span style="color:var(--furnace);font-weight:600">1</span>,0,0,0]          [0,0,0,0,0]        │   0     0      0      0   │
+  8 │  2   1 │ [0,0,0,0,0]          [0,0,<span style="color:var(--accent);font-weight:600">1</span>,0,0]        │   0     0      0      0   │ furnace lands → 2 into q1; <span style="color:var(--accent);font-weight:600">LITHO STARTS</span>
+  9 │  2   1 │ [0,0,0,0,0]          [0,<span style="color:var(--accent);font-weight:600">1</span>,0,0,0]        │   0     0      0      0   │
+ 10 │  2   0 │ [0,0,0,0,0]          [0,0,<span style="color:var(--accent);font-weight:600">1</span>,0,0]        │   0     1      1      0   │ 2 demanded; 1 unit done → ships at once
+ 11 │  2   0 │ [0,0,0,0,0]          [0,<span style="color:var(--accent);font-weight:600">1</span>,0,0,0]        │   0     1      1      0   │
+ 12 │  0   0 │ [0,0,0,0,<span style="color:var(--furnace);font-weight:600">1</span>]          [0,0,0,0,0]        │   0     0      2      0   │ 2nd unit ships, debt clear; <span style="color:var(--furnace);font-weight:600">FURNACE STARTS</span>
+ 13 │  0   0 │ [0,0,0,<span style="color:var(--furnace);font-weight:600">1</span>,0]          [0,0,0,0,0]        │   0     0      2      0   │
+ 14 │  0   0 │ [0,0,<span style="color:var(--furnace);font-weight:600">1</span>,0,0]          [0,0,0,0,0]        │   0     0      2      0   │ grace on the t=10 demand would expire here
+ 15 │  0   0 │ [0,<span style="color:var(--furnace);font-weight:600">1</span>,0,0,0]          [0,0,0,0,0]        │   0     0      2      0   │   — but it was met, so nothing is charged
+ 16 │  0   1 │ [0,0,0,0,0]          [0,0,<span style="color:var(--accent);font-weight:600">1</span>,0,0]        │   0     0      2      0   │ furnace lands → 2 into q1
+ 17 │  0   1 │ [0,0,0,0,0]          [0,<span style="color:var(--accent);font-weight:600">1</span>,0,0,0]        │   0     0      2      0   │
+ 18 │  0   0 │ [0,0,0,0,0]          [0,0,<span style="color:var(--accent);font-weight:600">1</span>,0,0]        │   0     1      3      0   │ 2 demanded; 1 done → ships immediately
+ 19 │  0   0 │ [0,0,0,0,0]          [0,<span style="color:var(--accent);font-weight:600">1</span>,0,0,0]        │   0     1      3      0   │
+ 20 │  0   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      4      0   │ last unit ships — all 4 delivered
+ 21 │  0   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      4      0   │
+ 22 │  0   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      4      0   │
+ 23 │  0   0 │ [0,0,0,0,0]          [0,0,0,0,0]        │   0     0      4      0   │ idle to the end</pre></div>
+
+  <div class="col stack" style="margin-top:22px">
+    <p>Three things are worth pausing on.</p>
+    <ul class="tight">
+      <li><strong>Ticks 0–3 are deliberately empty.</strong> Material is sitting there and the
+      furnace is free, and the right move is still to do nothing. Starting at tick 0 would
+      finish the units at tick 6, four ticks before anyone wants them, at $1 per unit per
+      tick.</li>
+      <li><strong>The <code>qfin</code> column never rises above 0.</strong> Every unit is
+      finished at a moment when something is already owed, so it ships the instant it exists.
+      That is what a perfectly timed schedule looks like from the inside.</li>
+      <li><strong>The <code>late</code> column stays at 0 throughout.</strong> Demand at tick 10
+      is fully met by tick 12 — two ticks inside the four-tick grace. No backorder is ever
+      charged.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s7">
+  <div class="col stack">
+    <div class="shead"><span class="snum">07</span><h2>Turning a run into one number</h2></div>
+    <p>At the end of the horizon the counters are priced, once:</p>
+  </div>
+
+  <div class="wide" style="margin-top:16px"><pre>profit =   80.00 × cum_ship      revenue on units actually delivered
+         - [20, 5] · started     production, per JOB started
+         -  1.00  × sum_qfin     finished-goods holding
+         - [0, 0.5] · sum_q      work-in-process holding
+         -  4.00  × sum_late     backorder</pre></div>
+
+  <div class="col stack" style="margin-top:20px">
+    <div class="note">
+      <strong>Note the production vector is [20, 5], not [10, 5].</strong> The configured price
+      is per <em>unit</em>, but <code>started</code> counts <em>jobs</em>, so the two are
+      multiplied together once at setup: the furnace takes 2 units per job at $10 each, hence
+      $20 per job. Litho takes 1 unit, so $5. Small detail, and getting it backwards would
+      halve the furnace's cost.
+    </div>
+
+    <p>For the optimal schedule above that comes to:</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l">Term</th><th>Amount</th><th class="l">Where it came from</th></tr></thead>
+        <tbody>
+          <tr><td class="l">Revenue</td><td class="pos">+320.00</td><td class="l">4 units × $80</td></tr>
+          <tr><td class="l">Production</td><td class="neg">&minus;60.00</td><td class="l">2 furnace jobs × $20 + 4 litho jobs × $5</td></tr>
+          <tr><td class="l">FG holding</td><td class="neg">&minus;0.00</td><td class="l">nothing ever sat on the shelf</td></tr>
+          <tr><td class="l">WIP holding</td><td class="neg">&minus;2.00</td><td class="l">units waiting in q1 between the two tools</td></tr>
+          <tr><td class="l">Backorder</td><td class="neg">&minus;0.00</td><td class="l">nothing was ever late past its grace</td></tr>
+          <tr><td class="l"><strong>Profit</strong></td><td class="pos"><strong>258.00</strong></td><td class="l">the provable optimum</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:18px">This problem is small enough to settle completely. Enumerating
+    every schedule — all 576 combinations of two furnace release ticks — confirms $258.00 is
+    the maximum, reached by nine different schedules: first release anywhere in ticks 4–6,
+    second anywhere in ticks 12–14. <strong>A window, not a point.</strong> Having the true
+    answer in hand is what makes everything that follows checkable rather than merely
+    plausible.</p>
+
+    <p>Two instructive failures, for contrast:</p>
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l">Schedule</th><th>Revenue</th><th>Production</th><th>Holding</th><th>Backorder</th><th>Profit</th></tr></thead>
+        <tbody>
+          <tr><td class="l">releases at 4 and 12</td><td>320</td><td>60</td><td>2.0</td><td>0</td><td class="pos">258</td></tr>
+          <tr><td class="l">releases at 0 and 1</td><td>160</td><td>30</td><td>7.0</td><td>16</td><td>107</td></tr>
+          <tr><td class="l">releases at 20 and 22</td><td>0</td><td>20</td><td>0.0</td><td>96</td><td class="neg">&minus;116</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px">The middle row is the one to study. Releasing both batches
+    immediately earns $160, not $320 — the furnace is still busy at tick 1, so that request is
+    refused and <strong>two of the four units are never made at all</strong>. The greedy
+    instinct does not merely cost holding; it destroys half the output.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s8">
+  <div class="col stack">
+    <div class="shead"><span class="snum">08</span><h2>&theta;, &tau;<sub>a</sub> and &tau;<sub>q</sub></h2></div>
+
+    <p>Everything so far has used a schedule of 0s and 1s. To bring calculus in, those have to
+    become continuous.</p>
+
+    <h3>&theta; — the decision variable</h3>
+    <p><strong>&theta; is the schedule, written as real numbers instead of yes/no.</strong> It
+    is an array of shape <code>[H, M]</code> — one number per tick per machine, 48 of them
+    here. The rule connecting it back to the simulator is simply:</p>
+    <div class="wide"><pre>the machine is asked to run at tick t  ⟺  θ[t, m] &gt; 0</pre></div>
+    <p>So &theta; = &minus;1.4 means &ldquo;don't run, fairly firmly&rdquo;, &theta; = +0.2
+    means &ldquo;run, barely&rdquo;. The sign is all the simulator reads. The
+    <em>magnitude</em> exists so there is something smooth to take a derivative of, and so an
+    optimiser can move a decision gradually toward flipping rather than only all at once.
+    <strong>&theta; is the only thing we ever change.</strong></p>
+
+    <h3 style="margin-top:20px">&tau;<sub>a</sub> and &tau;<sub>q</sub> — the two temperatures</h3>
+    <p>A temperature controls how sharp a smooth stand-in is. Both default to
+    <strong>1.0</strong> in this project. They appear in exactly two places:</p>
+
+    <div class="wide"><pre>a      = sigmoid( θ / τ_a )                   "am I asking to run?"
+canrun = sigmoid( (q - take + 0.5) / τ_q )    "is there enough input?"</pre></div>
+
+    <p>A sigmoid is an S-shaped curve from 0 to 1 that passes through 0.5 at its centre. It is
+    the smooth stand-in for a step. The temperature sets how abruptly it turns:</p>
+    <ul class="tight">
+      <li><strong>Small &tau;</strong> (say 0.05) — nearly a vertical step. Very faithful to
+      the real rule, but almost flat either side, so the derivative is near zero almost
+      everywhere and carries no information.</li>
+      <li><strong>Large &tau;</strong> (say 4) — a gentle ramp. Lots of derivative everywhere,
+      but it describes a factory that does not exist, one where half a job can start.</li>
+      <li><strong>&tau; = 1</strong> — the compromise in use here.</li>
+    </ul>
+    <p>The <code>+ 0.5</code> inside <code>canrun</code> centres the curve <em>between</em> the
+    integers <code>take-1</code> and <code>take</code>, so the smooth version is symmetric
+    about the true threshold rather than offset by half a unit.</p>
+
+    <div class="warn">
+      <strong>This is tuning, and it was tested.</strong> On the full two-product line
+      &tau;<sub>q</sub> was swept from 4.0 down to 0.05 to test a specific hypothesis — that
+      the input gate was causing the optimiser to over-release material. Sharpening it made
+      over-release <em>worse</em> (464 → 512 units) and profit fell. The hypothesis was wrong
+      and &tau; = 1 is near the best available. The real cause turned out to be the starting
+      point, not the gate.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s9">
+  <div class="col stack">
+    <div class="shead"><span class="snum">09</span><h2>Why plain autodiff returns zero</h2></div>
+
+    <p>With &theta; in hand, the obvious move is to ask automatic differentiation for
+    &part;profit / &part;&theta; directly. It gives back <strong>exactly zero, everywhere</strong>.</p>
+
+    <p>The reason is in phase 6 of the tick. A start requires three conditions:</p>
+    <div class="wide"><pre>start = action × idle × canrun       action = 1 if θ &gt; 0 else 0
+                                     canrun = 1 if q &gt;= take else 0</pre></div>
+
+    <p>Both <code>action</code> and <code>canrun</code> are <strong>step functions</strong>.
+    Nudge &theta; from 0.30 to 0.31 and nothing whatsoever happens — the action was 1 before
+    and is 1 after, the simulation is identical, profit is identical. The slope is flat. It is
+    flat at every point except the single instant where &theta; crosses zero, and there it is
+    a vertical jump with no slope defined at all.</p>
+
+    <p>So the honest derivative of the true profit is zero almost everywhere and undefined on a
+    set of measure zero. Running it confirms this to the digit:</p>
+
+    <div class="wide"><pre>profit of four random schedules : ['$250', '$242', '$241', '$235']
+max |dprofit/dθ|                : 0.0
+
+   ^ not small. Exactly zero. All 48 derivatives, every schedule.</pre></div>
+
+    <div class="note">
+      <strong>This is the wall, and it is kept as a permanent test.</strong> The project's
+      verification suite asserts that this number is still exactly 0.0 on every build. If it
+      ever came back non-zero it would mean something had quietly replaced the true dynamics
+      with an approximation — which is precisely the failure the next section has to avoid.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s10">
+  <div class="col stack">
+    <div class="shead"><span class="snum">10</span><h2>Straight-through</h2></div>
+
+    <p>The fix is to run the <em>real</em> rule forwards and a <em>smooth</em> rule backwards.
+    In one line:</p>
+
+    <div class="wide"><pre>def straight_through(hard, soft):
+    return hard + (soft - stop_gradient(soft))</pre></div>
+
+    <p><code>stop_gradient</code> means &ldquo;treat this as a constant when
+    differentiating&rdquo;. So:</p>
+    <ul class="tight">
+      <li><strong>Going forwards</strong>, the bracket is <code>soft &minus; soft = 0</code>,
+      and the expression is <code>hard</code>, bit for bit. The simulation is the true one —
+      integers, hard gates, no fractional jobs.</li>
+      <li><strong>Going backwards</strong>, the <code>stop_gradient</code> term contributes
+      nothing, so the derivative that flows back is the derivative of <code>soft</code> — the
+      sigmoid's gentle slope instead of the step's absent one.</li>
+    </ul>
+
+    <p>You get a usable slope without perturbing a single number in the simulation. The price
+    is that the slope is <strong>biased</strong>: it is the derivative of a nearby smooth
+    function, not of the real one. That bias is unavoidable — a staircase has no useful
+    derivative — and everything downstream is built to tolerate it.</p>
+
+    <div class="warn">
+      <strong>The parenthesisation is load-bearing.</strong> Written the natural way,
+      <code>hard + soft - stop_gradient(soft)</code>, floating point evaluates it as
+      <code>(hard + soft) - soft</code>, which is <em>not</em> exactly <code>hard</code> in
+      32-bit arithmetic. On the real line that version silently invented about $230 of profit
+      before a test caught it. The test that catches it asserts the straight-through forward
+      pass equals the hard forward pass to <em>exactly</em> 0.0 — not approximately.
+    </div>
+
+    <p>Verified on this example:</p>
+    <div class="wide"><pre>hard-mode profit : ['$250.00', '$242.00', '$241.00', '$235.00']
+st-mode profit   : ['$250.00', '$242.00', '$241.00', '$235.00']
+max difference   : 0.0e+00      ← must be exactly zero, and is
+max |gradient|   : 7.95         ← and now there is a signal</pre></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s11">
+  <div class="col stack">
+    <div class="shead"><span class="snum">11</span><h2>Where &minus;2.73 comes from</h2></div>
+
+    <p>Take one dial: &theta; at tick 0 for the furnace, on a schedule that requests furnace
+    starts at ticks 0 and 8. Its gradient is <strong>&minus;2.73</strong>. Here is that number,
+    taken apart.</p>
+
+    <h3>First, what &theta; actually is here</h3>
+    <p>The schedule requests furnace starts at ticks 0 and 8, and lets litho always try. As
+    numbers, with +1 meaning &ldquo;ask&rdquo; and &minus;1 meaning &ldquo;don't&rdquo;:</p>
+    <div class="wide"><pre>θ furnace : [ <span style="color:var(--furnace);font-weight:600">+1</span>, -1, -1, -1, -1, -1, -1, -1, <span style="color:var(--furnace);font-weight:600">+1</span>, -1, -1, -1, …]
+θ litho   : [ +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, …]
+
+θ[0, furnace] = +1.0        ← the one dial we are taking apart</pre></div>
+    <p>&plusmn;1 is just a starting magnitude. Only the <em>sign</em> reaches the simulation;
+    the size matters solely because it sets how steep the smooth stand-in is at that point,
+    which the test three boxes down exploits.</p>
+
+    <h3 style="margin-top:22px">The forward pass at tick 0, every number</h3>
+    <div class="wide"><pre>state entering the tick :  q = [0, 0]   reg = all zeros   qfin = 0   backlog = 0
+arrivals[0] = 4        :  q = [4, 0]
+
+the action gate
+  a_soft   = sigmoid(θ / τ_a) = sigmoid(1.0 / 1.0)         = 0.731059
+  a_hard   = 1 if θ &gt; 0                                    = 1
+  used forward (straight-through)                          = 1        ← the hard value
+
+the input gate
+  canrun_soft = sigmoid((q0 − take + 0.5) / τ_q)
+              = sigmoid((4 − 2 + 0.5) / 1.0) = sigmoid(2.5) = 0.924142
+  canrun_hard = 1 if q0 ≥ take  =  1 if 4 ≥ 2              = 1
+  used forward                                             = 1        ← the hard value
+
+the capacity gate
+  idle   = 1 − reg.sum() = 1 − 0                           = 1        ← exact, no surrogate
+
+  start  = a × idle × canrun = 1 × 1 × 1                   = 1
+
+consequences
+  q    = [4, 0] − take × start                             = [2, 0]
+  reg[furnace] = [0, 0, 0, 0, <span style="color:var(--furnace);font-weight:600">1</span>]                       ← written into slot pt = 4</pre></div>
+    <p>The forward pass used <strong>only the hard values</strong>. The two soft numbers were
+    computed and thrown away. They exist purely so there is something to differentiate.</p>
+
+    <h3 style="margin-top:22px">The chain</h3>
+    <p>&theta; enters the simulation through exactly one quantity — <code>start</code>. Nothing
+    else in the entire tick reads it. So by the chain rule:</p>
+
+    <div class="wide"><pre>  ∂profit        ∂profit                              d(sigmoid)
+  ───────   =    ───────   ×   idle   ×   canrun   ×  ──────────
+    ∂θ            ∂start                                  dθ
+                     │           │           │               │
+         everything downstream   │           │        slope of the smooth
+         of this start           │           │        stand-in for the step
+                                 │     is there input?
+                           is the machine free?</pre></div>
+
+    <p>The last factor is ordinary calculus on a sigmoid:</p>
+    <div class="wide"><pre>d(sigmoid)/dθ  at θ = 1  =  σ(1) × (1 − σ(1))  =  0.731059 × 0.268941  =  0.196612</pre></div>
+
+    <h3 style="margin-top:22px">A test that isolates that factor</h3>
+    <p>If the factorisation is real, then changing <em>only the magnitude</em> of
+    &theta;[0,&nbsp;furnace] — keeping it positive, so the schedule, the simulation and the
+    profit are all bit-identical — must change the gradient by exactly the ratio of the
+    sigmoid slopes. Which means <code>gradient / &sigma;&prime;</code> has to come out
+    constant:</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th>θ[0,&nbsp;furnace]</th><th>profit</th><th>gradient</th><th>&sigma;&prime;(θ)</th><th>gradient / &sigma;&prime;</th></tr></thead>
+        <tbody>
+          <tr><td>0.5</td><td>246.00</td><td class="neg">&minus;3.2602</td><td>0.235004</td><td><strong>&minus;13.8728</strong></td></tr>
+          <tr><td>1.0</td><td>246.00</td><td class="neg">&minus;2.7276</td><td>0.196612</td><td><strong>&minus;13.8728</strong></td></tr>
+          <tr><td>2.0</td><td>246.00</td><td class="neg">&minus;1.4566</td><td>0.104994</td><td><strong>&minus;13.8728</strong></td></tr>
+          <tr><td>3.0</td><td>246.00</td><td class="neg">&minus;0.6267</td><td>0.045177</td><td><strong>&minus;13.8728</strong></td></tr>
+          <tr><td>4.0</td><td>246.00</td><td class="neg">&minus;0.2450</td><td>0.017663</td><td><strong>&minus;13.8728</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px">Constant to four decimals. So the quantity the gradient is
+    really carrying is <strong>&part;profit/&part;start = &minus;13.8728</strong> — &ldquo;one
+    more furnace job begun at tick 0 is worth &minus;$13.87&rdquo; — and the &minus;2.73 you
+    read off is that number seen through a sigmoid that happens to be fairly flat at
+    &theta;&nbsp;=&nbsp;1.</p>
+    <p>It also explains something that would otherwise look wrong: a dial sitting at
+    &theta;&nbsp;=&nbsp;4 shows a tiny gradient even though the decision matters just as much.
+    The decision has not stopped mattering — the optimiser simply has a flat stretch to cross
+    before it can flip.</p>
+
+    <h3 style="margin-top:22px">The backward pass: where &minus;13.8728 comes from</h3>
+    <p>Reverse-mode starts at the end and works backwards. Its <em>seeds</em> are read
+    straight off the profit formula, and they are exact — no approximation anywhere:</p>
+    <div class="wide"><pre>∂profit / ∂cum_ship  = +80          ∂profit / ∂sum_qfin = −1
+∂profit / ∂started   = −[20, 5]     ∂profit / ∂sum_q    = −[0, 0.5]
+                        per JOB     ∂profit / ∂sum_late = −4</pre></div>
+
+    <p>From there it walks back through every tick, carrying for each piece of state the
+    answer to &ldquo;if this number were one larger, what would final profit do?&rdquo;.
+    Splitting tick 0 open at the exact moment <code>start</code> is applied, and asking that
+    question of each thing a start touches:</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l">What one furnace start at tick 0 does</th><th>sensitivity</th><th>contributes</th></tr></thead>
+        <tbody>
+          <tr><td class="l">charges production, per job</td><td>&mdash;</td><td class="neg">&minus;20.0000</td></tr>
+          <tr><td class="l">takes 2 units out of q0 &nbsp;<span class="muted">(&minus;take &times; &part;P/&part;q0)</span></td><td>&part;P/&part;q0 = &minus;3.3884</td><td class="pos">+6.7769</td></tr>
+          <tr><td class="l">writes a job into reg slot 4</td><td>&part;P/&part;reg[f,&nbsp;4] = &minus;0.6497</td><td class="neg">&minus;0.6497</td></tr>
+          <tr><td class="l"><strong>&part;profit / &part;start</strong></td><td></td><td class="neg"><strong>&minus;13.8728</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:.85rem;margin-top:8px">&minus;20.0000 + 6.7769 &minus;
+    0.6497 = &minus;13.8728, matching <code>gradient / &sigma;&prime;</code> above to four
+    decimals.</p>
+
+    <p style="margin-top:16px">In words: starting this job costs <strong>$20</strong> in
+    production. It is worth <strong>+$6.78</strong> to pull two units out of q0, because at
+    tick 0 those units are a liability — anything made from them lands far too early. And the
+    job it schedules is worth <strong>&minus;$0.65</strong>, because it lands at tick 4 and
+    the output then sits on the shelf paying holding until demand appears at tick 10. Net
+    <strong>&minus;$13.87</strong>. Multiply by the sigmoid's slope, 0.196612, and you have
+    the <strong>&minus;2.73</strong> in the gradient row.</p>
+
+    <div class="warn">
+      <strong>This is also precisely where the bias lives.</strong> Look at
+      &part;P/&part;q0&nbsp;=&nbsp;&minus;3.3884. Queue 0 has a WIP holding rate of
+      <em>zero</em> — it appears nowhere in the profit formula. Its only route to profit is
+      through the <code>canrun</code> gate. In the true dynamics that gate is a step, so an
+      extra unit in a queue that already has enough changes nothing whatsoever and the honest
+      derivative is 0. In the surrogate the gate is a sigmoid with slope 0.0701 at this point,
+      so extra material always looks as though it mildly helps. That one substitution is the
+      entire difference between the gradient we can compute and the one we cannot — and on the
+      full two-product line it surfaces as a measurable tendency to release more material than
+      the order book needs.
+    </div>
+
+    <h3 style="margin-top:22px">The sensitivity travelling backwards through time</h3>
+    <p>Those per-tick sensitivities are what reverse-mode actually carries. Measured on this
+    schedule, for the state entering each tick:</p>
+    <div class="wide">
+      <table>
+        <thead><tr><th>tick</th><th>&part;P/&part;qfin</th><th>&part;P/&part;q0</th><th>&part;P/&part;q1</th><th>&part;P/&part;cum_ship</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td class="pos">+4.000</td><td class="neg">&minus;4.361</td><td class="neg">&minus;0.174</td><td class="pos">+112.00</td></tr>
+          <tr><td>2</td><td class="pos">+4.500</td><td class="neg">&minus;3.388</td><td class="neg">&minus;0.089</td><td class="pos">+108.00</td></tr>
+          <tr><td>4</td><td class="pos">+5.000</td><td class="neg">&minus;3.388</td><td class="neg">&minus;0.325</td><td class="pos">+104.00</td></tr>
+          <tr><td>6</td><td class="pos">+5.500</td><td class="neg">&minus;3.388</td><td class="pos">+0.604</td><td class="pos">+100.00</td></tr>
+          <tr><td>8</td><td class="pos">+7.500</td><td class="neg">&minus;3.388</td><td class="pos">+1.585</td><td class="pos">+96.00</td></tr>
+          <tr><td>10</td><td class="pos">+9.500</td><td>&minus;0.000</td><td class="pos">+1.632</td><td class="pos">+92.00</td></tr>
+          <tr><td>12</td><td class="pos">+11.000</td><td>&minus;0.000</td><td class="pos">+2.791</td><td class="pos">+92.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px">Two readings worth taking. <strong>&part;P/&part;qfin climbs
+    steadily</strong> from +4.0 to +11.0 — a finished unit is worth more the later you come to
+    have it, because it spends fewer ticks paying holding before demand arrives. And
+    <strong>&part;P/&part;q1 changes sign</strong> around tick 5: early on, material sitting
+    between the two tools is a liability; from tick 6 onwards it is an asset, because by then
+    anything converted can ship almost immediately. Nobody encoded either fact. Both fall out
+    of differentiating a single number.</p>
+
+    <p><strong>&part;P/&part;q0 dropping to exactly zero from tick 10</strong> is the gate mask
+    again, in time rather than across decisions: by then q0 is empty and the furnace is
+    committed, so nothing about that queue can reach the final profit.</p>
+
+    <h3 style="margin-top:22px">And &part;profit/&part;start is a sum of five routes</h3>
+    <p>A start reaches the final profit through every term of the profit formula. Those can be
+    separated by differentiating each term on its own — and they must, and do, add back up:</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th>tick</th><th>revenue</th><th>production</th><th>FG&nbsp;hold</th><th>WIP&nbsp;hold</th><th>backorder</th><th>total</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td class="pos">+1.83</td><td class="neg">&minus;2.54</td><td class="neg">&minus;1.83</td><td class="neg">&minus;0.25</td><td class="pos">+0.06</td><td class="neg"><strong>&minus;2.73</strong></td></tr>
+          <tr><td>4</td><td class="pos">+1.27</td><td class="neg">&minus;2.40</td><td class="neg">&minus;1.03</td><td class="pos">+0.09</td><td class="pos">+0.10</td><td class="neg"><strong>&minus;1.98</strong></td></tr>
+          <tr><td>5</td><td class="neg">&minus;2.34</td><td class="pos">+2.43</td><td class="pos">+0.30</td><td class="pos">+0.54</td><td class="neg">&minus;0.02</td><td class="pos"><strong>+0.91</strong></td></tr>
+          <tr><td>8</td><td class="pos">+3.48</td><td class="neg">&minus;4.80</td><td class="neg">&minus;1.16</td><td class="neg">&minus;0.47</td><td class="pos">+0.12</td><td class="neg"><strong>&minus;2.83</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:.85rem;margin-top:8px">Cross-check: max |sum of the five
+    channels &minus; the full gradient| = 4.8 × 10<sup>&minus;7</sup>, i.e. floating-point dust.</p>
+
+    <p style="margin-top:16px">Read the <strong>tick 0</strong> row as a sentence. Asking the
+    furnace to run here earns revenue (+1.83), costs production (&minus;2.54), and — because
+    the output then sits on the shelf from tick 6 until demand appears at tick 10 — costs
+    finished-goods holding (&minus;1.83). Net <strong>&minus;2.73</strong>: <em>this start is
+    too early</em>. At tick 5 the same channels flip and the net is <strong>+0.91</strong>:
+    <em>start here instead</em>. Nobody wrote that rule down. It is the derivative of one
+    number — profit at the end of the horizon — with respect to one dial.</p>
+
+    <div class="note">
+      <strong>How to read a gradient row, and how not to.</strong> It is tempting to test the
+      gradient by flipping one decision and seeing whether profit moves the predicted way. On
+      this example that test agrees only 1 time in 10 — and the gradient is not at fault. A
+      flip is a large discrete change (<em>delete this start entirely</em>); the gradient is a
+      local slope (<em>nudge this dial</em>). Deleting the tick-0 start without adding a later
+      one costs $141, because then only one batch is ever made. Read the row as a
+      <em>shape</em> — negative early, positive a few ticks later — and it says
+      &ldquo;slide this batch later&rdquo;, which is exactly right. The gradient's unit of
+      advice is a coordinated nudge to all 48 dials at once.
+    </div>
+
+    <h3 style="margin-top:22px">How far the signal travels</h3>
+    <p>That &minus;2.73 is not a local calculation. The path backwards runs:</p>
+    <div class="wide"><pre>θ[0] → start → reg[M0, slot 4]
+             → (4 ticks of register sliding)
+             → q1 gains 2 units
+             → litho's canrun opens, litho runs
+             → qfin rises, then cum_ship when demand appears
+             → revenue, and holding summed over every tick in between</pre></div>
+    <p>Every step there is a differentiable array operation — the slide is a fixed gather,
+    routing is a matrix product, the cost counters are sums. So one backward pass walks the
+    entire path and returns a number for <em>every</em> dial simultaneously. On the real line
+    that path is 2,688 ticks long, and more than half the total gradient magnitude still sits
+    in the first quarter of the horizon: the signal genuinely reaches decisions made 2,000+
+    ticks before the revenue they earn.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s12">
+  <div class="col stack">
+    <div class="shead"><span class="snum">12</span><h2>How the backward pass actually runs</h2></div>
+
+    <h3>When it happens</h3>
+    <p>Not alongside the simulation — strictly after it. The order is always:</p>
+    <div class="wide"><pre>1.  run all 24 ticks FORWARD, computing profit, and remembering every
+    intermediate value along the way (each q, each gate value, each start)
+
+2.  SEED five numbers at the final state  (below)
+
+3.  walk the 24 ticks BACKWARD — tick 23, 22, … 0 — converting a sensitivity
+    on each tick's OUTPUTS into a sensitivity on its INPUTS
+
+4.  arrive back at tick 0 holding ∂profit/∂θ for all 48 dials</pre></div>
+    <p>One forward, one backward, and all 48 derivatives come out together. This is the
+    whole reason the approach is affordable: <strong>the backward pass costs about what the
+    forward pass costs, no matter how many dials there are</strong> — 48 here, 10,752 on the
+    real line.</p>
+
+    <h3 style="margin-top:22px">Step 2: the seeds are just the coefficients</h3>
+    <p>This is the easiest part of the whole method, and worth seeing plainly. The profit
+    formula is a dot product — every counter appears <em>exactly once</em> and
+    <em>linearly</em>:</p>
+    <div class="wide"><pre>profit =  80 × cum_ship        →   ∂profit/∂cum_ship = +80
+        − [20, 5] · started    →   ∂profit/∂started  = −[20, 5]
+        −  1 × sum_qfin        →   ∂profit/∂sum_qfin = −1
+        − [0, 0.5] · sum_q     →   ∂profit/∂sum_q    = −[0, 0.5]
+        −  4 × sum_late        →   ∂profit/∂sum_late = −4</pre></div>
+    <p>Differentiating a linear function gives its coefficient. That is all these are. Those
+    five numbers are the entire starting condition; everything else in the backward pass is
+    them, propagated.</p>
+
+    <h3 style="margin-top:22px">Step 3: watching one seed propagate, checked arithmetically</h3>
+    <p><code>cum_ship</code> is the clearest to follow because it reaches profit by only two
+    routes: revenue, and the lateness term <code>late = max(demand_lag_cum − cum_ship, 0)</code>.
+    So shipping one more unit by tick <em>t</em> should be worth <strong>$80, plus $4 for
+    every later tick where it would reduce lateness</strong>. Measured against that
+    prediction, on schedule A below:</p>
+    <div class="wide">
+      <table>
+        <thead><tr><th>t</th><th>slack = dlag &minus; cum_ship</th><th>measured &part;P/&part;cum_ship</th><th>80 + 4&middot;(#late + &frac12;&middot;#kink)</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0</td><td>112.00</td><td>112.00</td><td class="pos">match</td></tr>
+          <tr><td>4</td><td>0</td><td>104.00</td><td>104.00</td><td class="pos">match</td></tr>
+          <tr><td>8</td><td>0</td><td>96.00</td><td>96.00</td><td class="pos">match</td></tr>
+          <tr><td>12</td><td>&minus;2</td><td>92.00</td><td>92.00</td><td class="pos">match</td></tr>
+          <tr><td>16</td><td>0</td><td>88.00</td><td>88.00</td><td class="pos">match</td></tr>
+          <tr><td>20</td><td>&minus;2</td><td>84.00</td><td>84.00</td><td class="pos">match</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px">Exact at every tick. <strong>The backward pass is literally
+    counting the downstream places a change would land, and weighting each by its
+    price.</strong> That is all reverse-mode differentiation is doing here; the rest is
+    bookkeeping.</p>
+
+    <div class="warn">
+      <strong>The &frac12; is real, and I got it wrong first.</strong> My initial prediction
+      counted only ticks that were <em>strictly</em> late, and it did not match. Where
+      <code>slack</code> is exactly 0 the schedule sits precisely on the kink of
+      <code>max(x, 0)</code>, and this JAX splits the difference there:
+      <code>d/dx max(x,0)</code> is 0.000 at x=&minus;1, <strong>0.500 at x=0</strong>, and
+      1.000 at x=+1. Counting those ties at half weight is what makes the table reconcile to
+      the cent. A small thing, but it is the difference between a story about the backward
+      pass and a check on it.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s13">
+  <div class="col stack">
+    <div class="shead"><span class="snum">13</span><h2>Two schedules, side by side</h2></div>
+    <p>The gradient is not a fixed verdict about the factory — it is a reading taken at one
+    schedule. Here are two very different &theta; tables, each with its forward pass and its
+    backward pass, to show the same machinery saying opposite things.</p>
+  </div>
+
+  <h3 style="margin-top:26px">Schedule A — release early</h3>
+  <div class="wide"><pre>θ furnace : [<span style="color:var(--furnace);font-weight:600">+1</span>, -1, -1, -1, -1, -1, -1, -1, <span style="color:var(--furnace);font-weight:600">+1</span>, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+              ↑                           ↑
+          ask at tick 0               ask at tick 8</pre></div>
+  <div class="col stack" style="margin-top:14px">
+    <p><strong>Forward.</strong> At tick 0 the furnace is free and 4 units are waiting, so the
+    request is granted. At tick 8 it has finished and been emptied, so that one is granted
+    too. Both batches run. All four units ship — but they finish at ticks 6, 8, 14 and 16
+    against demand at 10 and 18, so the early ones sit on the shelf paying rent.</p>
+    <div class="wide"><pre>starts actually taken : ticks 0 and 8
+revenue 320   production 60   FG holding 12.0   WIP 2.0   backorder 0
+PROFIT $246                                            (the optimum is $258)
+late profile          : all zeros — nothing was ever delivered late</pre></div>
+    <p><strong>Backward.</strong> The gradient on the furnace row:</p>
+    <div class="wide"><pre>t     0      1      2      3      4      5      6      7      8    9…23
+g  <span style="color:var(--loss);font-weight:600">−2.73</span>  −0.00  −0.00  −0.00  <span style="color:var(--loss);font-weight:600">−1.98</span>  <span style="color:var(--gain);font-weight:600">+0.91</span>  <span style="color:var(--gain);font-weight:600">+0.88</span>  <span style="color:var(--gain);font-weight:600">+0.60</span>  <span style="color:var(--loss);font-weight:600">−2.83</span>  −0.00</pre></div>
+    <p>Negative where it is currently releasing, positive at ticks 5&ndash;7.
+    <strong>&ldquo;Both batches are too early &mdash; slide them later.&rdquo;</strong> The $12
+    of finished-goods holding is precisely what it is objecting to.</p>
+  </div>
+
+  <h3 style="margin-top:30px">Schedule B — release far too late</h3>
+  <div class="wide"><pre>θ furnace : [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, <span style="color:var(--furnace);font-weight:600">+1</span>, -1, <span style="color:var(--furnace);font-weight:600">+1</span>, -1]
+                                                                                   ↑       ↑
+                                                                            ask at 20   ask at 22</pre></div>
+  <div class="col stack" style="margin-top:14px">
+    <p><strong>Forward.</strong> The tick-20 request is granted. The tick-22 request is
+    <strong>refused</strong> — the furnace is still busy, running from 20 to 24. So only one
+    job ever starts, and the horizon ends before its output can even be converted by litho.
+    Nothing at all ships.</p>
+    <div class="wide"><pre>starts actually taken : tick 20 only  (the tick-22 request was refused)
+revenue 0   production 20   backorder 96
+PROFIT −$116
+late profile          : [0 ×14, 2,2,2,2,2,2,2,2, 4,4]
+                        sum_late = 24 unit-ticks  →  4 × 24 = $96</pre></div>
+    <p><strong>Backward.</strong> The gradient on the furnace row:</p>
+    <div class="wide"><pre>t      0       1       2       3       4       5       6    …    17      18
+g  <span style="color:var(--gain);font-weight:600">+14.33  +14.36  +14.37  +14.33  +14.16  +13.86  +13.54</span>    …   <span style="color:var(--gain);font-weight:600">+3.01</span>   <span style="color:var(--loss);font-weight:600">−4.67</span></pre></div>
+    <p>Every early dial is strongly positive, around <strong>+14</strong>.
+    <strong>&ldquo;Release &mdash; and release much earlier.&rdquo;</strong></p>
+  </div>
+
+  <div class="col stack" style="margin-top:24px">
+    <div class="note">
+      <strong>Same machinery, opposite advice.</strong> Nothing changed between those two
+      readings except the schedule the derivative was taken at. For A it says
+      <em>later</em>; for B it says <em>earlier, urgently</em>. And the magnitudes are
+      informative in themselves: around &minus;2.7 when the schedule is nearly right and
+      only needs nudging, around +14 when it is throwing away $370 of achievable profit.
+      The gradient is a local reading, and it reads the local situation.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s14">
+  <div class="col stack">
+    <div class="shead"><span class="snum">14</span><h2>How the optimiser finds the schedule</h2></div>
+
+    <p>With a number for every dial, improving the schedule is a loop: compute all 48
+    sensitivities, nudge every dial a little in the direction that helps, repeat. The nudging
+    uses <strong>Adam</strong>, a standard optimiser that keeps a running average of recent
+    gradients (momentum, so it does not thrash) and of their recent sizes (so dials with
+    consistently small gradients still move).</p>
+
+    <p>Start it from schedule B — the &minus;$116 disaster — and watch both the dials and the
+    schedule they decode to:</p>
+  </div>
+
+  <div class="wide" style="margin-top:18px">
+    <table>
+      <thead><tr><th>step</th><th>profit</th><th class="l">θ[furnace] at ticks 0…9</th><th class="l">releases actually taken</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td class="neg">&minus;116</td><td class="l">&minus;1.00 &minus;1.00 &minus;1.00 &minus;1.00 &minus;1.00 &minus;1.00 …</td><td class="l">[20]</td></tr>
+        <tr><td>1</td><td class="neg">&minus;116</td><td class="l">&minus;0.70 &minus;0.70 &minus;0.70 &minus;0.70 &minus;0.70 &minus;0.70 …</td><td class="l">[20]</td></tr>
+        <tr><td>3</td><td class="neg">&minus;116</td><td class="l">&minus;0.10 &minus;0.10 &minus;0.10 &minus;0.10 &minus;0.10 &minus;0.10 …</td><td class="l">[20]</td></tr>
+        <tr><td>5</td><td class="pos">238</td><td class="l">+0.43 +0.46 +0.46 +0.46 +0.44 +0.46 …</td><td class="l"><strong>[0, 4]</strong></td></tr>
+        <tr><td>20</td><td>240</td><td class="l">+0.62 +2.12 +2.12 +2.12 +0.70 +2.12 …</td><td class="l">[0, 4]</td></tr>
+        <tr><td>40</td><td>242</td><td class="l">&minus;0.86 +2.00 +2.54 +2.54 &minus;0.90 +2.00 …</td><td class="l">[1, 5]</td></tr>
+        <tr><td>60</td><td>246</td><td class="l">&minus;0.69 &minus;0.45 +2.57 +2.61 &minus;1.19 &minus;0.43 …</td><td class="l">[2, 6]</td></tr>
+        <tr><td>100</td><td>249</td><td class="l">&minus;0.10 &minus;0.97 &minus;1.54 +2.15 &minus;1.24 &minus;1.75 …</td><td class="l">[3, 7]</td></tr>
+        <tr><td>150</td><td>253</td><td class="l muted">…</td><td class="l">[3, 9]</td></tr>
+        <tr><td>200</td><td class="pos">256</td><td class="l">&minus;4.86 &minus;4.55 &minus;2.48 +0.98 +0.61 +0.62 …</td><td class="l"><strong>[3, 11]</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col stack" style="margin-top:22px">
+    <p>Three distinct phases, all of them visible in those numbers.</p>
+
+    <h3>Phase 1, steps 0&ndash;3: nothing happens to the schedule</h3>
+    <p>Every dial climbs by 0.30 per step — the gradient was about +14 everywhere, so they all
+    move together — but none has crossed zero yet. The sign is unchanged, so the simulation is
+    byte-identical and profit stays pinned at &minus;$116. <strong>The optimiser is crossing
+    the flat stretch</strong> described in section 8: real progress is being made in &theta;
+    while the schedule shows nothing at all.</p>
+
+    <h3 style="margin-top:18px">Phase 2, steps 4&ndash;5: the dials cross zero and it snaps</h3>
+    <p>θ goes positive, the furnace is asked at ticks 0 and 4, and both requests are granted.
+    Profit jumps from &minus;$116 to <strong>$238 in a single step</strong>. This is what a
+    staircase objective looks like from the optimiser's side: long flat stretches, then a
+    cliff.</p>
+
+    <h3 style="margin-top:18px">Phase 3, steps 20&ndash;200: fine placement</h3>
+    <p>Now that material is flowing, the gradient starts saying what it said for schedule A —
+    <em>too early</em>. θ[0] goes negative, then θ[1], then θ[2]. Each time one flips, the
+    release walks one tick to the right:</p>
+    <div class="wide"><pre>[0, 4]  →  [1, 5]  →  [2, 6]  →  [3, 7]  →  [3, 9]  →  [3, 11]
+ $238      $242      $246      $249      $253      $256</pre></div>
+    <p>Nobody told it the windows. It only ever saw, at each step, which way each dial moved
+    the final profit.</p>
+
+    <h3 style="margin-top:22px">Against the true answer</h3>
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l">Method</th><th>Profit</th><th class="l">Releases</th></tr></thead>
+        <tbody>
+          <tr><td class="l">Exhaustive search over all 576 schedules</td><td class="pos">258.00</td><td class="l">any of ticks 4&ndash;6, then any of 12&ndash;14</td></tr>
+          <tr><td class="l">Gradient, one run, 200 steps</td><td>256.00</td><td class="l">[3, 11] &mdash; one tick short on both</td></tr>
+          <tr><td class="l">Gradient, 16 parallel starts</td><td>257.50</td><td class="l">[4, 13] &mdash; inside both windows</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px">A single run walks in exactly the right direction and runs out
+    of steps one tick short of each window. Sixteen random starts, run as one batched array
+    because the batch dimension is nearly free, land inside both windows at $257.50.
+    Individual runs get stuck in local optima; the batch does not. That is why the real
+    experiments use 64 parallel starts.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s15">
+  <div class="col stack">
+    <div class="shead"><span class="snum">15</span><h2>What this toy cannot show</h2></div>
+
+    <p>Here is the complete scorecard on the 24-tick problem, including the methods the
+    gradient is supposed to beat:</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l">Method</th><th>Profit</th><th class="l">Cost</th></tr></thead>
+        <tbody>
+          <tr><td class="l">Exhaustive search</td><td class="pos">258.00</td><td class="l">576 simulations</td></tr>
+          <tr><td class="l">Single-flip hill-climbing</td><td class="pos">258.00</td><td class="l">2 rounds × 48 simulations</td></tr>
+          <tr><td class="l">Gradient, one start</td><td>253.00</td><td class="l">150 forward+backward passes</td></tr>
+          <tr><td class="l">Gradient, 16 starts</td><td>257.50</td><td class="l">150 passes on a batch of 16</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="warn" style="margin-top:18px">
+      <strong>On this problem the gradient loses.</strong> Forty-eight decisions is small
+      enough to enumerate outright, and small enough that flipping one bit at a time walks
+      straight to the optimum in two rounds. Nothing on this page argues for gradients on a
+      problem this size, and it would be dishonest to present it as if it did.
+    </div>
+
+    <p>The toy exists to make the <em>mechanism</em> visible: the state as a few small arrays,
+    profit as one exact number, a single backward pass pricing every decision at once. The
+    argument for the method is a <strong>scale</strong> argument, and it only appears when the
+    same comparison is run on the real line:</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l">4-machine line, 10,752 decisions, equal budget, identical starts</th><th>Profit</th></tr></thead>
+        <tbody>
+          <tr><td class="l">Single-flip hill-climbing</td><td>3,756</td></tr>
+          <tr><td class="l">Gradient</td><td class="pos">17,895</td></tr>
+          <tr><td class="l">CP-SAT exact solver, 600s</td><td>18,993</td></tr>
+          <tr><td class="l">Certified upper bound</td><td class="muted">19,008</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:16px">At 48 decisions, hill-climbing examines a large fraction of the
+    neighbourhood every round. At 10,752 it examines a vanishing one, and each round costs
+    10,752 simulations. <strong>The backward pass costs the same whether there are 48 decisions
+    or 10,752.</strong> That, and nothing in this toy, is the whole case.</p>
+
+    <p>Two further honesties belong here. The gradient does <em>not</em> beat the exact solver
+    — across every configuration tested in this project, CP-SAT returned the better schedule.
+    What the gradient has is speed: on the two-product line it reached 91% of a certified
+    optimum in 36 seconds, where the solver needed roughly 110 seconds to catch up and 30
+    minutes to finish. And every profit figure quoted anywhere, including on this page, is the
+    rounded schedule replayed through the <em>exact</em> integer simulator — never the smoothed
+    value the optimiser worked against internally.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s16">
+  <div class="col stack">
+    <div class="shead"><span class="snum">16</span><h2>Is this reinforcement learning?</h2></div>
+
+    <p><strong>No.</strong> It is a reasonable thing to wonder, because both end up choosing
+    actions to maximise a reward, but they solve different problems by different means.</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th class="l"></th><th class="l">What this page describes</th><th class="l">Reinforcement learning</th></tr></thead>
+        <tbody>
+          <tr><td class="l">Needs a model of the factory?</td><td class="l"><strong>Yes</strong> — it differentiates straight through the simulator</td><td class="l">No — it learns from sampled experience</td></tr>
+          <tr><td class="l">What it produces</td><td class="l">One <strong>open-loop schedule</strong> for one known demand</td><td class="l">A <strong>policy</strong>: observation &rarr; action</td></tr>
+          <tr><td class="l">Knows the future?</td><td class="l"><strong>Yes</strong>, all demand up front</td><td class="l">No — it reacts to what it sees</td></tr>
+          <tr><td class="l">Where the gradient comes from</td><td class="l">The chain rule through the dynamics</td><td class="l">Score-function or value estimates</td></tr>
+          <tr><td class="l">Copes with randomness?</td><td class="l">Not as set up here</td><td class="l">Yes — that is the point of it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:18px">The accurate names are <strong>differentiable
+    simulation</strong> and <strong>model-based trajectory optimisation</strong>. In control
+    terms it is much closer to direct single-shooting optimal control than to RL.</p>
+
+    <div class="note">
+      <strong>The project does have an RL arm, and it is why this work exists.</strong> A
+      Maskable PPO agent was trained on the same line, learning a reactive policy from an
+      18-dimensional observation with a <em>per-tick</em> reward. It plateaued, and the
+      diagnosis was <strong>reward misalignment</strong>: a per-tick reward is a proxy for
+      end-of-horizon profit, and a production decision shows its cost immediately while its
+      revenue arrives hundreds of ticks later, discounted. Making the simulator
+      differentiable removes the proxy. You stop asking &ldquo;was this tick good?&rdquo; and
+      start asking &ldquo;how does this decision change the profit at the end?&rdquo;
+    </div>
+
+    <div class="warn">
+      <strong>Which also means the two cannot be compared head to head.</strong> The method on
+      this page gets full advance knowledge of demand; PPO is reactive and sees only an
+      observation vector. Scoring them against each other would flatter this one for reasons
+      that have nothing to do with the method. The fair pairings are gradient against CP-SAT,
+      and PPO against the greedy heuristic.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s17">
+  <div class="col stack">
+    <div class="shead"><span class="snum">17</span><h2>A bug found writing this page</h2></div>
+
+    <p>Tracing the chain in section 11 meant reading the differentiable tick line by line, and
+    that turned up something that had been live for weeks:</p>
+
+    <div class="wide"><pre>q = q.at[:, 1].add(emit[:, 0])
+q = q.at[:, 2].add(emit[:, 1])
+q = q.at[:, 3].add(emit[:, 2])
+newfin = emit[:, 3]</pre></div>
+
+    <p>The differentiable simulator had the four-machine layout <strong>hardcoded</strong>. The
+    exact simulator had been generalised to the routing matrix of section 3; this one never
+    was. At any other width the out-of-range writes are silently discarded and the out-of-range
+    read is clamped, so nothing raises an error — it just computes a different factory.</p>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th>machines</th><th>max error vs the exact simulator</th><th class="l">status</th></tr></thead>
+        <tbody>
+          <tr><td>2</td><td>$0.00</td><td class="l">correct — by coincidence of the clamping</td></tr>
+          <tr><td>4</td><td>$0.00</td><td class="l">correct — the hardcoding matches</td></tr>
+          <tr><td>8</td><td class="neg">$5,919</td><td class="l">wrong</td></tr>
+          <tr><td>12</td><td class="neg">$6,925</td><td class="l">wrong</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:16px">The toy on this page is a two-machine line, so everything above
+    is unaffected — and that was checked rather than assumed. What it does invalidate is a
+    separate study on how the gradient behaves as the production line gets deeper: those runs
+    at 8 and 12 machines were optimising a factory that was not the one being measured. That
+    study is being re-run.</p>
+
+    <p>The reason nothing caught it is worth stating plainly. The verification suite tested the
+    differentiable simulator on two demand patterns, both with four machines — the one width
+    where the hardcoding happens to be right. A separate suite exercised other depths, but only
+    against the exact simulator. The gap was exactly the intersection of the two. The fix was
+    to use the routing matrix here as well, and to extend the suite to build lines of 2, 4, 8
+    and 12 machines; all now agree with the exact simulator to within a tenth of a cent.</p>
+
+    <div class="note">
+      <strong>Which is the argument for the whole verification apparatus.</strong> A
+      differentiable simulator can be wrong in ways that produce plausible numbers rather than
+      crashes. The defence is not care; it is a test that compares against an independent
+      implementation, at every shape you actually use.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="col">
+    <p>Reproduce everything on this page:
+    <code>python -m tensorfab.demo_walkthrough</code> and
+    <code>python -m tensorfab.demo_gradient</code>.
+    Code in <code>tensorfab/</code>; logged runs with parameters and full transcripts under
+    <code>tensorfab/runs/</code>.</p>
+  </div>
+</footer>
+
+</div>
+
+
+<style>
+@media print{
+  @page{ size:A4 portrait; margin:14mm 12mm; }
+  html,body{ background:#fff !important; }
+  body{ font-size:10.1px; line-height:1.55; }
+  .wrap{ max-width:none !important; padding:0 !important; }
+  .col{ max-width:none !important; }
+  section{ padding:15px 0 9px; }
+  h1{ font-size:25px } h2{ font-size:15.5px } h3{ font-size:11.3px } h4{ font-size:10.3px }
+  .wide{ overflow:visible !important; padding:6px 8px; }
+  .wide pre{ font-size:6.8px; line-height:1.48; }
+  .phase-b pre{ font-size:7.2px; }
+  pre{ font-size:7.4px; }
+  table{ font-size:7.2px } .wide table{ font-size:7.0px }
+  th,td{ padding:3px 5px; white-space:normal; overflow-wrap:anywhere; }
+  .wide,.arr,.note,.warn,figure,table,.toc{ break-inside:avoid; page-break-inside:avoid; }
+  tr,li,.phase-b{ break-inside:avoid; page-break-inside:avoid; }
+  h2,h3{ break-after:avoid; page-break-after:avoid; }
+  .shead{ break-after:avoid; }
+  header.hero{ padding:0 0 16px; }
+  footer{ padding:16px 0 0; }
+  a{ text-decoration:none }
+  .arrays{ gap:8px }
+}
+</style>
+
+</body>
+</html>

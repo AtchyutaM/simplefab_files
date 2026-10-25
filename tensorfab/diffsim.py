@@ -117,6 +117,26 @@ class DiffLine:
         onehot[np.arange(M), spec.pt] = 1.0
         self._slot_onehot = jnp.asarray(onehot, dtype=dtype)
 
+        # Routing matrix, mirroring tensor_sim: R[m, j] = 1 when machine m's
+        # completions land in queue j; to_fg[m] = 1 when they ship instead.
+        # This replaced four hardcoded `q.at[:, k].add(emit[:, k-1])` lines that
+        # silently assumed M == 4. At M = 8 or 12 the out-of-range indices were
+        # dropped or clamped by XLA rather than raising, so the surrogate
+        # optimised a different line than the one being measured.
+        route_mat = np.zeros((M, M), dtype=np.float64)
+        to_fg = np.zeros((M,), dtype=np.float64)
+        for m, dest in enumerate(np.asarray(spec.route)):
+            if dest < 0:
+                to_fg[m] = 1.0
+            else:
+                if not (0 <= dest < M):
+                    raise ValueError(f"route[{m}]={dest} out of range for M={M}")
+                route_mat[m, int(dest)] = 1.0
+        if to_fg.sum() == 0:
+            raise ValueError("no machine ships to finished goods (route has no -1)")
+        self._route_mat = jnp.asarray(route_mat, dtype=dtype)
+        self._to_fg = jnp.asarray(to_fg, dtype=dtype)
+
         self._arrivals = jnp.asarray(spec.arrivals, dtype=dtype)
         self._demand = jnp.asarray(spec.demand, dtype=dtype)
         self._demand_lag = jnp.asarray(spec.demand_lag_cum, dtype=dtype)
@@ -202,10 +222,8 @@ class DiffLine:
         done = s.reg[:, :, 0]
         reg = s.reg.at[:, :, 0].set(0.0)
         emit = self._make * done
-        q = q.at[:, 1].add(emit[:, 0])
-        q = q.at[:, 2].add(emit[:, 1])
-        q = q.at[:, 3].add(emit[:, 2])
-        newfin = emit[:, 3]
+        q = q + emit @ self._route_mat
+        newfin = emit @ self._to_fg
 
         shipped = jnp.minimum(newfin, backlog)
         backlog = backlog - shipped

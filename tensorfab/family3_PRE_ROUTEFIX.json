@@ -1,0 +1,82 @@
+{
+  "family3": {
+    "note": "UNIFORM 50% demand, 400 Adam steps, identical budget and starts per method. All depths share the same capacity (672 units) and the same $24/unit total production cost, so only lead time varies.",
+    "rows": [
+      {
+        "n_pairs": 2,
+        "M": 4,
+        "lead": 36,
+        "commander": -107.53,
+        "random": 17288.53,
+        "hillclimb": 3755.7,
+        "grad_soft": 16832.69,
+        "grad_st": 17894.83,
+        "bound": 19008.0
+      },
+      {
+        "n_pairs": 4,
+        "M": 8,
+        "lead": 72,
+        "commander": 1233.26,
+        "random": 17451.21,
+        "hillclimb": 5388.61,
+        "grad_soft": 17289.29,
+        "grad_st": 18265.99,
+        "bound": 19008.0
+      },
+      {
+        "n_pairs": 6,
+        "M": 12,
+        "lead": 108,
+        "commander": 2488.18,
+        "random": 16956.27,
+        "hillclimb": 6300.92,
+        "grad_soft": 14770.75,
+        "grad_st": 18319.5,
+        "bound": 19008.0
+      }
+    ],
+    "milp_status": "long 1800s solves running; 45s probes returned 777 / 1,471 / 2,502 (barely above commander) and M=12 peaked at 6.6 GB"
+  },
+  "family3_92": {
+    "note": "UNIFORM demand of 616 units at every depth, 400 Adam steps, same protocol as the 50% sweep. 616 is 92% of the nominal 672-unit capacity; as a fraction of what each line can actually deliver over a finite horizon it is 92.8% / 94.5% / 96.2%. Demand is held constant in absolute units, so effective load rises slightly with depth.",
+    "rows": [
+      {
+        "n_pairs": 2,
+        "M": 4,
+        "lead": 36,
+        "commander": 34079.71,
+        "random": 34457.76,
+        "hillclimb": 34572.43,
+        "grad_soft": 32378.94,
+        "grad_st": 34554.85
+      },
+      {
+        "n_pairs": 4,
+        "M": 8,
+        "lead": 72,
+        "commander": 34173.78,
+        "random": 34152.8,
+        "hillclimb": 34258.91,
+        "grad_soft": -11794.48,
+        "grad_st": 33508.34
+      },
+      {
+        "n_pairs": 6,
+        "M": 12,
+        "lead": 108,
+        "commander": 32864.1,
+        "random": 33789.22,
+        "hillclimb": 32456.21,
+        "grad_soft": -21996.18,
+        "grad_st": 31378.5
+      }
+    ],
+    "clip_test": "Global-norm clipping at 100 and 1000 changed nothing: $31,350 / $31,380 vs $31,379 unclipped at 6+6. The Adam second-moment hypothesis was tested and rejected; this is not an optimiser-configuration artifact.",
+    "grad_norms": {
+      "2+2": null,
+      "4+4": 52900000.0,
+      "6+6": 8650000000.0
+    }
+  }
+}

@@ -748,7 +748,7 @@
         "random": 17288.53,
         "hillclimb": 3755.7,
         "grad_soft": 16832.69,
-        "grad_st": 17894.83,
+        "grad_st": 17895.0,
         "bound": 19008.0
       },
       {
@@ -758,8 +758,8 @@
         "commander": 1233.26,
         "random": 17451.21,
         "hillclimb": 5388.61,
-        "grad_soft": 17289.29,
-        "grad_st": 18265.99,
+        "grad_soft": 17434.0,
+        "grad_st": 17271.0,
         "bound": 19008.0
       },
       {
@@ -769,12 +769,13 @@
         "commander": 2488.18,
         "random": 16956.27,
         "hillclimb": 6300.92,
-        "grad_soft": 14770.75,
-        "grad_st": 18319.5,
+        "grad_soft": 16128.0,
+        "grad_st": 17757.0,
         "bound": 19008.0
       }
     ],
-    "milp_status": "long 1800s solves running; 45s probes returned 777 / 1,471 / 2,502 (barely above commander) and M=12 peaked at 6.6 GB"
+    "milp_status": "long 1800s solves running; 45s probes returned 777 / 1,471 / 2,502 (barely above commander) and M=12 peaked at 6.6 GB",
+    "routefix": "Re-run 2026-10-04 after a routing bug was found in the differentiable simulator. It had the four-machine layout hardcoded, so the 8- and 12-tool runs had been optimising a line that was not the one being measured. M=4 is unchanged (the hardcoding was correct at that width); grad-ST at M=8 falls $995 and at M=12 falls $562. Note the direction: the bug was <em>flattering</em>, and correcting it makes the gradient look worse."
   },
   "verification_matrix": [
     {
@@ -887,30 +888,30 @@
         "M": 4,
         "lead": 36,
         "commander": 34079.71,
-        "random": 34457.76,
+        "random": 34458.0,
         "hillclimb": 34572.43,
-        "grad_soft": 32378.94,
-        "grad_st": 34554.85
+        "grad_soft": 32379.0,
+        "grad_st": 34555.0
       },
       {
         "n_pairs": 4,
         "M": 8,
         "lead": 72,
         "commander": 34173.78,
-        "random": 34152.8,
+        "random": 34153.0,
         "hillclimb": 34258.91,
-        "grad_soft": -11794.48,
-        "grad_st": 33508.34
+        "grad_soft": 30842.0,
+        "grad_st": 33681.0
       },
       {
         "n_pairs": 6,
         "M": 12,
         "lead": 108,
         "commander": 32864.1,
-        "random": 33789.22,
+        "random": 33789.0,
         "hillclimb": 32456.21,
-        "grad_soft": -21996.18,
-        "grad_st": 31378.5
+        "grad_soft": 26796.0,
+        "grad_st": 31361.0
       }
     ],
     "clip_test": "Global-norm clipping at 100 and 1000 changed nothing: $31,350 / $31,380 vs $31,379 unclipped at 6+6. The Adam second-moment hypothesis was tested and rejected; this is not an optimiser-configuration artifact.",
@@ -949,19 +950,19 @@
       "problem": "Uniform 92% (2+2)",
       "util": 0.92,
       "shape": "flat",
-      "margin": -18
+      "margin": -17
     },
     {
       "problem": "Uniform 92% (4+4)",
       "util": 0.92,
       "shape": "flat",
-      "margin": -751
+      "margin": -578
     },
     {
       "problem": "Uniform 92% (6+6)",
       "util": 0.92,
       "shape": "flat",
-      "margin": -2411
+      "margin": -1095
     }
   ],
   "milp_depth": [
@@ -970,21 +971,21 @@
       "incumbent": 18993.18,
       "bound": 19003.2,
       "gap": 0.0005,
-      "grad_st": 17894.83
+      "grad_st": 17895.0
     },
     {
       "M": 8,
       "incumbent": 18839.92,
       "bound": 19002.86,
       "gap": 0.0086,
-      "grad_st": 18265.99
+      "grad_st": 17271.0
     },
     {
       "M": 12,
       "incumbent": 18933.51,
       "bound": 19008.0,
       "gap": 0.0039,
-      "grad_st": 18319.5
+      "grad_st": 17757.0
     }
   ],
   "capacity": {
@@ -1370,6 +1371,1326 @@
         "grad_plateau": "400 steps -> $27,831; 3,000 steps (7.4x the compute) -> $28,127, a gain of $296",
         "cpsat_plateau": "300s -> $29,554; 1800s -> $29,621, a gain of $67 for six times the time"
       }
+    },
+    "mixes_explained": {
+      "note": "All three run the same four-tool two-product line at 80% utilisation with UNIFORM demand. The only thing that changes is how the order book splits between the two recipes. Alpha is the fraction of demand that is P0.",
+      "rows": [
+        {
+          "label": "50 / 50",
+          "alpha": 0.5,
+          "d0": 236,
+          "d1": 236,
+          "total": 472,
+          "ticks": 2124,
+          "pct": 0.79,
+          "ceiling": 30208,
+          "chg": 64,
+          "why": "An even order book. Maximum changeover pressure: the tools must keep switching."
+        },
+        {
+          "label": "90 / 10",
+          "alpha": 0.9,
+          "d0": 472,
+          "d1": 52,
+          "total": 524,
+          "ticks": 2148,
+          "pct": 0.799,
+          "ceiling": 30176,
+          "chg": 28,
+          "why": "One recipe dominates. Long single-product runs are possible; the question is when to interrupt them for the rare product."
+        },
+        {
+          "label": "10 / 90",
+          "alpha": 0.1,
+          "d0": 40,
+          "d1": 392,
+          "total": 432,
+          "ticks": 2120,
+          "pct": 0.789,
+          "ceiling": 30464,
+          "chg": 28,
+          "why": "The mirror image, dominated by the slower and more valuable recipe."
+        }
+      ],
+      "capacity_note": "The unit totals differ (432 to 524) on purpose. P1 occupies a batch tool for 20 ticks against P0's 16, so each P1 unit consumes 25% more of the bottleneck. Matching on units would have made the lopsided mixes easier or harder purely by accident, so all three are matched on CAPACITY CONSUMED instead \u2014 79 to 80% of the horizon's bottleneck time in every case.",
+      "ceiling_note": "A consequence worth noticing: the profit ceilings land within 1% of each other ($30,176 to $30,464) despite the unit counts differing by 21%. That is the balanced-margin design showing through \u2014 P0 earns $14.00 per bottleneck tick and P1 $14.40, so the mix barely changes what is achievable. It changes only how hard it is to achieve, through changeover pressure: 64 changeovers at an even split against 28 when one recipe dominates."
+    },
+    "dashboards": {
+      "a010_u080": {
+        "bound": 30880.0,
+        "wall": 601.5420461250033,
+        "demand": [
+          40,
+          392
+        ],
+        "rows": [
+          {
+            "method": "CP-SAT",
+            "profit": 30295.39375,
+            "pct_bound": 0.9810684504533679,
+            "changeovers": 30,
+            "midline_wip": 0.6,
+            "midline_peak": 11,
+            "stranded": 0,
+            "m0_duty": 0.762,
+            "shipped": 432,
+            "fg_left": 0,
+            "overbuilt": 0
+          },
+          {
+            "method": "Grad-ST",
+            "profit": 29215.42375,
+            "pct_bound": 0.9460953286917099,
+            "changeovers": 72,
+            "midline_wip": 8.3,
+            "midline_peak": 40,
+            "stranded": 4,
+            "m0_duty": 0.806,
+            "shipped": 432,
+            "fg_left": 0,
+            "overbuilt": 4
+          },
+          {
+            "method": "Commander",
+            "profit": 25433.01,
+            "pct_bound": 0.8236078367875647,
+            "changeovers": 36,
+            "midline_wip": 1.2,
+            "midline_peak": 8,
+            "stranded": 3,
+            "m0_duty": 0.952,
+            "shipped": 432,
+            "fg_left": 96,
+            "overbuilt": 99
+          }
+        ],
+        "alpha": 0.1,
+        "util": 0.8,
+        "label": "10 / 90 mix at 80% utilisation"
+      },
+      "a050_u050": {
+        "bound": 19360.0,
+        "wall": 601.6164784580033,
+        "demand": [
+          148,
+          148
+        ],
+        "rows": [
+          {
+            "method": "CP-SAT",
+            "profit": 18128.164375,
+            "pct_bound": 0.9363721268078512,
+            "changeovers": 47,
+            "midline_wip": 0.4,
+            "midline_peak": 4,
+            "stranded": 0,
+            "m0_duty": 0.469,
+            "shipped": 296,
+            "fg_left": 0,
+            "overbuilt": 0
+          },
+          {
+            "method": "Grad-ST",
+            "profit": 15638.211874999999,
+            "pct_bound": 0.807758877840909,
+            "changeovers": 122,
+            "midline_wip": 49.5,
+            "midline_peak": 180,
+            "stranded": 176,
+            "m0_duty": 0.743,
+            "shipped": 296,
+            "fg_left": 0,
+            "overbuilt": 176
+          },
+          {
+            "method": "Commander",
+            "profit": -1577.7999999999993,
+            "pct_bound": -0.08149793388429748,
+            "changeovers": 48,
+            "midline_wip": 1.5,
+            "midline_peak": 8,
+            "stranded": 3,
+            "m0_duty": 0.947,
+            "shipped": 296,
+            "fg_left": 279,
+            "overbuilt": 282
+          }
+        ],
+        "alpha": 0.5,
+        "util": 0.5,
+        "label": "50 / 50 mix at 50% utilisation"
+      },
+      "a050_u060": {
+        "bound": 22941.43177,
+        "wall": 601.5729513749975,
+        "demand": [
+          176,
+          176
+        ],
+        "rows": [
+          {
+            "method": "CP-SAT",
+            "profit": 21965.94,
+            "pct_bound": 0.9574790370636052,
+            "changeovers": 48,
+            "midline_wip": 0.5,
+            "midline_peak": 4,
+            "stranded": 0,
+            "m0_duty": 0.562,
+            "shipped": 352,
+            "fg_left": 0,
+            "overbuilt": 0
+          },
+          {
+            "method": "Grad-ST",
+            "profit": 19772.835,
+            "pct_bound": 0.8618832162801843,
+            "changeovers": 100,
+            "midline_wip": 33.4,
+            "midline_peak": 132,
+            "stranded": 128,
+            "m0_duty": 0.807,
+            "shipped": 352,
+            "fg_left": 0,
+            "overbuilt": 128
+          },
+          {
+            "method": "Commander",
+            "profit": 7376.27,
+            "pct_bound": 0.3215261398656811,
+            "changeovers": 48,
+            "midline_wip": 1.5,
+            "midline_peak": 8,
+            "stranded": 3,
+            "m0_duty": 0.947,
+            "shipped": 352,
+            "fg_left": 223,
+            "overbuilt": 226
+          }
+        ],
+        "alpha": 0.5,
+        "util": 0.6,
+        "label": "50 / 50 mix at 60% utilisation"
+      },
+      "a050_u080": {
+        "bound": 30622.36711,
+        "wall": 601.6322291660035,
+        "demand": [
+          236,
+          236
+        ],
+        "rows": [
+          {
+            "method": "CP-SAT",
+            "profit": 29593.88375,
+            "pct_bound": 0.9664139824231897,
+            "changeovers": 64,
+            "midline_wip": 0.6,
+            "midline_peak": 4,
+            "stranded": 0,
+            "m0_duty": 0.763,
+            "shipped": 472,
+            "fg_left": 0,
+            "overbuilt": 0
+          },
+          {
+            "method": "Grad-ST",
+            "profit": 27831.37875,
+            "pct_bound": 0.9088578505386483,
+            "changeovers": 156,
+            "midline_wip": 20.9,
+            "midline_peak": 72,
+            "stranded": 68,
+            "m0_duty": 0.896,
+            "shipped": 472,
+            "fg_left": 0,
+            "overbuilt": 68
+          },
+          {
+            "method": "Commander",
+            "profit": 25028.0025,
+            "pct_bound": 0.8173111637678359,
+            "changeovers": 64,
+            "midline_wip": 1.5,
+            "midline_peak": 8,
+            "stranded": 3,
+            "m0_duty": 0.947,
+            "shipped": 472,
+            "fg_left": 103,
+            "overbuilt": 106
+          }
+        ],
+        "alpha": 0.5,
+        "util": 0.8,
+        "label": "50 / 50 mix at 80% utilisation"
+      },
+      "a050_u092": {
+        "bound": 35230.59635,
+        "wall": 601.5272067080077,
+        "demand": [
+          272,
+          272
+        ],
+        "rows": [
+          {
+            "method": "CP-SAT",
+            "profit": 34290.225625,
+            "pct_bound": 0.9733081235509656,
+            "changeovers": 90,
+            "midline_wip": 0.6,
+            "midline_peak": 4,
+            "stranded": 0,
+            "m0_duty": 0.884,
+            "shipped": 544,
+            "fg_left": 0,
+            "overbuilt": 0
+          },
+          {
+            "method": "Grad-ST",
+            "profit": 32350.46875,
+            "pct_bound": 0.9182492521163356,
+            "changeovers": 186,
+            "midline_wip": 8.3,
+            "midline_peak": 40,
+            "stranded": 39,
+            "m0_duty": 0.939,
+            "shipped": 540,
+            "fg_left": 0,
+            "overbuilt": 39
+          },
+          {
+            "method": "Commander",
+            "profit": 33075.975,
+            "pct_bound": 0.9388423253300962,
+            "changeovers": 95,
+            "midline_wip": 1.5,
+            "midline_peak": 8,
+            "stranded": 3,
+            "m0_duty": 0.947,
+            "shipped": 544,
+            "fg_left": 31,
+            "overbuilt": 34
+          }
+        ],
+        "alpha": 0.5,
+        "util": 0.92,
+        "label": "50 / 50 mix at 92% utilisation"
+      },
+      "a090_u080": {
+        "bound": 30592.0,
+        "wall": 601.682204124998,
+        "demand": [
+          472,
+          52
+        ],
+        "rows": [
+          {
+            "method": "CP-SAT",
+            "profit": 30010.595,
+            "pct_bound": 0.9809948679393306,
+            "changeovers": 28,
+            "midline_wip": 0.6,
+            "midline_peak": 4,
+            "stranded": 0,
+            "m0_duty": 0.772,
+            "shipped": 524,
+            "fg_left": 0,
+            "overbuilt": 0
+          },
+          {
+            "method": "Grad-ST",
+            "profit": 28581.5125,
+            "pct_bound": 0.9342806125784519,
+            "changeovers": 89,
+            "midline_wip": 10.1,
+            "midline_peak": 44,
+            "stranded": 0,
+            "m0_duty": 0.815,
+            "shipped": 524,
+            "fg_left": 1,
+            "overbuilt": 1
+          },
+          {
+            "method": "Commander",
+            "profit": 25827.45125,
+            "pct_bound": 0.8442550748561715,
+            "changeovers": 28,
+            "midline_wip": 1.7,
+            "midline_peak": 8,
+            "stranded": 4,
+            "m0_duty": 0.942,
+            "shipped": 524,
+            "fg_left": 103,
+            "overbuilt": 107
+          }
+        ],
+        "alpha": 0.9,
+        "util": 0.8,
+        "label": "90 / 10 mix at 80% utilisation"
+      }
+    },
+    "dashboards_note": {
+      "intro": "The aggregate tables say grad-ST reaches 91 to 95% of the certified bound. They do not say what it does differently. These dashboards replay every method's schedule tick by tick through the exact simulator and draw the whole thing: which tool runs which recipe when, how much material is waiting in front of each tool, what is on the finished-goods shelf against what is owed, and where the money goes.",
+      "howto": [
+        [
+          "The Gantt",
+          "Hue is the product \u2014 P0 cool blue-cyan, P1 warm amber-red \u2014 and shade cycles per batch, so a run of one recipe reads as a band of one colour while alternation reads as stripes. Tools are stacked in route order with M3, the last, on top."
+        ],
+        [
+          "Work-in-process",
+          "One panel per queue, each on its own scale because they differ by two orders of magnitude. Queue 0 is the raw backlog draining between weekly arrivals; queues 1 and 2 are the interior of the line and should stay near empty if material is flowing."
+        ],
+        [
+          "Finished goods and backlog",
+          "Above the line is stock waiting to ship, below it is demand owed. The sawtooth is the weekly demand drop."
+        ],
+        [
+          "Cumulative money",
+          "Revenue against the stacked cost bands, with net profit as the gold line \u2014 the same number the KPI strip reports."
+        ]
+      ],
+      "finding": "Read side by side, all three methods ship the entire order book. Not one unit of demand goes unmet by anybody. The whole profit spread &mdash; nearly $4,600 between best and worst &mdash; is cost, and each method wastes it somewhere different, visibly, before any number is read.",
+      "mechanism": "Look at what each one is still holding when the horizon closes. CP-SAT holds nothing: zero units mid-line, zero on the shelf, the order book built and no more. Grad-ST strands material between tools &mdash; 68 units at the even split, released and partly processed and never sold. The commander finishes with 96 to 103 units of finished goods nobody ordered, in every mix. Three different ways to overbuild, and the mid-line WIP average separates them at a glance: 0.6 for CP-SAT, 8 to 21 for grad-ST, and low for the commander, whose waste sits at the far end instead.",
+      "restraint": "The duty cycle of the gating tool is the single clearest number on these slides. CP-SAT holds M0 at 76 to 77% in every mix &mdash; deliberately idle almost a quarter of the time. Grad-ST pushes it to 81 to 90%, the commander to 94 to 95%, and both earn less for the extra effort. The solver's remaining edge is not sharper sequencing; it is restraint, an idle tool now to avoid a queue later. That is credit assignment across hundreds of ticks of delay, and it is exactly what a straight-through gradient reports weakly: the sequence consequence of a release travels through the integer state under stop_gradient, while only its immediate cost is differentiable.",
+      "caveat": "The schedules drawn here come from 600-second CP-SAT solves rather than the 1,800-second headline runs, so that all three mixes could be regenerated together. That costs the solver very little: $29,594 against $29,621, $30,011 against $30,054, and $30,295 against $30,435 &mdash; every one inside 0.5%. The solver curve on these slides is therefore a fair picture of the headline result, marginally understated.",
+      "fullres": "Rendered at 5112 px wide; the deck embeds a 2000 px copy. Full resolution is in tensorfab/twoprod/schedules/dash_&lt;mix&gt;_&lt;method&gt;.png for zooming into individual jobs.",
+      "integrity": "One run had to be discarded and repeated, and it is worth saying why. The first 600-second solve of the P1-heavy mix returned $28,992 after using only 273 seconds of its budget. Taken at face value that would have made this the one mix where the gradient beat the solver &mdash; the first such result anywhere in the study. Re-solving the identical model with nothing else running returned $30,295 and used the full budget. The first solve had been starved of cores by concurrent rendering, and a starved CP-SAT run quietly returns a worse answer rather than an error. Every figure here is from the clean re-solve; the gradient does not beat the solver in any mix."
+    },
+    "util_study": {
+      "alpha": 0.5,
+      "rows": [
+        {
+          "tag": "a050_u050",
+          "util_f": 0.5,
+          "util": "50%",
+          "demand": 296,
+          "ticks": 1332,
+          "pct_ceiling": "49.6%",
+          "commander": "-1,578",
+          "gradst": "15,638",
+          "cpsat": "18,128",
+          "bound": "19,360",
+          "margin": "+17,216",
+          "st_wins": true,
+          "pct_bound": "80.8%",
+          "m0_duty": {
+            "CP-SAT": 0.469,
+            "Grad-ST": 0.743,
+            "Commander": 0.947
+          }
+        },
+        {
+          "tag": "a050_u060",
+          "util_f": 0.6,
+          "util": "60%",
+          "demand": 352,
+          "ticks": 1584,
+          "pct_ceiling": "58.9%",
+          "commander": "7,376",
+          "gradst": "19,773",
+          "cpsat": "21,966",
+          "bound": "22,941",
+          "margin": "+12,397",
+          "st_wins": true,
+          "pct_bound": "86.2%",
+          "m0_duty": {
+            "CP-SAT": 0.562,
+            "Grad-ST": 0.807,
+            "Commander": 0.947
+          }
+        },
+        {
+          "tag": "a050_u080",
+          "util_f": 0.8,
+          "util": "80%",
+          "demand": 472,
+          "ticks": 2124,
+          "pct_ceiling": "79.0%",
+          "commander": "25,028",
+          "gradst": "27,831",
+          "cpsat": "29,594",
+          "bound": "30,622",
+          "margin": "+2,803",
+          "st_wins": true,
+          "pct_bound": "90.9%",
+          "m0_duty": {
+            "CP-SAT": 0.763,
+            "Grad-ST": 0.896,
+            "Commander": 0.947
+          }
+        },
+        {
+          "tag": "a050_u092",
+          "util_f": 0.92,
+          "util": "92%",
+          "demand": 544,
+          "ticks": 2448,
+          "pct_ceiling": "91.1%",
+          "commander": "33,076",
+          "gradst": "32,350",
+          "cpsat": "34,290",
+          "bound": "35,231",
+          "margin": "-726",
+          "st_wins": false,
+          "pct_bound": "91.8%",
+          "m0_duty": {
+            "CP-SAT": 0.884,
+            "Grad-ST": 0.939,
+            "Commander": 0.947
+          }
+        }
+      ],
+      "intro": "The three experiments on the previous pages held utilisation fixed at 80% and varied the product mix. This set does the opposite: it fixes the mix at an even 50/50 split &mdash; the hardest one, because it carries the most changeover pressure &mdash; and varies how heavily the line is loaded, from 50% through 92%. Everything else is identical: same tools, same recipes, same prices, same four-week horizon, same 600-second solver budget, each solved alone. Demand scales with load, so profits are not comparable down a column; percentages of the certified bound are.",
+      "cards": [
+        {
+          "kind": "ok",
+          "h": "The gradient's edge over the heuristic is a slack phenomenon",
+          "t": "Against the industrial heuristic the gradient is worth <strong>+$17,216 at 50% load, +$12,397 at 60%, +$2,803 at 80% and &minus;$726 at 92%</strong>. This is the single-product finding reproduced on a harder problem and measured as a monotone sweep rather than inferred from two points. At 50% the commander is <em>loss-making</em> (&minus;$1,578): running flat out into an order book that cannot absorb it destroys value."
+        },
+        {
+          "kind": "",
+          "h": "The heuristic is completely blind to load",
+          "t": "The commander releases <strong>572 units at every utilisation</strong> &mdash; 1.93&times; demand at 50%, 1.05&times; at 92% &mdash; and holds the gating tool at 95% duty in all four. Its apparent competence at 92% is not skill; it is the problem removing the opportunity to err."
+        },
+        {
+          "kind": "flag",
+          "h": "But grad-ST's own % of bound falls at low load &mdash; see the next page",
+          "t": "86.2% at 60% against 91.8% at 92% reads like the gradient degrading as the line empties, which would contradict everything above. It is worth pulling apart, because it is <strong>not</strong> what it appears to be, and the next page does that."
+        }
+      ],
+      "note": "Every run: 50/50 mix, UNIFORM demand, four-week horizon, 600-second CP-SAT budget with 8 workers, 400 Adam steps at batch 64 for the gradient, solved alone. All three solves used their full budget. Profit is always the schedule replayed through the exact integer simulator. Demand scales with utilisation, so profits are not comparable across rows &mdash; percentages of the dual bound are."
+    },
+    "release_note": {
+      "intro": "Utilisation changes the schedules by changing how much freedom there is in when to release material. These curves show that directly: the left panels count units pushed into the gating tool against the cumulative order book, so slope is release rate and the vertical gap to the dashed line is how far ahead of demand a method is running. The right panels show the same releases as a rolling rate, which is where pacing separates a metered feed from burst-and-wait.",
+      "note": "Release is measured at M0 in units rather than jobs, so a diffusion job counts for the four wafers it consumes. Rolling window is 168 ticks, a quarter of a demand week &mdash; long enough to smooth batch granularity, short enough to keep the weekly rhythm visible.",
+      "cards": [
+        {
+          "kind": "ok",
+          "h": "CP-SAT meters the feed to the order book",
+          "t": "It releases <strong>0.95&times;, 0.97&times;, 0.97&times;</strong> of demand across the three loads, and its gating-tool duty cycle tracks what the order book actually requires: <strong>56% / 76% / 88%</strong> against a required 59% / 79% / 91%. Look at the rate panels: its release rate swings hard at 60% (CV 0.53) and flattens as the line fills (0.17). Restraint is not a fixed policy &mdash; it is spending the slack that exists."
+        },
+        {
+          "kind": "",
+          "h": "The commander feeds at one constant rate, always",
+          "t": "Its curve is nearly a straight line at every load, rate CV 0.09&ndash;0.11, and it ends at 572 units regardless. At 92% that line sits almost on top of CP-SAT's and it scores 93.9% of the bound. At 60% the same line runs far above demand, and the gap between the purple and cyan curves in the top-left panel <em>is</em> the $14,590 it gives away."
+        },
+        {
+          "kind": "flag",
+          "h": "The gradient sits between them, and drifts toward the wrong one",
+          "t": "It releases <strong>1.33&times;, 1.12&times;, 1.04&times;</strong> &mdash; always more than CP-SAT, always less than the commander. Its bias is toward over-release, and that bias is worst exactly where restraint pays most. The surrogate reports the immediate cost of a release accurately; what it reports weakly is the congestion that release causes hundreds of ticks later, because that consequence travels through the integer state under stop_gradient."
+        }
+      ]
+    },
+    "release_patterns": {
+      "0.50": {
+        "alpha": 0.5,
+        "util": 0.5,
+        "demand": 296,
+        "cpsat": {
+          "released": 280,
+          "lead_units": -11.6,
+          "first_week": 116,
+          "rate_cv": 0.499,
+          "vs_demand": 0.946
+        },
+        "gradst": {
+          "released": 460,
+          "lead_units": 65.7,
+          "first_week": 136,
+          "rate_cv": 0.283,
+          "vs_demand": 1.554
+        },
+        "commander": {
+          "released": 572,
+          "lead_units": 103.7,
+          "first_week": 144,
+          "rate_cv": 0.12,
+          "vs_demand": 1.932
+        }
+      },
+      "0.60": {
+        "alpha": 0.5,
+        "util": 0.6,
+        "demand": 352,
+        "cpsat": {
+          "released": 336,
+          "lead_units": -13.7,
+          "first_week": 144,
+          "rate_cv": 0.518,
+          "vs_demand": 0.955
+        },
+        "gradst": {
+          "released": 468,
+          "lead_units": 36.7,
+          "first_week": 144,
+          "rate_cv": 0.277,
+          "vs_demand": 1.33
+        },
+        "commander": {
+          "released": 572,
+          "lead_units": 68.4,
+          "first_week": 144,
+          "rate_cv": 0.119,
+          "vs_demand": 1.625
+        }
+      },
+      "0.80": {
+        "alpha": 0.5,
+        "util": 0.8,
+        "demand": 472,
+        "cpsat": {
+          "released": 456,
+          "lead_units": -27.6,
+          "first_week": 144,
+          "rate_cv": 0.412,
+          "vs_demand": 0.966
+        },
+        "gradst": {
+          "released": 528,
+          "lead_units": -14.8,
+          "first_week": 140,
+          "rate_cv": 0.177,
+          "vs_demand": 1.119
+        },
+        "commander": {
+          "released": 572,
+          "lead_units": -8.7,
+          "first_week": 144,
+          "rate_cv": 0.11,
+          "vs_demand": 1.212
+        }
+      },
+      "0.92": {
+        "alpha": 0.5,
+        "util": 0.92,
+        "demand": 544,
+        "cpsat": {
+          "released": 528,
+          "lead_units": -61.3,
+          "first_week": 140,
+          "rate_cv": 0.171,
+          "vs_demand": 0.971
+        },
+        "gradst": {
+          "released": 564,
+          "lead_units": -50.8,
+          "first_week": 144,
+          "rate_cv": 0.132,
+          "vs_demand": 1.037
+        },
+        "commander": {
+          "released": 572,
+          "lead_units": -54.7,
+          "first_week": 144,
+          "rate_cv": 0.093,
+          "vs_demand": 1.051
+        }
+      }
+    },
+    "util_diagnosis": {
+      "0.50": {
+        "util": 0.5,
+        "bound": 19360.0,
+        "demand": 296,
+        "methods": {
+          "cpsat": {
+            "revenue": 26640.0,
+            "production": 7280.0,
+            "setup": 460.0,
+            "inventory": 656.49,
+            "wip": 115.34562499999998,
+            "backorder": 0.0,
+            "profit": 18128.164375,
+            "units_shipped": 296.0,
+            "changeovers": 47.0,
+            "stored": 18128.164375,
+            "replay_ok": true,
+            "stranded": 0,
+            "fg_left": 0,
+            "released": 280,
+            "shipped": 296
+          },
+          "gradst": {
+            "revenue": 26640.0,
+            "production": 8784.0,
+            "setup": 1080.0,
+            "inventory": 304.27,
+            "wip": 751.2431250000001,
+            "backorder": 82.275,
+            "profit": 15638.211874999999,
+            "units_shipped": 296.0,
+            "changeovers": 122.0,
+            "stored": 15638.211874999999,
+            "replay_ok": true,
+            "stranded": 176,
+            "fg_left": 0,
+            "released": 460,
+            "shipped": 296
+          },
+          "commander": {
+            "revenue": 26640.0,
+            "production": 14676.0,
+            "setup": 480.0,
+            "inventory": 13000.880000000001,
+            "wip": 60.92,
+            "backorder": 0.0,
+            "profit": -1577.7999999999993,
+            "units_shipped": 296.0,
+            "changeovers": 48.0,
+            "stored": -1577.7999999999993,
+            "replay_ok": true,
+            "stranded": 3,
+            "fg_left": 279,
+            "released": 572,
+            "shipped": 296
+          }
+        }
+      },
+      "0.60": {
+        "util": 0.6,
+        "bound": 22941.43177,
+        "demand": 352,
+        "methods": {
+          "cpsat": {
+            "revenue": 31680.0,
+            "production": 8736.0,
+            "setup": 480.0,
+            "inventory": 345.20000000000005,
+            "wip": 152.86,
+            "backorder": 0.0,
+            "profit": 21965.94,
+            "units_shipped": 352.0,
+            "changeovers": 48.0,
+            "stored": 21965.94,
+            "replay_ok": true,
+            "stranded": 0,
+            "fg_left": 0,
+            "released": 336,
+            "shipped": 352
+          },
+          "gradst": {
+            "revenue": 31680.0,
+            "production": 10052.0,
+            "setup": 840.0,
+            "inventory": 388.22,
+            "wip": 626.945,
+            "backorder": 0.0,
+            "profit": 19772.835,
+            "units_shipped": 352.0,
+            "changeovers": 100.0,
+            "stored": 19772.835,
+            "replay_ok": true,
+            "stranded": 128,
+            "fg_left": 0,
+            "released": 468,
+            "shipped": 352
+          },
+          "commander": {
+            "revenue": 31680.0,
+            "production": 14676.0,
+            "setup": 480.0,
+            "inventory": 9086.810000000001,
+            "wip": 60.92,
+            "backorder": 0.0,
+            "profit": 7376.27,
+            "units_shipped": 352.0,
+            "changeovers": 48.0,
+            "stored": 7376.27,
+            "replay_ok": true,
+            "stranded": 3,
+            "fg_left": 223,
+            "released": 572,
+            "shipped": 352
+          }
+        }
+      },
+      "0.80": {
+        "util": 0.8,
+        "bound": 30622.36711,
+        "demand": 472,
+        "methods": {
+          "cpsat": {
+            "revenue": 42480.0,
+            "production": 11856.0,
+            "setup": 640.0,
+            "inventory": 273.46000000000004,
+            "wip": 116.65625,
+            "backorder": 0.0,
+            "profit": 29593.88375,
+            "units_shipped": 472.0,
+            "changeovers": 64.0,
+            "stored": 29593.88375,
+            "replay_ok": true,
+            "stranded": 0,
+            "fg_left": 0,
+            "released": 456,
+            "shipped": 472
+          },
+          "gradst": {
+            "revenue": 42480.0,
+            "production": 12568.0,
+            "setup": 1280.0,
+            "inventory": 245.02,
+            "wip": 469.42625,
+            "backorder": 86.175,
+            "profit": 27831.37875,
+            "units_shipped": 472.0,
+            "changeovers": 156.0,
+            "stored": 27831.37875,
+            "replay_ok": true,
+            "stranded": 68,
+            "fg_left": 0,
+            "released": 528,
+            "shipped": 472
+          },
+          "commander": {
+            "revenue": 42480.0,
+            "production": 14676.0,
+            "setup": 640.0,
+            "inventory": 2075.01,
+            "wip": 60.9875,
+            "backorder": 0.0,
+            "profit": 25028.0025,
+            "units_shipped": 472.0,
+            "changeovers": 64.0,
+            "stored": 25028.0025,
+            "replay_ok": true,
+            "stranded": 3,
+            "fg_left": 103,
+            "released": 572,
+            "shipped": 472
+          }
+        }
+      },
+      "0.92": {
+        "util": 0.92,
+        "bound": 35230.59635,
+        "demand": 544,
+        "methods": {
+          "cpsat": {
+            "revenue": 48960.0,
+            "production": 13728.0,
+            "setup": 880.0,
+            "inventory": 12.600000000000001,
+            "wip": 49.174375,
+            "backorder": 0.0,
+            "profit": 34290.225625,
+            "units_shipped": 544.0,
+            "changeovers": 90.0,
+            "stored": 34290.225625,
+            "replay_ok": true,
+            "stranded": 0,
+            "fg_left": 0,
+            "released": 528,
+            "shipped": 544
+          },
+          "gradst": {
+            "revenue": 48640.0,
+            "production": 13980.0,
+            "setup": 1840.0,
+            "inventory": 172.18,
+            "wip": 232.62625000000003,
+            "backorder": 64.725,
+            "profit": 32350.46875,
+            "units_shipped": 540.0,
+            "changeovers": 186.0,
+            "stored": 32350.46875,
+            "replay_ok": true,
+            "stranded": 39,
+            "fg_left": 0,
+            "released": 564,
+            "shipped": 540
+          },
+          "commander": {
+            "revenue": 48960.0,
+            "production": 14676.0,
+            "setup": 940.0,
+            "inventory": 206.94,
+            "wip": 61.085,
+            "backorder": 0.0,
+            "profit": 33075.975,
+            "units_shipped": 544.0,
+            "changeovers": 95.0,
+            "stored": 33075.975,
+            "replay_ok": true,
+            "stranded": 3,
+            "fg_left": 31,
+            "released": 572,
+            "shipped": 544
+          }
+        }
+      }
+    },
+    "converge": {
+      "0.60": {
+        "demand": 352,
+        "rows": [
+          {
+            "steps": 400,
+            "batch": 64,
+            "seed": 0,
+            "wall": 35.9,
+            "profit": 19772.835,
+            "released": 468,
+            "stranded": 128,
+            "shipped": 352,
+            "production": 10052.0,
+            "batch_best": 19772.833984375,
+            "batch_mean": 18422.22265625,
+            "demand": 352
+          },
+          {
+            "steps": 1200,
+            "batch": 64,
+            "seed": 0,
+            "wall": 102.9,
+            "profit": 20015.69625,
+            "released": 468,
+            "stranded": 128,
+            "shipped": 352,
+            "production": 10048.0,
+            "batch_best": 20015.6953125,
+            "batch_mean": 18800.17578125,
+            "demand": 352
+          },
+          {
+            "steps": 3000,
+            "batch": 64,
+            "seed": 0,
+            "wall": 257.7,
+            "profit": 20139.594375,
+            "released": 468,
+            "stranded": 128,
+            "shipped": 352,
+            "production": 9800.0,
+            "batch_best": 20139.59375,
+            "batch_mean": 19108.20703125,
+            "demand": 352
+          }
+        ]
+      }
+    },
+    "trim": {
+      "0.50": {
+        "util": 0.5,
+        "base": 15638.211874999999,
+        "best": 16225.115625,
+        "best_k": 23,
+        "trimmed_units": 92,
+        "recovered": 586.9037500000013,
+        "cpsat": 18128.164375,
+        "gap": 2489.9525000000012,
+        "recovered_pct": 0.23570881372235053,
+        "still_behind": 1903.04875
+      },
+      "0.60": {
+        "util": 0.6,
+        "base": 19772.835,
+        "best": 19930.185,
+        "best_k": 4,
+        "trimmed_units": 16,
+        "recovered": 157.35000000000218,
+        "cpsat": 21965.94,
+        "gap": 2193.1049999999996,
+        "recovered_pct": 0.0717475907446302,
+        "still_behind": 2035.7549999999974
+      },
+      "0.80": {
+        "util": 0.8,
+        "base": 27831.37875,
+        "best": 27978.74375,
+        "best_k": 10,
+        "trimmed_units": 40,
+        "recovered": 147.3650000000016,
+        "cpsat": 29593.88375,
+        "gap": 1762.505000000001,
+        "recovered_pct": 0.08361111032309214,
+        "still_behind": 1615.1399999999994
+      },
+      "0.92": {
+        "util": 0.92,
+        "base": 32350.46875,
+        "best": 32550.966875,
+        "best_k": 5,
+        "trimmed_units": 20,
+        "recovered": 200.49812499999825,
+        "cpsat": 34290.225625,
+        "gap": 1939.7568749999991,
+        "recovered_pct": 0.10336250258166933,
+        "still_behind": 1739.2587500000009
+      }
+    },
+    "tau_sweep": {
+      "0.60": {
+        "demand": 352,
+        "cpsat": 21965.94,
+        "rows": [
+          {
+            "tau_q": 4.0,
+            "wall": 34.8,
+            "profit": 18856.396875,
+            "released": 464,
+            "stranded": 127,
+            "midline_wip": 34.9,
+            "shipped": 348,
+            "production": 9704.0,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "tau_q": 1.0,
+            "wall": 34.0,
+            "profit": 19772.835,
+            "released": 468,
+            "stranded": 128,
+            "midline_wip": 33.4,
+            "shipped": 352,
+            "production": 10052.0,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "tau_q": 0.25,
+            "wall": 34.2,
+            "profit": 19033.8975,
+            "released": 512,
+            "stranded": 171,
+            "midline_wip": 37.9,
+            "shipped": 352,
+            "production": 10252.0,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "tau_q": 0.1,
+            "wall": 34.2,
+            "profit": 17641.90875,
+            "released": 508,
+            "stranded": 196,
+            "midline_wip": 48.5,
+            "shipped": 328,
+            "production": 9844.0,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "tau_q": 0.05,
+            "wall": 34.2,
+            "profit": 17692.808125,
+            "released": 504,
+            "stranded": 171,
+            "midline_wip": 45.4,
+            "shipped": 344,
+            "production": 10092.0,
+            "demand": 352,
+            "cpsat": 21965.94
+          }
+        ]
+      }
+    },
+    "init_sweep": {
+      "0.50": {
+        "demand": 296,
+        "cpsat": 18128.164375,
+        "rows": [
+          {
+            "bias": 0.0,
+            "wall": 34.3,
+            "profit": 15638.211874999999,
+            "released": 460,
+            "stranded": 176,
+            "midline_wip": 49.5,
+            "shipped": 296,
+            "demand": 296,
+            "cpsat": 18128.164375
+          },
+          {
+            "bias": 1.0,
+            "wall": 34.1,
+            "profit": 16363.52125,
+            "released": 444,
+            "stranded": 160,
+            "midline_wip": 39.3,
+            "shipped": 296,
+            "demand": 296,
+            "cpsat": 18128.164375
+          },
+          {
+            "bias": 2.0,
+            "wall": 34.1,
+            "profit": 18037.028124999997,
+            "released": 320,
+            "stranded": 36,
+            "midline_wip": 10.8,
+            "shipped": 296,
+            "demand": 296,
+            "cpsat": 18128.164375
+          },
+          {
+            "bias": 3.0,
+            "wall": 34.2,
+            "profit": 17605.968125,
+            "released": 272,
+            "stranded": 0,
+            "midline_wip": 18.4,
+            "shipped": 288,
+            "demand": 296,
+            "cpsat": 18128.164375
+          }
+        ]
+      },
+      "0.60": {
+        "demand": 352,
+        "cpsat": 21965.94,
+        "rows": [
+          {
+            "bias": 0.0,
+            "wall": 34.2,
+            "profit": 19772.835,
+            "released": 468,
+            "stranded": 128,
+            "midline_wip": 33.4,
+            "shipped": 352,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "bias": 1.0,
+            "wall": 34.3,
+            "profit": 20296.9175,
+            "released": 468,
+            "stranded": 128,
+            "midline_wip": 35.3,
+            "shipped": 352,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "bias": 2.0,
+            "wall": 34.2,
+            "profit": 21448.719375,
+            "released": 360,
+            "stranded": 20,
+            "midline_wip": 13.4,
+            "shipped": 352,
+            "demand": 352,
+            "cpsat": 21965.94
+          },
+          {
+            "bias": 3.0,
+            "wall": 34.3,
+            "profit": 20532.268125,
+            "released": 332,
+            "stranded": 8,
+            "midline_wip": 16.6,
+            "shipped": 340,
+            "demand": 352,
+            "cpsat": 21965.94
+          }
+        ]
+      },
+      "0.80": {
+        "demand": 472,
+        "cpsat": 29593.88375,
+        "rows": [
+          {
+            "bias": 0.0,
+            "wall": 34.3,
+            "profit": 27831.37875,
+            "released": 528,
+            "stranded": 68,
+            "midline_wip": 20.9,
+            "shipped": 472,
+            "demand": 472,
+            "cpsat": 29593.88375
+          },
+          {
+            "bias": 1.0,
+            "wall": 34.4,
+            "profit": 28177.8425,
+            "released": 496,
+            "stranded": 36,
+            "midline_wip": 15.8,
+            "shipped": 472,
+            "demand": 472,
+            "cpsat": 29593.88375
+          },
+          {
+            "bias": 2.0,
+            "wall": 34.3,
+            "profit": 27510.13125,
+            "released": 464,
+            "stranded": 12,
+            "midline_wip": 14.5,
+            "shipped": 464,
+            "demand": 472,
+            "cpsat": 29593.88375
+          },
+          {
+            "bias": 3.0,
+            "wall": 34.4,
+            "profit": 22515.74625,
+            "released": 384,
+            "stranded": 0,
+            "midline_wip": 15.4,
+            "shipped": 400,
+            "demand": 472,
+            "cpsat": 29593.88375
+          }
+        ]
+      },
+      "0.92": {
+        "demand": 544,
+        "cpsat": 34290.225625,
+        "rows": [
+          {
+            "bias": 0.0,
+            "wall": 34.3,
+            "profit": 32350.46875,
+            "released": 564,
+            "stranded": 39,
+            "midline_wip": 8.3,
+            "shipped": 540,
+            "demand": 544,
+            "cpsat": 34290.225625
+          },
+          {
+            "bias": 1.0,
+            "wall": 34.4,
+            "profit": 32119.7825,
+            "released": 548,
+            "stranded": 16,
+            "midline_wip": 8.4,
+            "shipped": 544,
+            "demand": 544,
+            "cpsat": 34290.225625
+          },
+          {
+            "bias": 2.0,
+            "wall": 34.3,
+            "profit": 26481.02375,
+            "released": 476,
+            "stranded": 8,
+            "midline_wip": 11.3,
+            "shipped": 480,
+            "demand": 544,
+            "cpsat": 34290.225625
+          },
+          {
+            "bias": 3.0,
+            "wall": 34.3,
+            "profit": 19694.43125,
+            "released": 412,
+            "stranded": 0,
+            "midline_wip": 17.4,
+            "shipped": 428,
+            "demand": 544,
+            "cpsat": 34290.225625
+          }
+        ]
+      }
+    },
+    "init_summary": {
+      "rows": [
+        {
+          "util": 0.5,
+          "cpsat": 18128.164375,
+          "bound": 19360.0,
+          "base": 15638.211874999999,
+          "best": 18037.028124999997,
+          "best_bias": 2.0,
+          "base_rel": 1.554054054054054,
+          "best_rel": 1.0810810810810811,
+          "base_stranded": 176,
+          "best_stranded": 36,
+          "base_pct_cp": 0.8626472902334327,
+          "best_pct_cp": 0.9949726708057829,
+          "base_pct_b": 0.807758877840909,
+          "best_pct_b": 0.931664675878099
+        },
+        {
+          "util": 0.6,
+          "cpsat": 21965.94,
+          "bound": 22941.43177,
+          "base": 19772.835,
+          "best": 21448.719375,
+          "best_bias": 2.0,
+          "base_rel": 1.3295454545454546,
+          "best_rel": 1.0227272727272727,
+          "base_stranded": 128,
+          "best_stranded": 20,
+          "base_pct_cp": 0.9001588368173636,
+          "best_pct_cp": 0.9764535173545954,
+          "base_pct_b": 0.8618832162801843,
+          "best_pct_b": 0.9349337735340483
+        },
+        {
+          "util": 0.8,
+          "cpsat": 29593.88375,
+          "bound": 30622.36711,
+          "base": 27831.37875,
+          "best": 28177.8425,
+          "best_bias": 1.0,
+          "base_rel": 1.11864406779661,
+          "best_rel": 1.0508474576271187,
+          "base_stranded": 68,
+          "best_stranded": 36,
+          "base_pct_cp": 0.9404436060204501,
+          "best_pct_cp": 0.9521508815144953,
+          "base_pct_b": 0.9088578505386483,
+          "best_pct_b": 0.9201719252721741
+        },
+        {
+          "util": 0.92,
+          "cpsat": 34290.225625,
+          "bound": 35230.59635,
+          "base": 32350.46875,
+          "best": 32350.46875,
+          "best_bias": 0.0,
+          "base_rel": 1.036764705882353,
+          "best_rel": 1.036764705882353,
+          "base_stranded": 39,
+          "best_stranded": 39,
+          "base_pct_cp": 0.9434312011762973,
+          "best_pct_cp": 0.9434312011762973,
+          "base_pct_b": 0.9182492521163356,
+          "best_pct_b": 0.9182492521163356
+        }
+      ]
+    },
+    "diagnosis": {
+      "intro": "Grad-ST reaches 91.8% of the bound at 92% load and only 80.8% at 50%. Taken at face value that says the gradient gets worse as the line empties &mdash; the opposite of the mechanism this whole line of work rests on. The claim is cheap to check and was worth checking properly, so this page is the investigation rather than its conclusion.",
+      "first": "First, the two claims are about different quantities. The recorded finding is that the gradient's <em>margin over zeroth-order search</em> depends on utilisation, and that reproduces exactly (+$17,216 down to &minus;$726). The single-product runs' <em>% of bound</em> was 96.4 / 92.4 / 95.5 / 96.8 across 50&ndash;92% load &mdash; no utilisation trend at all, then or now. Nothing was contradicted; two metrics were being read as one.",
+      "second": "Second, most of the apparent decline is arithmetic. Grad-ST's shortfall behind CP-SAT in dollars is nearly flat across the sweep &mdash; <strong>$2,490 / $2,193 / $1,763 / $1,940</strong> &mdash; while the profit base doubles from $18k to $34k. The same gap is simply a larger fraction of a smaller number. The bound is also looser at low load: CP-SAT itself reaches 93.6% of it at 50% against 97.3% at 92%.",
+      "rows": [
+        {
+          "h": "Optimisation budget",
+          "test": "400 / 1,200 / 3,000 Adam steps at 60%",
+          "res": "$19,773 &rarr; $20,016 &rarr; $20,140, but releases pinned at exactly 468 units and 128 stranded in all three",
+          "v": "Rejected"
+        },
+        {
+          "h": "An error in the objective",
+          "test": "read the differentiable profit and the shipping cap",
+          "res": "production cost is charged per started job with a direct gradient path; the shipping cap is a jnp.minimum whose gradient is exactly zero beyond backlog",
+          "v": "Rejected"
+        },
+        {
+          "h": "Bias in the input-gate surrogate",
+          "test": "sweep the gate temperature tau_q over 4.0 &rarr; 0.05 at 60%",
+          "res": "predicted over-release would shrink; it <em>grew</em>, 464 &rarr; 512 units, and profit fell. The prediction was wrong and the hypothesis is dead",
+          "v": "Rejected"
+        },
+        {
+          "h": "The optimiser starts too far from the answer",
+          "test": "bias the initial idle logit, sweeping 0 &rarr; 3 at every load",
+          "res": "at 60% profit rises $19,773 &rarr; $21,449, releases fall 1.33&times; &rarr; 1.02&times; of demand, stranded WIP collapses 128 &rarr; 20",
+          "v": "Confirmed"
+        }
+      ],
+      "mech": "Each tick carries its own three-way logit drawn from N(0,1), so a random start runs something about two thirds of the time. That is close to correct at 92% load and badly wrong at 50%, where the optimum needs roughly half the ticks idle. Reaching it means moving thousands of independent parameters the same way through a landscape in which each individual release looks locally cheap &mdash; and the optimiser settles before it gets there. It is a basin, not a broken gradient: the required bias falls monotonically with load, 2 / 2 / 1 / 0.",
+      "after": "With the initial idle logit matched to the load, the trend disappears &mdash; and reverses slightly. At 50% the gradient reaches <strong>99.5% of CP-SAT's schedule in 35 seconds against its 602</strong>.",
+      "honest": "Two caveats. The bias was tuned per load against the answer, which is a four-point hyperparameter search on the test problem, not an a-priori setting &mdash; though at 4 &times; 35 seconds it still costs a quarter of one CP-SAT solve, and the monotone 2/2/1/0 pattern suggests it could be set from the target utilisation directly. And it does not change the ranking: CP-SAT still returns the better schedule at every load."
     }
   },
   "milp_depth_ref": {

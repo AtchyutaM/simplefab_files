@@ -1,0 +1,46 @@
+=== run 20261004-090338_compare_patterns ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"patterns": ["UNIFORM"], "batch": 64, "steps": 400, "lr": 0.1, "eval_every": 10, "init_scale": 1.0, "seed": 0, "milp_seconds": 180.0, "clip": 0.0, "utilization": 0.5, "n_pairs": 6, "no_milp": false}
+host       : Darwin arm64 (python 3.12.13)
+jax        : 0.11.0
+backend    : cpu
+devices    : [CpuDevice(id=0)]
+x64 enabled: False
+
+NOTE (macOS): the CUDA backend does not exist on this platform. JAX runs on
+      the XLA *CPU* backend here, which still compiles the tick loop into a
+      single fused program (the main structural win) but cannot deliver the
+      10^6-10^8 steps/sec figures that need a real GPU. `jax-metal` exists
+      but is experimental and routinely hits unimplemented ops on scan/scatter
+      patterns like this one — do not rely on it. Treat macOS numbers as the
+      CPU reference point and re-run the benchmark on the NVIDIA box for the
+      GPU claim.
+
+======================================================================
+UNIFORM   n_pairs=6  M=12  lead=108t  demand=336  util=50.0%
+======================================================================
+  budget 76,800 rollout-equivalents (400 grad steps x B=64 == 1,200 zeroth-order iters)
+    grad-st: 400 Adam steps, grad norm 1.55e+13 -> 4.59e+04, non-finite grads: 0
+    grad-soft: 400 Adam steps, grad norm 815 -> 198, non-finite grads: 0
+
+  method                profit   vs commander   % of bound
+  random             16,956.27     +14,468.08       89.2%
+  commander           2,488.18          +0.00       13.1%
+  hillclimb           6,300.92      +3,812.74       33.1%
+  grad-soft          16,127.63     +13,639.44       84.8%
+  grad-st            17,756.98     +15,268.79       93.4%
+  milp                3,637.14      +1,148.96       19.1%
+  milp bound         19,008.00                              <- CP-SAT dual bound (NOT converged in 180s)
+  ** CP-SAT incumbent $3,637 is BELOW the best method found ($17,757) — the solver did not converge and its incumbent is not a valid ceiling here.
+
+  historical (CLAUDE.md, OLD doubled WIP costs — context only):
+    agent     17,607   commander       -159   claimed 'max'      18786
+    -> that 'max' was a naive hand-computed bound; the rigorous CP-SAT dual bound is $19,008 (+222)
+
+================================================================================================
+SUMMARY — exact-sim profit, best of batch, current (halved) WIP costs
+================================================================================================
+  pattern            util   commander      random   hillclimb   grad-soft     grad-st        milp  milp_bound  grad %bnd     grad-hc
+  UNIFORM            50%        2,488      16,956       6,301      16,128      17,757       3,637      19,008     93.4%     +11,456
+>>> grad-st beats hillclimb on 1/1 patterns (margin $11,456 to $11,456); mean 93.4% of CP-SAT dual bound; CP-SAT failed to converge on 1/1
+=== done in 322.6s ===

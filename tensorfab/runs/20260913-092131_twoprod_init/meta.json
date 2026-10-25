@@ -1,0 +1,24 @@
+{
+  "run_id": "20260913-092131_twoprod_init",
+  "name": "twoprod_init",
+  "note": "Does biasing the start toward idle close the low-load gap?",
+  "timestamp": "2026-09-13T09:24:23",
+  "wall_seconds": 172.061,
+  "failed": false,
+  "git": {
+    "commit": "181364b",
+    "dirty": true
+  },
+  "env": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "machine": "arm64",
+    "processor": "arm",
+    "jax": "0.11.0",
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ],
+    "x64": false
+  }
+}

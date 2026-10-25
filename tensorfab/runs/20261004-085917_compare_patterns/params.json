@@ -1,0 +1,16 @@
+{
+  "patterns": [
+    "UNIFORM"
+  ],
+  "batch": 64,
+  "steps": 400,
+  "lr": 0.1,
+  "eval_every": 10,
+  "init_scale": 1.0,
+  "seed": 0,
+  "milp_seconds": 180.0,
+  "clip": 0.0,
+  "utilization": 0.5,
+  "n_pairs": 4,
+  "no_milp": false
+}

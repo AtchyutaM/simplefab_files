@@ -1,0 +1,26 @@
+{
+  "results": {
+    "UNIFORM": {
+      "demand": 616,
+      "utilization": 0.9166666666666666,
+      "H": 2688,
+      "commander": 34173.77785714286,
+      "grad-st": 33680.97678571429,
+      "grad-soft": 30842.26142857143,
+      "hillclimb": 34258.91107142857,
+      "random": 34152.796875,
+      "milp": 34573.58,
+      "milp_bound": 34688.01208,
+      "milp_optimal": false,
+      "grad_reach_frac": 0.9549851190476191,
+      "grad_mass_first_quarter": 0.7503091096878052,
+      "grad_norm_initial": 35113570304.0,
+      "n_nonfinite": 0
+    }
+  },
+  "gradient_wins_vs_hillclimb": 0,
+  "milp_not_converged": 0,
+  "margins_vs_hillclimb": [
+    -577.9342857142838
+  ]
+}

@@ -38,7 +38,7 @@ from tensorfab.tensor_sim import make_line, profit_breakdown  # noqa: E402
 
 def check(spec, batch: int = 8, seed: int = 0) -> bool:
     rng = np.random.default_rng(seed)
-    theta = jnp.asarray(rng.normal(0.0, 2.0, size=(batch, spec.H, 4)), dtype=jnp.float32)
+    theta = jnp.asarray(rng.normal(0.0, 2.0, size=(batch, spec.H, spec.n_machines)), dtype=jnp.float32)
 
     exact = make_line(spec)
     acts = hard_actions(theta)                       # [B, H, 4]
@@ -88,6 +88,17 @@ def main() -> int:
     for mode, H in [("ALTERNATING_92", 2688), ("UNIFORM", 672)]:
         spec = spec_for_mode(mode, H=H) if H != 2688 else spec_for_mode(mode)
         print(f"\n=== {mode}  H={spec.H} ===")
+        all_ok &= check(spec)
+
+    # Depth. This suite used to test M=4 only, which is exactly the width the
+    # tick happened to be hardcoded for: four `q.at[:, k].add(...)` lines that
+    # XLA silently dropped or clamped at any other M. The forward pass was
+    # wrong at M=8 and M=12 by thousands of dollars and nothing caught it,
+    # because nothing here ever built a line of a different depth.
+    for pairs in (1, 4, 6):
+        spec = spec_for_mode("UNIFORM", n_pairs=pairs)
+        print(f"\n=== UNIFORM  n_pairs={pairs}  M={spec.n_machines}  "
+              f"lead={int(spec.pt.sum())}t ===")
         all_ok &= check(spec)
     print("\n" + "=" * 60)
     print("DIFFSIM VERIFICATION PASSED" if all_ok else "DIFFSIM VERIFICATION FAILED")

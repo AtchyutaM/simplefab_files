@@ -60,3 +60,13 @@ far is `1413848+dirty`, since `tensorfab/` is not yet committed.
 | `20260906-180113_twoprod_compare` | twoprod_compare | grad-st beats zeroth-order on 3/3 mixes (margin $666 to $2,125) | 242 | cpu | fb63529+dirty |
 | `20260906-180516_twoprod_compare` | twoprod_compare | grad-st beats zeroth-order on 3/3 mixes (margin $967 to $2,664) | 243 | cpu | fb63529+dirty |
 | `20260906-190453_twoprod_long_milp` | twoprod_long_milp | 2-product CP-SAT at 1800s: gaps 3.27% / 1.76% / 1.44%; proven optimal 0/3 | 4343 | cpu | 88ead65+dirty |
+| `20260913-085831_twoprod_converge` | twoprod_converge | util 60%: profit $19,773 -> $20,016 -> $20,140; stranded 128 -> 128 -> 128 | 397 | cpu | 181364b+dirty |
+| `20260913-091745_twoprod_tau` | twoprod_tau | util 60%: released 464 -> 468 -> 512 -> 508 -> 504 as tau_q 4 -> 1 -> 0.25 -> 0.1 -> 0.05 | 172 | cpu | 181364b+dirty |
+| `20260913-092131_twoprod_init` | twoprod_init | util 60%: profit $19,773 -> $20,297 -> $21,449 -> $20,532 -> $-17,194 as idle bias 0 -> 1 -> 2 -> 3 -> 4 | 172 | cpu | 181364b+dirty |
+| `20260913-092443_twoprod_init` | twoprod_init | util 50%: profit $15,638 -> $16,364 -> $18,037 -> $17,606 as idle bias 0 -> 1 -> 2 -> 3 | 549 | cpu | 181364b+dirty |
+| `20261004-085535_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $14,139 to $14,139); mean 94.1% of CP-SAT dual bound; CP-SAT failed to converge on 1/1 | 221 | cpu | 181364b+dirty |
+| `20261004-085917_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $11,882 to $11,882); mean 90.9% of CP-SAT dual bound; CP-SAT failed to converge on 1/1 | 260 | cpu | 181364b+dirty |
+| `20261004-090338_compare_patterns` | compare_patterns | grad-st beats hillclimb on 1/1 patterns (margin $11,456 to $11,456); mean 93.4% of CP-SAT dual bound; CP-SAT failed to converge on 1/1 | 323 | cpu | 181364b+dirty |
+| `20261004-090901_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-18 to $-18); mean 99.6% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 222 | cpu | 181364b+dirty |
+| `20261004-091244_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-578 to $-578); mean 97.1% of CP-SAT dual bound; CP-SAT failed to converge on 0/1 | 259 | cpu | 181364b+dirty |
+| `20261004-091704_compare_patterns` | compare_patterns | grad-st beats hillclimb on 0/1 patterns (margin $-1,095 to $-1,095); mean 90.5% of CP-SAT dual bound; CP-SAT failed to converge on 1/1 | 323 | cpu | 181364b+dirty |
