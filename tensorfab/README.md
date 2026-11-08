@@ -428,6 +428,59 @@ kill.
 
 ---
 
+## 4C. The Intel Mini-Fab (`tensorfab/minifab/`, 2026-11-07)
+
+The publication plan's Phase 2 benchmark. It is a five-machine, six-step
+re-entrant fab (Kempf 1994 / Tsakalis et al., ETFA '97), Tier 1, ported from the
+plain-Python reference in the top-level `minifab/` package. The full write-up
+lives in the Obsidian vault (`Research/RL project/MiniFab/`).
+
+Same discipline as above: an exact integer tick, one `lax.scan`, proven exact
+against the reference. What changes:
+
+- buffers per **step**, `b[B, 6, P]`, with re-entrancy carried by
+  `spec.step_of[m, k]`
+- a slot-tagged register, `reg[B, 5, 2, P, 64]`
+- batch size inside the action, as an option index per machine
+- twins starting in the fixed order A..E
+- E's setup sized by the last completed step
+- PM as a switchable second register (off by default)
+
+Decisions are taken **after** completions, unlike `policies.commander` here,
+which observes before them.
+
+```bash
+python -m tensorfab.minifab.verify_sim     # 39 gates, ~50 s: tapes, replay, closed loop, V1-V3, mutations
+python -m tensorfab.minifab.bench          # throughput vs the Python reference
+```
+
+Result: **39/39**. That covers:
+- random tapes with random releases in five configurations
+- every reference policy, FIFO included, replayed over 300 shifts
+- LBFS/FBFS rules closed-loop with identical decisions
+- 845 min, 6.372 lots/shift and [T97]'s pull instability measured on the tensor sim
+- 8/8 planted spec errors caught
+
+Throughput on CPU is **2.3–3.2M row-ticks/s, 11–18× the reference**: about 23×
+below this line's 58M per row-tick (re-measured 2026-11-07). The speed study
+(`python -m tensorfab.minifab.speed_study`) found two causes:
+- the compiled tick has **71 fused kernels against 17**, because the five start
+  gates were written one per machine
+- the register is **640 integers per row against 68**
+
+The ring buffer turned out not to matter (≤ 20%). Exact alternatives give:
+- ~2× while staying gradient-safe: starts vectorised in two stages, {A, C, E} then
+  {B, D}, which halves the kernels; plus a shorter register for C/D/E
+- ~5× exact-only, by dropping the register for per-machine countdowns
+
+Late timings in the second logged run were spoiled by battery throttling. The
+study now interleaves variants, and its definitive run is pending.
+
+The differentiable relaxation is not built yet. It waits on whether the optimiser
+controls releases or dispatching.
+
+---
+
 ## 5. Running on the Windows/NVIDIA machine
 
 ### 5.1 The macOS caveat (why the numbers above are CPU numbers)

@@ -1,0 +1,15 @@
+=== run 20261107-182119_minifab_scaling_probe ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"reg_lens": [64, 128, 256, 512], "batches": [1, 1024], "shifts": 50, "rounds": 3, "rate": 6.36, "rule": "lbfs-full", "pm": false}
+reference, release 3.0/shift: 205,638 ticks/s (4.86 us per tick)
+reference, release 6.36/shift: 225,634 ticks/s (4.43 us per tick)
+padding changes no result (outs, WIP-ticks, runs, setups, every row): EXACT
+
+tensor, closed-loop lbfs-full, 7,200 ticks, median of 3 interleaved rounds
+  reg_len  ints/row                       B=1                    B=1024
+       64       640      598,013 (1.00x)    2.7x ref    3,181,536 (1.00x)   14.1x ref
+      128      1280      525,885 (0.88x)    2.3x ref    2,471,828 (0.78x)   11.0x ref
+      256      2560      454,673 (0.76x)    2.0x ref    1,399,828 (0.44x)    6.2x ref
+      512      5120      338,841 (0.57x)    1.5x ref      590,920 (0.19x)    2.6x ref
+>>> reg 64->512: tensor B=1024 3.18M -> 0.59M row-ticks/s (14x -> 2.6x ref); reference unaffected; padding exact=True
+=== done in 94.0s ===

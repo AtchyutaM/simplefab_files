@@ -1,0 +1,24 @@
+{
+  "run_id": "20261107-123155_minifab_speed_study",
+  "name": "minifab_speed_study",
+  "note": "",
+  "timestamp": "2026-11-07T12:53:00",
+  "wall_seconds": 1265.24,
+  "failed": false,
+  "git": {
+    "commit": "c72c21a",
+    "dirty": true
+  },
+  "env": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "machine": "arm64",
+    "processor": "arm",
+    "jax": "0.11.0",
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ],
+    "x64": false
+  }
+}

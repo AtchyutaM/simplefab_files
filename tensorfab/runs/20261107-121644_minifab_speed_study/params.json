@@ -1,0 +1,13 @@
+{
+  "batches": [
+    1,
+    64,
+    1024,
+    10000
+  ],
+  "shifts": 100,
+  "reps": 2,
+  "rate": 6.36,
+  "rule": "lbfs-full",
+  "pm": false
+}

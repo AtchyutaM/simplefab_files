@@ -1,0 +1,25 @@
+=== run 20261107-121644_minifab_speed_study ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"batches": [1, 64, 1024, 10000], "shifts": 100, "reps": 2, "rate": 6.36, "rule": "lbfs-full", "pm": false}
+exactness (300 shifts, rates 3.0 / 6.18 / 6.64 / 8.0, closed-loop lbfs-full):
+  ring       EXACT
+  split      EXACT
+  counters   EXACT
+  countdown  EXACT
+
+reference Python sim: 0.246 s per 300-shift run = 175,430 ticks/s
+
+throughput, closed-loop lbfs-full, 14,400 ticks, best of 2  (row-ticks/s)
+  variant    state/row            B=1           B=64         B=1024        B=10000
+  baseline         640        627,216      2,332,774      3,163,031      2,520,644
+  ring             640        614,163      2,240,789      3,776,345      2,650,109
+  split            364        221,055      3,517,515      3,115,166      5,901,835
+  counters         364        220,491      2,906,866      3,702,294      6,258,947
+  countdown         15        180,912      3,581,925      5,425,836     12,670,222
+
+ablation at B=1024: baseline with an action tape instead of the rule: 2,502,813 row-ticks/s (rule-driven: 3,163,031)
+>>> Mini-Fab tick: baseline peak 3.2M row-ticks/s (18x ref); gradient-safe peak 5.9M (34x); exact-only peak 12.7M (72x, countdown)
+
+------------------------------------------------------------
+reference 175,430 ticks/s · baseline peak 3,163,031 (18x) · gradient-safe peak 5,901,835 (34x) · exact-only peak 12,670,222 (72x, countdown)
+=== done in 604.8s ===

@@ -1,0 +1,17 @@
+{
+  "reg_lens": [
+    64,
+    128,
+    256,
+    512
+  ],
+  "batches": [
+    1,
+    1024
+  ],
+  "shifts": 50,
+  "rounds": 3,
+  "rate": 6.36,
+  "rule": "lbfs-full",
+  "pm": false
+}

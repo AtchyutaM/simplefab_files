@@ -1,0 +1,35 @@
+=== run 20261107-123155_minifab_speed_study ===
+backend=cpu devices=['cpu:0'] jax=0.11.0
+params: {"batches": [1, 64, 1024, 10000], "shifts": 100, "reps": 2, "rate": 6.36, "rule": "lbfs-full", "pm": false}
+exactness vs TensorMiniFab + loop rule (300 shifts, rates 3.0 / 6.18 / 6.64 / 8.0, lbfs-full):
+  ring           EXACT
+  split          EXACT
+  counters       EXACT
+  countdown      EXACT
+  vec            EXACT
+  vec-split      EXACT
+  vec-countdown  EXACT
+
+reference Python sim: 0.238 s per 300-shift run (best of 3) = 181,429 ticks/s
+
+throughput, closed-loop lbfs-full, 14,400 ticks, best of 2  (row-ticks/s)
+  variant        grad-safe ints/row kernels           B=1          B=64        B=1024       B=10000
+  baseline             yes      640      71       603,105     2,377,090     3,181,493     2,514,035
+  ring                 yes      640      72       599,459     2,207,221     3,815,651     2,572,234
+  split                yes      364      77       232,283     3,494,709     3,199,126     5,928,875
+  counters              no      364      89       207,142     2,864,143     3,778,694     6,094,955
+  countdown             no       15      96       152,741     2,640,514     5,605,145    12,847,830
+  vec                  yes      640      36     1,062,495     3,175,062     3,588,495     4,911,531
+  vec-split            yes      364      48       844,123     3,715,544     2,696,706     3,907,091
+  vec-countdown         no       15      33       644,566     3,966,352     5,170,378     7,776,729
+
+ablation: dispatch rule replaced by a near-free data-dependent action
+  baseline   B=1024   with rule     3,181,493   without     2,101,840   rule = -51% of tick time
+  baseline   B=10000  with rule     2,514,035   without     1,915,855   rule = -31% of tick time
+  vec-split  B=1024   with rule     2,696,706   without     3,370,590   rule = 20% of tick time
+  vec-split  B=10000  with rule     3,907,091   without     4,489,236   rule = 13% of tick time
+>>> Mini-Fab tick: baseline 3.2M row-ticks/s (18x ref); best gradient-safe 5.9M (split, 33x); best exact-only 12.8M (countdown, 71x)
+
+------------------------------------------------------------
+reference 181,429 ticks/s · baseline peak 3,181,493 (18x) · best gradient-safe split 5,928,875 (33x) · best exact-only countdown 12,847,830 (71x)
+=== done in 1265.2s ===
